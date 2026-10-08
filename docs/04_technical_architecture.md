@@ -1,5 +1,24 @@
 # Technical Architecture and Stack Recommendations
 
+## 0. Current Implementation Status
+
+This document describes the target MVP architecture and the recommended Laravel boundaries. The repository currently contains only the Laravel foundation and health checks.
+
+| Area | Status | Current location or note |
+| --- | --- | --- |
+| Laravel application bootstrap | Implemented | `backend/bootstrap/app.php` |
+| PostgreSQL configuration | Implemented | `backend/config/database.php` and `.env.example` |
+| Application health endpoint | Implemented | `GET /api/health` in `backend/routes/api.php` |
+| Laravel framework health endpoint | Implemented | `GET /up`, configured in `backend/bootstrap/app.php` |
+| Users foundation | Partially implemented | Default Laravel model and migration only |
+| Authentication and roles | Planned | Not implemented |
+| Domain modules | Planned | Not implemented |
+| Business API | Planned | Only `/api/health` is currently available |
+| Queue-based AI processing | Planned | Queue configuration exists; workflow does not |
+| Reports and document generation | Planned | Not implemented |
+
+The target architecture below must not be used to claim that planned endpoints or modules are available. Verify implementation in `backend/` before depending on a feature.
+
 ## 1. Recommended Architecture Style
 
 Use a modular monolith for the MVP. Keep the codebase divided by domain, but avoid premature microservices.
@@ -32,6 +51,23 @@ Why:
 - Redis for background jobs
 - Queue workers for async processing
 - JSON API consumed by the Next.js BFF
+
+### Laravel Application Conventions
+
+Use Laravel's standard boundaries as the backend grows:
+
+- Routes declare HTTP endpoints and do not contain business workflows.
+- Controllers coordinate HTTP concerns and remain thin.
+- Form Requests validate incoming payloads and request authorization where appropriate.
+- API Resources define stable JSON representations.
+- Eloquent models define persistence, casts, and relationships.
+- Policies enforce resource authorization.
+- Actions or domain services coordinate multi-step use cases.
+- Jobs handle asynchronous or retryable work.
+- Migrations are the only supported mechanism for schema changes.
+- Feature tests verify endpoint, authorization, transaction, and workflow behavior.
+
+Do not introduce a large abstraction layer before a concrete domain workflow requires it. Keep the modular-monolith boundary explicit without creating empty folders or speculative services.
 
 ### Storage
 - Local filesystem for the MVP
@@ -193,6 +229,8 @@ For the MVP:
 - Do not allow AI to confirm financial validity.
 
 ## 11. Official API Surface
+
+The endpoint groups in this section are target interfaces, not a list of currently implemented routes. At the current foundation stage, the only application API endpoint is `GET /api/health`; Laravel also exposes `GET /up` as its framework health route.
 
 Base path:
 

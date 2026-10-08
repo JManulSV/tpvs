@@ -1,5 +1,32 @@
 # AI Development Blueprint
 
+## 0. Repository Reality Check
+
+Before implementing any task, inspect the current `backend/` code. The repository currently contains a Laravel 12 foundation and `GET /api/health`; the business modules and API groups described in this document are planned.
+
+An AI coding assistant must not:
+
+- assume a planned endpoint already exists;
+- generate code against undocumented tables or classes without first checking the repository;
+- place business logic in route closures;
+- bypass Laravel validation, policies, transactions, or tests;
+- allow AI output to confirm a financial record.
+
+Every implementation request should state:
+
+```text
+Status: Implemented | Partially implemented | Planned
+Module:
+Use case:
+Authoritative business rules:
+Files allowed to change:
+Database impact:
+Authorization requirements:
+Failure cases:
+Tests required:
+Out of scope:
+```
+
 ## 1. Purpose
 
 This document is designed to help AI coding assistants implement the platform safely and consistently.
@@ -13,6 +40,11 @@ This document is designed to help AI coding assistants implement the platform sa
 - Preserve edit history.
 - Do not let AI bypass human confirmation.
 - Use exact enum names and field names from the data model.
+- Keep Laravel routes declarative and controllers thin.
+- Use Form Requests for HTTP input validation and API Resources for response formatting.
+- Use Policies for authorization and Jobs for asynchronous or retryable work.
+- Use migrations for schema changes and transactions for multi-entity workflows.
+- Do not add a dependency, module, or abstraction without a concrete current use case.
 
 ## 3. Build Order
 
@@ -205,3 +237,17 @@ A module is complete only when it has:
 - clear error responses;
 - no hidden state mutations;
 - no violation of the confirmation workflow.
+
+## 8. Laravel Change Checklist
+
+Before considering a backend change complete, verify:
+
+- the implementation location follows the Laravel application boundaries;
+- routes do not contain business logic;
+- request validation is explicit;
+- authorization is enforced by middleware or policies where required;
+- database changes use a new migration;
+- multi-record updates use an appropriate transaction;
+- API responses and errors follow the documented contract;
+- normal, invalid, unauthorized, and regression cases are tested;
+- documentation status is updated from `Planned` to `Implemented` only after verification.

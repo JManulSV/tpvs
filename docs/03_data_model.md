@@ -1,5 +1,18 @@
 # Data Model Specification
 
+## 0. Implementation Status
+
+This document defines the target MVP data model. The current Laravel backend does not yet implement the TPVS domain tables below.
+
+Currently present in Laravel migrations:
+
+- `users`
+- `password_reset_tokens`
+- `sessions`
+- Laravel cache and jobs tables
+
+The TPVS entities in this document are planned until their migrations, Eloquent models, relationships, constraints, and tests are implemented. Do not treat this document as evidence that the corresponding API or database tables already exist.
+
 ## 1. Entity Overview
 
 The MVP contains 9 core entities:
@@ -268,3 +281,7 @@ Delivery 0..1 ─── N History
 - Use strict decimal handling for financial values.
 - Keep the schema minimal and aligned to MVP needs.
 - Do not add extra tables for reports or totals unless a concrete need appears later.
+- Implement every schema change through a Laravel migration.
+- Do not modify an already-applied migration to change shared or deployed schema; create a new migration instead.
+- Use Eloquent relationships for aggregate navigation and database transactions for multi-entity business operations.
+- Add feature tests for constraints and workflows that cannot be expressed reliably through model unit tests alone.

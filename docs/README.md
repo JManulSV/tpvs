@@ -2,6 +2,8 @@
 
 This repository contains the MVP documentation for the automation platform in English, organized by role so AI tools and developers can work from the right level of detail.
 
+The documentation describes both the current repository implementation and the target MVP. These are not the same thing. Documents must mark planned modules and endpoints as planned until they exist in the codebase.
+
 ## Documents
 
 - `docs/01_product_prd.md` - Product requirements, user goals, and functional scope.
@@ -15,6 +17,28 @@ This repository contains the MVP documentation for the automation platform in En
 - `docs/09_manual_capture.md` - Manual record capture rules and hybrid workflow.
 - `docs/10_ui_ux.md` - UI/UX phase 7 screens, flows, and role-based behavior.
 - `docs/11_technical_roadmap.md` - Phase 8 implementation sequence, checkpoints, and module acceptance criteria.
+- `docs/backend/README.md` - Laravel backend status, structure, conventions, API, operations, security, and AI development rules.
+
+## Implementation Status
+
+The current backend is a Laravel 12 foundation, not the complete MVP backend.
+
+Implemented now:
+
+- Laravel 12 application bootstrap with PHP 8.3 support.
+- PostgreSQL configuration and initial Laravel migrations.
+- `GET /api/health` application endpoint.
+- `GET /up` Laravel framework health endpoint.
+- Basic Laravel test scaffolding and Docker runtime.
+
+Planned and not yet implemented:
+
+- Authentication and `EDITOR`/`VIEWER` authorization.
+- Company, record, image, AI processing, history, delivery, and report modules.
+- The business API described in `04_technical_architecture.md`.
+- Queue-based AI processing, document generation, and production operations.
+
+When documentation conflicts with the code, current behavior in the repository is authoritative for implemented features. Product, business, and target architecture documents remain authoritative for planned behavior.
 
 ## Intended Roles
 
@@ -22,6 +46,7 @@ This repository contains the MVP documentation for the automation platform in En
 - Backend and architecture work should start with `02_business_rules_and_states.md`, `03_data_model.md`, and `04_technical_architecture.md`.
 - Cursor, Copilot, Claude Engineer, and similar tools should use `05_ai_development_blueprint.md`.
 - Implementation sequencing and checkpoints are defined in `11_technical_roadmap.md`.
+- Laravel developers and AI coding assistants should start with `backend/README.md` after reading this document.
 
 ## Core MVP Principles
 

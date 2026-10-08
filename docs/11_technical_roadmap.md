@@ -1,5 +1,11 @@
 # Phase 8 - Technical Implementation Roadmap
 
+## 0. Current Checkpoint
+
+The repository is currently at the Laravel and frontend foundation stage. The backend has Laravel 12, PostgreSQL configuration, Docker support, initial Laravel migrations, test scaffolding, `GET /api/health`, and Laravel's `GET /up` health route. The business modules in this roadmap have not yet been implemented.
+
+The roadmap is a target implementation sequence. A module must not be marked complete because its documentation exists; it is complete only after its code, tests, operational requirements, and checkpoint are verified.
+
 ## 1. Purpose
 
 Turn the approved product, business, data, AI, and UI/UX designs into an implementation sequence with a verifiable checkpoint at the end of every module.
@@ -78,7 +84,7 @@ Infrastructure:
 - documented environment variables
 - local network configuration for development
 
-**Checkpoint:** Backend and frontend start successfully and the frontend can communicate with the backend through the intended BFF/API path.
+**Checkpoint:** Backend and frontend start successfully, `GET /api/health` and `GET /up` respond correctly, and the frontend can communicate with the backend through the intended BFF/API path.
 
 **Commit:** `chore: initialize project infrastructure`
 
@@ -353,5 +359,14 @@ Every module must have:
 - tests appropriate to its risk and behavior;
 - a successful checkpoint demonstration;
 - documented configuration or operational requirements where needed.
+
+For Laravel backend modules, also require:
+
+- routes, controllers, requests, resources, policies, jobs, models, and services are placed according to the documented application boundaries;
+- migrations are reversible where practical and do not rewrite applied history;
+- API behavior and error responses are documented;
+- database transactions protect multi-entity workflows;
+- authorization tests cover both allowed and forbidden roles;
+- the module's implementation status is updated only after the checkpoint passes.
 
 No module may bypass backend validation, role authorization, the human confirmation rule, or confirmed-only official reporting.
