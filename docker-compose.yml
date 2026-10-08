@@ -1,0 +1,33 @@
+services:
+  tpvs-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: tpvs
+      POSTGRES_USER: tpvs
+      POSTGRES_PASSWORD: tpvs
+
+  tpvs-backend:
+    build:
+      context: ./backend
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: pgsql
+      DB_HOST: tpvs-postgres
+      DB_PORT: 5432
+      DB_DATABASE: tpvs
+      DB_USERNAME: tpvs
+      DB_PASSWORD: tpvs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - tpvs-postgres
+
+  tpvs-frontend:
+    build:
+      context: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://tpvs-backend:8000
+    ports:
+      - "3000:3000"
