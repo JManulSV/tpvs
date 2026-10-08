@@ -26,7 +26,7 @@ From the repository root:
 docker compose up --build
 ```
 
-For Docker, `DB_HOST` must match the Compose service name. The current Compose service is `tpvs-postgres`; the template `.env.example` still uses `postgres`.
+For Docker, `DB_HOST` must match the Compose service name: `tpvs-postgres`. For host-based development, use `127.0.0.1` or `localhost` instead.
 
 ## Important Variables
 

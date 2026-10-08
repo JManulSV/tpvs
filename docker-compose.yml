@@ -1,6 +1,8 @@
 services:
   tpvs-postgres:
     image: postgres:17-alpine
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: tpvs
       POSTGRES_USER: tpvs

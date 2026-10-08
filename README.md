@@ -180,7 +180,7 @@ Copy `backend/.env.example` to `backend/.env` and review the values before start
 
 For host-based development, `DB_HOST` should point to the PostgreSQL host, commonly `127.0.0.1` or `localhost`.
 
-For Docker-based development, the database hostname must be the Compose service name:
+For Docker-based development, the database hostname inside the backend container must be the Compose service name:
 
 ```dotenv
 DB_HOST=tpvs-postgres
@@ -190,7 +190,9 @@ DB_USERNAME=tpvs
 DB_PASSWORD=tpvs
 ```
 
-The repository's current `backend/.env.example` uses `DB_HOST=postgres` for the default Laravel template, while Compose uses `tpvs-postgres`. Update the value in the runtime environment when using Compose.
+For host-based development, use `DB_HOST=127.0.0.1` or `DB_HOST=localhost`; Compose exposes PostgreSQL on port `5432`.
+
+The repository's `backend/.env.example` uses the Compose hostname `tpvs-postgres`. For host-based development, replace it with `127.0.0.1` or `localhost` as appropriate.
 
 Relevant current variables include:
 
