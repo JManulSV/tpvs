@@ -2,7 +2,7 @@
 
 ## 0. Implementation Status
 
-This document defines the target MVP data model. The current Laravel backend does not yet implement the TPVS domain tables below.
+This document defines the approved MVP data model. The TPVS domain schema and Eloquent relationships were implemented and verified on 2026-10-08 (roadmap phase 8.3).
 
 Currently present in Laravel migrations:
 
@@ -11,7 +11,7 @@ Currently present in Laravel migrations:
 - `sessions`
 - Laravel cache and jobs tables
 
-The TPVS entities in this document are planned until their migrations, Eloquent models, relationships, constraints, and tests are implemented. Do not treat this document as evidence that the corresponding API or database tables already exist.
+The TPVS entities below have migrations, Eloquent models, relationships, constraints, and aggregate/constraint tests. Business API behavior is implemented in later roadmap phases and must not be inferred from the presence of database tables.
 
 ## 1. Entity Overview
 

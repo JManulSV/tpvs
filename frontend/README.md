@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TPVS Frontend
 
-## Getting Started
+Next.js 16 and React 19 application for the TPVS internal operations platform. The frontend provides the role-aware UI and same-origin BFF boundary; Laravel owns persistence, business rules, and authorization.
 
-First, run the development server:
+## Current Status
+
+- Foundation includes the App Router, TypeScript, Tailwind CSS, shared UI primitives, Axios, TanStack Query, React Hook Form, and Zod.
+- `src/app/api/[...path]/route.ts` proxies browser API requests to Laravel using server-only `LARAVEL_API_URL`.
+- Business screens, authentication, and resource API workflows are planned; see the frontend documentation for status.
+
+## Development
+
+Install dependencies and start the development server:
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. Browser API requests use same-origin `/api/*`; set `LARAVEL_API_URL` for the server-side BFF when running outside Docker. In Compose it is configured as `http://tpvs-backend:8000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+```
 
-## Learn More
+## Project Conventions
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Start with [`../docs/frontend/README.md`](../docs/frontend/README.md) for the architecture, current status, feature guides, and implementation rules.
+- Use [`../docs/10_ui_ux.md`](../docs/10_ui_ux.md) for approved screen flows and [`../docs/11_technical_roadmap.md`](../docs/11_technical_roadmap.md) for implementation order.
+- Read `AGENTS.md` and the installed Next.js documentation under `node_modules/next/dist/docs/` before changing Next.js APIs; this repository pins Next.js 16.4.0.

@@ -436,6 +436,7 @@ Start with [`docs/README.md`](docs/README.md) for the complete documentation map
 
 | Document | Contents |
 | --- | --- |
+| [`docs/frontend/README.md`](docs/frontend/README.md) | Next.js frontend architecture, conventions, feature guides, and verification |
 | [`docs/01_product_prd.md`](docs/01_product_prd.md) | Product vision, scope, personas, and requirements |
 | [`docs/02_business_rules_and_states.md`](docs/02_business_rules_and_states.md) | State machine, validations, reporting rules, and delivery rules |
 | [`docs/03_data_model.md`](docs/03_data_model.md) | Entities, fields, relationships, and constraints |

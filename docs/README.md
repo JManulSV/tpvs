@@ -17,6 +17,7 @@ The documentation describes both the current repository implementation and the t
 - `docs/09_manual_capture.md` - Manual record capture rules and hybrid workflow.
 - `docs/10_ui_ux.md` - UI/UX phase 7 screens, flows, and role-based behavior.
 - `docs/11_technical_roadmap.md` - Phase 8 implementation sequence, checkpoints, and module acceptance criteria.
+- `docs/frontend/README.md` - Next.js frontend status, architecture, conventions, and feature guides.
 - `docs/backend/README.md` - Laravel backend status, structure, conventions, API, operations, security, and AI development rules.
 
 ## Implementation Status
@@ -46,6 +47,7 @@ When documentation conflicts with the code, current behavior in the repository i
 - Backend and architecture work should start with `02_business_rules_and_states.md`, `03_data_model.md`, and `04_technical_architecture.md`.
 - Cursor, Copilot, Claude Engineer, and similar tools should use `05_ai_development_blueprint.md`.
 - Implementation sequencing and checkpoints are defined in `11_technical_roadmap.md`.
+- Next.js developers and AI coding assistants should start with `frontend/README.md` after reading this document.
 - Laravel developers and AI coding assistants should start with `backend/README.md` after reading this document.
 
 ## Core MVP Principles

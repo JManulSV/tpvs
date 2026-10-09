@@ -2,7 +2,7 @@
 
 ## 0. Current Checkpoint
 
-The repository is currently at the Laravel and frontend foundation stage. The backend has Laravel 12, PostgreSQL configuration, Docker support, initial Laravel migrations, test scaffolding, `GET /api/health`, and Laravel's `GET /up` health route. The business modules in this roadmap have not yet been implemented.
+Phases 8.2 (Preparation) and 8.3 (Database) are complete. Laravel 12, PostgreSQL, and Next.js start through Docker Compose; Compose includes a persistent PostgreSQL volume and a database queue worker; Laravel initializes runtime storage directories and applies migrations at startup. The frontend foundation includes TypeScript, Tailwind CSS, shadcn/ui, Axios, TanStack Query, React Hook Form, and Zod. `GET /api/health`, `GET /up`, and the frontend BFF health route have been verified. The remaining business modules in this roadmap have not yet been implemented.
 
 The roadmap is a target implementation sequence. A module must not be marked complete because its documentation exists; it is complete only after its code, tests, operational requirements, and checkpoint are verified.
 
@@ -84,11 +84,13 @@ Infrastructure:
 - documented environment variables
 - local network configuration for development
 
-**Checkpoint:** Backend and frontend start successfully, `GET /api/health` and `GET /up` respond correctly, and the frontend can communicate with the backend through the intended BFF/API path.
+**Checkpoint: COMPLETE (2026-10-09).** Backend and frontend start successfully in Docker Compose. `GET /api/health`, `GET /up`, and frontend `GET /api/health` through the BFF all return HTTP 200. PostgreSQL reports healthy, all 12 migrations persist across `docker compose down` / `up`, the queue worker starts, and the backend test suite passes (9 tests, 20 assertions). Frontend lint, TypeScript, and production build pass.
 
 **Commit:** `chore: initialize project infrastructure`
 
 ### 8.3 - Database
+
+**Status: COMPLETE (2026-10-08).** The approved schema and Eloquent relationships are implemented and verified.
 
 Implement the approved model:
 
@@ -117,7 +119,7 @@ Record
 
 `Delivery` is the single editable delivery-preparation record associated with a `Record` in the MVP. It is not a versioned document entity. Generated `.docx` files remain ephemeral.
 
-**Checkpoint:** Create a complete `Record` and related details, image, history, delivery, and cash denominations through Laravel/Tinker; relationships and constraints behave as specified.
+**Checkpoint: COMPLETE (2026-10-08).** PostgreSQL contains all nine domain entities, their foreign keys, indexes, unique constraints, and checks. Feature tests persist and reload a complete Record aggregate with details, image/AI processing, history, delivery, and cash denominations; duplicate images/deliveries/denominations, invalid cash quantities, and unsupported denominations are rejected. All 12 migrations were run, rolled back, and rerun successfully in a temporary PostgreSQL database; the development database was left intact. Backend suite: 9 tests, 20 assertions passed.
 
 **Commit:** `feat: create core database schema`
 
