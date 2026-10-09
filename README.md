@@ -223,6 +223,14 @@ npm run dev
 
 Open `http://localhost:3000` in a browser.
 
+Browser API requests use the Next.js BFF at `/api/*`. The BFF forwards them to Laravel using `LARAVEL_API_URL`, a server-only environment variable, and passes through authorization and cookie headers. Docker Compose sets it to `http://tpvs-backend:8000`; when running the frontend directly on the host, create `frontend/.env.local` with:
+
+```dotenv
+LARAVEL_API_URL=http://localhost:8000
+```
+
+The frontend foundation includes Axios (`src/lib/api-client.ts`) configured to call the BFF, TanStack Query with a global `QueryProvider`, React Hook Form, Zod, and shadcn/ui. Add shadcn components as needed with `npx shadcn add <component>` from `frontend/`.
+
 Other available commands:
 
 ```bash
@@ -232,6 +240,13 @@ npm run start
 ```
 
 The frontend Docker image currently runs the Next.js development server and exposes port `3000`.
+Docker Compose mounts `frontend/` into the container for hot reload and stores `node_modules` and `.next` in separate named volumes so the source mount does not hide installed dependencies or Next.js cache. After changing `package.json` or `package-lock.json`, refresh dependencies with:
+
+```bash
+docker compose exec tpvs-frontend npm ci
+```
+
+If the frontend container was already running before these mounts were added, recreate it once with `docker compose up --build --force-recreate tpvs-frontend`.
 
 ## Database and Storage Requirements
 
