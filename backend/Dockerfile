@@ -14,7 +14,13 @@ RUN composer install --no-interaction --prefer-dist --no-progress --no-scripts
 
 COPY . .
 
-RUN composer dump-autoload --optimize --no-interaction
+RUN cp .env.example .env \
+    && composer dump-autoload --optimize --no-interaction
+
+COPY docker-entrypoint.sh /usr/local/bin/tpvs-entrypoint
+RUN chmod +x /usr/local/bin/tpvs-entrypoint
+
+ENTRYPOINT ["tpvs-entrypoint"]
 
 EXPOSE 8000
 

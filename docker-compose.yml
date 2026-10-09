@@ -15,12 +15,17 @@ services:
       APP_ENV: local
       APP_DEBUG: "true"
       APP_URL: http://localhost:8000
+      APP_KEY: base64:MAkRbTPzng0K+CAN8QI7qVGfJfAQMemd9pl8s3oxUJ0=
       DB_CONNECTION: pgsql
       DB_HOST: tpvs-postgres
       DB_PORT: 5432
       DB_DATABASE: tpvs
       DB_USERNAME: tpvs
       DB_PASSWORD: tpvs
+    volumes:
+      - ./backend:/var/www/html
+      - tpvs-backend-vendor:/var/www/html/vendor
+      - tpvs-backend-storage:/var/www/html/storage
     ports:
       - "8000:8000"
     depends_on:
@@ -33,3 +38,7 @@ services:
       NEXT_PUBLIC_API_URL: http://tpvs-backend:8000
     ports:
       - "3000:3000"
+
+volumes:
+  tpvs-backend-vendor:
+  tpvs-backend-storage:

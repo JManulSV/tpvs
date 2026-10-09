@@ -1,0 +1,98 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\AiProcessing;
+use App\Models\Company;
+use App\Models\Delivery;
+use App\Models\DeliveryCashDenomination;
+use App\Models\History;
+use App\Models\Image;
+use App\Models\Record;
+use App\Models\RecordDetail;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\QueryException;
+use Tests\TestCase;
+
+class DatabaseSchemaTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_the_complete_record_aggregate_and_relationships_can_be_persisted(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $record = Record::factory()->for($company)->create();
+        $details = RecordDetail::factory()->for($record)->count(2)->sequence(
+            ['order' => 1],
+            ['order' => 2],
+        )->create();
+        $image = Image::factory()->for($record)->create();
+        $processing = AiProcessing::factory()->for($image)->create();
+        $delivery = Delivery::factory()->for($record)->create();
+        $denomination = DeliveryCashDenomination::factory()->for($delivery)->create();
+        $history = History::factory()->for($record)->for($user)->create([
+            'record_detail_id' => $details->first()->id,
+            'delivery_id' => $delivery->id,
+        ]);
+
+        $record->load('company', 'details', 'image.aiProcessings', 'delivery.cashDenominations', 'histories');
+
+        $this->assertTrue($record->company->is($company));
+        $this->assertCount(2, $record->details);
+        $this->assertSame([1, 2], $record->details->pluck('order')->all());
+        $this->assertTrue($record->image->is($image));
+        $this->assertTrue($record->image->aiProcessings->first()->is($processing));
+        $this->assertTrue($record->delivery->is($delivery));
+        $this->assertTrue($record->delivery->cashDenominations->first()->is($denomination));
+        $this->assertTrue($record->histories->first()->is($history));
+        $this->assertTrue($history->user->is($user));
+        $this->assertTrue($history->recordDetail->is($details->first()));
+        $this->assertTrue($history->delivery->is($delivery));
+    }
+
+    public function test_a_record_cannot_have_more_than_one_active_image(): void
+    {
+        $record = Record::factory()->create();
+        Image::factory()->for($record)->create();
+
+        $this->expectException(QueryException::class);
+
+        Image::factory()->for($record)->create();
+    }
+
+    public function test_a_record_cannot_have_more_than_one_delivery(): void
+    {
+        $record = Record::factory()->create();
+        Delivery::factory()->for($record)->create();
+
+        $this->expectException(QueryException::class);
+
+        Delivery::factory()->for($record)->create();
+    }
+
+    public function test_a_delivery_cannot_repeat_a_cash_denomination(): void
+    {
+        $delivery = Delivery::factory()->create();
+        DeliveryCashDenomination::factory()->for($delivery)->create(['value' => 0.50]);
+
+        $this->expectException(QueryException::class);
+
+        DeliveryCashDenomination::factory()->for($delivery)->create(['value' => 0.50]);
+    }
+
+    public function test_cash_denomination_quantity_must_be_positive(): void
+    {
+        $this->expectException(QueryException::class);
+
+        DeliveryCashDenomination::factory()->create(['quantity' => 0]);
+    }
+
+    public function test_cash_denomination_value_must_be_official(): void
+    {
+        $this->expectException(QueryException::class);
+
+        DeliveryCashDenomination::factory()->create(['value' => 7.00]);
+    }
+}
