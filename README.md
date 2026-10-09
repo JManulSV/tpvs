@@ -101,14 +101,21 @@ Before implementing the production AI pipeline, test approximately 5 to 10 real 
 From the repository root:
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
-In another terminal, run the Laravel migrations after the containers are ready:
+Docker Compose starts PostgreSQL, Laravel, a Laravel database-queue worker, and Next.js. Laravel waits for PostgreSQL, creates its runtime storage directories, and runs migrations automatically before serving requests. PostgreSQL data is kept in the `tpvs-postgres-data` volume across container recreation and `docker compose down`.
+
+For the local environment, `.env` can override `APP_ENV`, `APP_DEBUG`, `APP_URL`, `APP_KEY`, and the database name/user/password. The committed `.env.example` key and credentials are only for local development; use unique secrets before any deployment. To generate a different local Laravel key, run `docker compose exec tpvs-backend php artisan key:generate` after startup.
+
+To remove containers while retaining PostgreSQL data:
 
 ```bash
-docker compose exec tpvs-backend php artisan migrate --force
+docker compose down
 ```
+
+To also delete the persisted database, explicitly remove the Compose volumes with `docker compose down --volumes`.
 
 Open the frontend at:
 
@@ -122,10 +129,13 @@ Check the backend health endpoint at:
 http://localhost:8000/api/health
 ```
 
+Laravel's framework health check is available at `http://localhost:8000/up`; the frontend-to-backend BFF health check is `http://localhost:3000/api/health`.
+
 The Compose services are named:
 
 - `tpvs-frontend`
 - `tpvs-backend`
+- `tpvs-queue-worker`
 - `tpvs-postgres`
 
 Stop the services with:
@@ -133,8 +143,6 @@ Stop the services with:
 ```bash
 docker compose down
 ```
-
-The current Compose file does not define a PostgreSQL volume, so database data may be lost when the database container is removed. Add persistent volumes before using this setup for operational data.
 
 ## Backend Local Setup
 
@@ -238,6 +246,8 @@ npm run lint
 npm run build
 npm run start
 ```
+
+For VS Code Remote SSH diagnostics, install frontend packages on the server from `frontend/` with `npm ci`; Docker's `node_modules` volume is separate from the host filesystem.
 
 The frontend Docker image currently runs the Next.js development server and exposes port `3000`.
 Docker Compose mounts `frontend/` into the container for hot reload and stores `node_modules` and `.next` in separate named volumes so the source mount does not hide installed dependencies or Next.js cache. After changing `package.json` or `package-lock.json`, refresh dependencies with:

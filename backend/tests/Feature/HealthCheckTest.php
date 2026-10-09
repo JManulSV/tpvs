@@ -17,6 +17,11 @@ class HealthCheckTest extends TestCase
              ->assertJson([
                  'status' => 'ok',
                  'service' => 'backend',
-             ]);
+              ]);
+    }
+
+    public function test_the_framework_health_endpoint_returns_ok(): void
+    {
+        $this->get('/up')->assertOk();
     }
 }
