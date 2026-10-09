@@ -1,1 +1,7 @@
 /.env
+
+# --- Skills Cache & Temporary Files ---
+.skills-cache/
+*.skill-lock
+.opencode/skills/cache/
+.opencode/skills/temp/
