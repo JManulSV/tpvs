@@ -18,6 +18,14 @@ Run tests with:
 composer run test
 ```
 
+Create the local authentication test accounts explicitly, only in a non-production environment:
+
+```bash
+php artisan db:seed --class=TestUsersSeeder
+```
+
+This creates `editor@test.com` (`EDITOR`) and `viewer@test.com` (`VIEWER`), both with the test-only password `12345678`. The seeder is not called by `DatabaseSeeder` and refuses to run in production. Do not use these credentials operationally.
+
 ## Docker Setup
 
 From the repository root:
@@ -62,4 +70,4 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 - Never enable debug output in an operational environment.
 - Keep `APP_KEY` stable and secret; Laravel uses it to protect session and CSRF cookies.
 - Authentication uses a browser-session cookie, `SameSite=Lax`, and CSRF validation for state-changing requests. The BFF must preserve the cookie and CSRF headers.
-- The dedicated test-user seeder is for non-production use only and must never be run in production.
+- The dedicated `TestUsersSeeder` is invoked explicitly for local/test use only; it refuses to run in production and is not called by `DatabaseSeeder`.
