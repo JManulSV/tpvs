@@ -92,6 +92,7 @@ services:
       context: ./frontend
     environment:
       LARAVEL_API_URL: http://tpvs-backend:8000
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
     volumes:
       - ./frontend:/app
       - tpvs-frontend-node-modules:/app/node_modules
