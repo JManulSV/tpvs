@@ -46,7 +46,8 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 | `SESSION_DRIVER` | Session persistence; use the existing database driver |
 | `SESSION_LIFETIME` | Session inactivity timeout; authentication contract uses 120 minutes |
 | `SESSION_COOKIE` | Session cookie name; authentication contract uses `tpvs_session` |
-| `SESSION_SECURE_COOKIE` | Mark session cookies Secure in HTTPS deployments |
+| `SESSION_SECURE_COOKIE` | Optional explicit Secure-cookie override; by default enabled when `APP_ENV=production` |
+| `SANCTUM_STATEFUL_DOMAINS` | Browser frontend origins allowed to use Sanctum's stateful session authentication |
 
 `QUEUE_CONNECTION=sync` is suitable only for the current foundation. Operational AI processing requires an asynchronous worker and persistent failed-job handling.
 
