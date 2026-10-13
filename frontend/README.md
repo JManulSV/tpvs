@@ -6,7 +6,7 @@ Next.js 16 and React 19 application for the TPVS internal operations platform. T
 
 - Foundation includes the App Router, TypeScript, Tailwind CSS, shared UI primitives, Axios, TanStack Query, React Hook Form, and Zod.
 - `src/app/api/[...path]/route.ts` proxies browser API requests to Laravel using server-only `LARAVEL_API_URL`.
-- Business screens and resource API workflows are planned. Authentication's approved contract is Laravel Sanctum stateful session via the BFF, but its UI, CSRF bridge, and verified cookie forwarding remain unimplemented; see the frontend documentation for details.
+- Business screens and resource API workflows are planned. Laravel Sanctum backend authentication is implemented; the frontend login UI, CSRF bridge, and verified cookie forwarding remain unimplemented. See the frontend documentation for details.
 
 ## Development
 

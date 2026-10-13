@@ -54,7 +54,7 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 | `SESSION_DRIVER` | Session persistence; use the existing database driver |
 | `SESSION_LIFETIME` | Session inactivity timeout; authentication contract uses 120 minutes |
 | `SESSION_COOKIE` | Session cookie name; authentication contract uses `tpvs_session` |
-| `SESSION_SECURE_COOKIE` | Optional explicit Secure-cookie override; by default enabled when `APP_ENV=production` |
+| `SESSION_SECURE_COOKIE` | Optional Secure-cookie override; defaults to enabled in production deployments, which must use HTTPS |
 | `SANCTUM_STATEFUL_DOMAINS` | Browser frontend origins allowed to use Sanctum's stateful session authentication |
 
 `QUEUE_CONNECTION=sync` is suitable only for the current foundation. Operational AI processing requires an asynchronous worker and persistent failed-job handling.
@@ -69,5 +69,7 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 - Back up database data, uploaded files, logs, and failed jobs according to deployment requirements.
 - Never enable debug output in an operational environment.
 - Keep `APP_KEY` stable and secret; Laravel uses it to protect session and CSRF cookies.
+- In Docker Compose, Laravel's development server runs with `--no-reload` so it retains environment-injected values such as `APP_KEY` for encrypted cookies.
+- Set `SESSION_SECURE_COOKIE=true` when local development is served through HTTPS; keep it enabled in production.
 - Authentication uses a browser-session cookie, `SameSite=Lax`, and CSRF validation for state-changing requests. The BFF must preserve the cookie and CSRF headers.
 - The dedicated `TestUsersSeeder` is invoked explicitly for local/test use only; it refuses to run in production and is not called by `DatabaseSeeder`.

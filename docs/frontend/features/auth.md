@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planned.** Backend authentication and frontend session handling are not yet implemented. The approved backend contract uses Laravel Sanctum stateful SPA authentication; the existing BFF proxy still needs the CSRF bridge and verified cookie/header forwarding.
+**Backend implemented; frontend/BFF pending.** Laravel Sanctum session authentication, endpoints, central role middleware, feature tests, and the database-backed session configuration are implemented. The existing BFF proxy still needs the CSRF bridge and verified cookie/header forwarding; login UI and protected navigation are not implemented.
 
 ## Goal and Scope
 
@@ -21,21 +21,21 @@ Login should provide field validation, pending state, invalid-credential feedbac
 
 ## Approved Backend Session Contract
 
-Laravel uses Sanctum stateful SPA authentication and owns the database-backed session. It sets the `tpvs_session` browser-session cookie with `HttpOnly`, `SameSite=Lax`, and `Secure` under HTTPS. The cookie expires when the browser closes; the server session expires after 120 minutes of inactivity. Login regenerates the session and logout invalidates it.
+Laravel uses Sanctum stateful SPA authentication and owns the database-backed session. It sets the `tpvs_session` browser-session cookie with `HttpOnly` and `SameSite=Lax`. Secure-cookie mode is enabled by default in production, which must use HTTPS; local HTTPS requires `SESSION_SECURE_COOKIE=true`. Manual HTTP checks confirmed the cookie expires when the browser closes and has `HttpOnly`; the server session expires after 120 minutes of inactivity. Login regenerates the session and logout invalidates it with HTTP `200` and `{ "message": "Logged out successfully." }`.
 
-The browser calls the same-origin Next.js BFF only. The BFF must expose `GET /api/auth/csrf-cookie` to proxy Laravel's Sanctum CSRF-cookie endpoint, preserve `Set-Cookie`, and forward session/CSRF cookies, `Origin`/`Referer`, and `X-XSRF-TOKEN` on state-changing requests. Do not expose a bearer token or session credential to Client Components, URLs, or local storage. Do not rely on route hiding as authorization; Laravel enforces permissions.
+The browser calls the same-origin Next.js BFF only. The BFF must expose `GET /api/auth/csrf-cookie` to proxy Laravel's `GET /sanctum/csrf-cookie` endpoint, preserve `Set-Cookie`, and forward session/CSRF cookies, `Origin`/`Referer`, and `X-XSRF-TOKEN` on state-changing requests. Manual HTTP checks confirmed Laravel issues a non-HttpOnly `XSRF-TOKEN` cookie and accepts its decoded value in `X-XSRF-TOKEN`; invalid CSRF returns `419`. Do not expose a bearer token or session credential to Client Components, URLs, or local storage. Do not rely on route hiding as authorization; Laravel enforces permissions.
 
-## Target API
+## Backend API Contract
 
-The planned Laravel endpoints are:
+The implemented Laravel endpoints are:
 
 | Method | Path | Request | Result |
 | --- | --- | --- | --- |
 | `POST` | `/api/auth/login` | `{ "email": "...", "password": "..." }` | Authenticates, regenerates session, returns current user |
-| `POST` | `/api/auth/logout` | No body | Invalidates the session |
+| `POST` | `/api/auth/logout` | No body | Invalidates the session; `200` with a success message |
 | `GET` | `/api/auth/me` | No body | `{ "data": { "id", "name", "email", "role" } }` |
 
-Expected failures are `401` for invalid credentials or missing/expired session, `403` for forbidden role actions, `419` for CSRF failure, and `422` for invalid input. Confirm the actual implementation and tests before consuming the contract. The logout success status/body will be documented after backend implementation.
+Expected failures are `401` for invalid credentials or missing/expired session, `403` for forbidden role actions, `419` for CSRF failure, and `422` for invalid input. Backend feature tests cover these responses and both role outcomes. The BFF must preserve these statuses.
 
 ## Acceptance Criteria
 
@@ -47,6 +47,7 @@ Expected failures are `401` for invalid credentials or missing/expired session, 
 - Server-side authorization remains effective even if the UI is manipulated.
 - `EDITOR` and `VIEWER` UI affordances follow the approved permission matrix.
 - Authenticated views use Laravel `me` as the source of identity and clear user-scoped client state after logout or identity change.
+- The BFF CSRF bridge, session/cookie forwarding, login UI, and protected navigation are implemented and verified against the Laravel contract.
 
 ## Related Documents
 

@@ -129,7 +129,10 @@ class AuthenticationTest extends TestCase
         $this->postJson('/api/auth/login', [
             'email' => 'editor@example.test',
             'password' => 'secret-password',
-        ], $this->statefulHeaders('invalid-csrf-token'))
+        ], [
+            'Origin' => 'http://localhost:3000',
+            'X-XSRF-TOKEN' => 'invalid-csrf-token',
+        ])
             ->assertStatus(419);
     }
 

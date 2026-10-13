@@ -41,7 +41,7 @@ Implemented foundation:
 
 Planned MVP modules:
 
-- Authentication and `EDITOR`/`VIEWER` authorization (Laravel Sanctum stateful session; 120-minute inactivity timeout and browser-session cookie).
+- Frontend authentication and BFF integration (Laravel Sanctum backend endpoints and `EDITOR`/`VIEWER` role middleware are implemented; the phase 8.4 checkpoint awaits BFF verification).
 - Companies, records, record details, images, and audit history.
 - Manual record capture and human review.
 - Ollama vision-model processing and asynchronous AI jobs.

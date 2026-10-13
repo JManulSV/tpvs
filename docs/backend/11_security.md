@@ -16,6 +16,8 @@
 - Do not log passwords, tokens, encryption keys, or sensitive provider payloads.
 - Add authorization tests for every mutation.
 
+Authentication endpoints and central role middleware are implemented. The Next.js BFF integration remains pending and must preserve Laravel cookies, CSRF headers, statuses, and no-store behavior before operational use.
+
 ## Upload Security
 
 Validate MIME type, file size, generated storage names, and record association. Do not trust the original filename or client-provided content type as the only security check.

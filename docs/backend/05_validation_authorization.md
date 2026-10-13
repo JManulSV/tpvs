@@ -27,7 +27,7 @@ Backend calculations are authoritative. AI values are input for review, never of
 
 ## Authentication and Authorization Status
 
-The approved authentication design uses Laravel Sanctum stateful SPA authentication backed by the Laravel database session. The implementation is planned until routes and tests exist. Authenticated users may read permitted resources; only `EDITOR` may mutate.
+Authentication is implemented with Laravel Sanctum stateful SPA authentication backed by the Laravel database session. Authenticated users may read permitted resources; only `EDITOR` may mutate. The `auth:sanctum` and `editor` middleware are available for route groups.
 
 | Action | Editor | Viewer |
 | --- | --- | --- |
@@ -37,6 +37,6 @@ The approved authentication design uses Laravel Sanctum stateful SPA authenticat
 | Prepare delivery | Yes | No |
 | Generate reports | Yes | Yes |
 
-Implement resource permissions with Laravel Policies and verify both allowed and forbidden behavior with feature tests.
+Implement resource-specific permissions with Laravel Policies as each resource is introduced. Feature tests currently verify the central allowed and forbidden role behavior.
 
 Protect state-changing requests with Laravel CSRF validation. The Next.js BFF is the browser-facing same-origin boundary and must forward the session cookie and `X-XSRF-TOKEN`; do not exempt API mutations from CSRF to simplify the proxy.

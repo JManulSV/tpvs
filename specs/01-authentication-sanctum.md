@@ -1,6 +1,6 @@
 # SPEC 01 — Autenticación y autorización con Sanctum
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** Ninguna
 > **Date:** 2026-10-13
 > **Objective:** Implementar autenticación backend con Laravel Sanctum y sesión protegida por cookie, definir el contrato con el BFF y autorizar las mutaciones según los roles `EDITOR` y `VIEWER`.
@@ -58,18 +58,18 @@ Las credenciales de prueba se crean solo al invocar el seeder dedicado. Las cont
 
 ## Acceptance criteria
 
-- [ ] La documentación aplicable ya no presenta JWT como mecanismo de autenticación objetivo y describe Sanctum/sesión de forma consistente.
-- [ ] `POST /api/auth/login` autentica credenciales válidas, regenera la sesión y entrega el usuario con `id`, `name`, `email` y `role`.
-- [ ] Credenciales incorrectas reciben `401`; entrada inválida recibe `422`.
-- [ ] `GET /api/auth/me` devuelve el usuario autenticado y `401` sin sesión válida.
-- [ ] `POST /api/auth/logout` invalida la sesión; solicitudes posteriores con esa sesión reciben `401`.
-- [ ] La cookie de sesión se llama `tpvs_session`, es `HttpOnly`, usa `SameSite=Lax` y es `Secure` sobre HTTPS; expira al cerrar el navegador y también después de 120 minutos de inactividad.
-- [ ] Las solicitudes de escritura con CSRF inválido reciben `419`, y el flujo CSRF requerido a través del BFF está documentado con la cookie `XSRF-TOKEN` y el encabezado correspondiente.
-- [ ] Una ruta de escritura protegida por el control de rol permite a `EDITOR` y devuelve `403` a `VIEWER`; ambos pueden acceder a una ruta de lectura autenticada. Las rutas usadas para demostrarlo existen únicamente durante las pruebas.
-- [ ] El seeder dedicado crea `editor@test.com` y `viewer@test.com` con sus roles y contraseña acordados, no se ejecuta automáticamente y se niega a correr con `APP_ENV=production`.
-- [ ] Las pruebas feature de autenticación, CSRF y roles y la suite backend existente pasan.
-- [ ] `docs/frontend/features/auth.md` describe el contrato backend realmente probado y los puntos pendientes que debe cubrir la siguiente spec frontend/BFF.
-- [ ] No se añadieron código de frontend/BFF ni endpoints de negocio como parte de esta spec.
+- [x] La documentación aplicable ya no presenta JWT como mecanismo de autenticación objetivo y describe Sanctum/sesión de forma consistente.
+- [x] `POST /api/auth/login` autentica credenciales válidas, regenera la sesión y entrega el usuario con `id`, `name`, `email` y `role`.
+- [x] Credenciales incorrectas reciben `401`; entrada inválida recibe `422`.
+- [x] `GET /api/auth/me` devuelve el usuario autenticado y `401` sin sesión válida.
+- [x] `POST /api/auth/logout` invalida la sesión; solicitudes posteriores con esa sesión reciben `401`.
+- [x] La cookie de sesión se llama `tpvs_session`, es `HttpOnly`, usa `SameSite=Lax` y se marca `Secure` en los despliegues HTTPS de producción; expira al cerrar el navegador y también después de 120 minutos de inactividad.
+- [x] Las solicitudes de escritura con CSRF inválido reciben `419`, y el flujo CSRF requerido a través del BFF está documentado con la cookie `XSRF-TOKEN` y el encabezado correspondiente.
+- [x] Una ruta de escritura protegida por el control de rol permite a `EDITOR` y devuelve `403` a `VIEWER`; ambos pueden acceder a una ruta de lectura autenticada. Las rutas usadas para demostrarlo existen únicamente durante las pruebas.
+- [x] El seeder dedicado crea `editor@test.com` y `viewer@test.com` con sus roles y contraseña acordados, no se ejecuta automáticamente y se niega a correr con `APP_ENV=production`.
+- [x] Las pruebas feature de autenticación, CSRF y roles y la suite backend existente pasan.
+- [x] `docs/frontend/features/auth.md` describe el contrato backend realmente probado y los puntos pendientes que debe cubrir la siguiente spec frontend/BFF.
+- [x] No se añadieron código de frontend/BFF ni endpoints de negocio como parte de esta spec.
 
 ## Decisions
 

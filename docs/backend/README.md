@@ -4,7 +4,7 @@ This directory documents how the TPVS backend is implemented and operated with L
 
 ## Current Status
 
-Status: Laravel foundation
+Status: Laravel foundation with authentication implemented; business modules remain planned.
 
 Implemented:
 
@@ -13,14 +13,15 @@ Implemented:
 - Initial Laravel migrations for users, sessions, cache, and jobs.
 - `GET /api/health` application endpoint.
 - `GET /up` Laravel framework health endpoint.
+- Laravel Sanctum stateful session authentication endpoints and central `EDITOR` mutation middleware.
 - Basic Laravel test scaffolding.
 - Docker development runtime.
 
 Not implemented:
 
-- Authentication and `EDITOR`/`VIEWER` authorization.
+- Next.js BFF session/CSRF integration; business resource-specific Policies will be implemented with their endpoints.
 - Companies, records, record details, images, AI processing, history, deliveries, and reports.
-- Business API endpoints beyond `/api/health`.
+- Business API endpoints beyond health and authentication.
 - Asynchronous AI jobs, document generation, and production operations.
 
 ## Authority Rules

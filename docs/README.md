@@ -34,14 +34,14 @@ Implemented now:
 
 Planned and not yet implemented:
 
-- Authentication and `EDITOR`/`VIEWER` authorization.
+- Next.js BFF session integration and frontend authentication UI; Laravel Sanctum authentication endpoints and backend role enforcement are implemented, while the phase 8.4 checkpoint awaits BFF verification.
 - Company, record, image, AI processing, history, delivery, and report modules.
 - The business API described in `04_technical_architecture.md`.
 - Queue-based AI processing, document generation, and production operations.
 
 When documentation conflicts with the code, current behavior in the repository is authoritative for implemented features. Product, business, and target architecture documents remain authoritative for planned behavior.
 
-The approved authentication target is Laravel Sanctum stateful SPA authentication with a database-backed session and an HttpOnly browser-session cookie. The authentication endpoints and BFF session integration remain planned until implemented and verified.
+Laravel Sanctum stateful authentication and backend role enforcement are implemented. The Next.js BFF session integration and frontend authentication remain pending and must be verified before phase 8.4 is complete.
 
 ## Intended Roles
 

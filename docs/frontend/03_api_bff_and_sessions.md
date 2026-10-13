@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend has a same-origin catch-all Route Handler at `src/app/api/[...path]/route.ts` that proxies requests to Laravel using server-only `LARAVEL_API_URL`. The Axios client targets `/api`. Authentication routes and BFF authentication behavior remain planned until implemented and tested; the current proxy must not be treated as proof that they exist.
+The frontend has a same-origin catch-all Route Handler at `src/app/api/[...path]/route.ts` that proxies requests to Laravel using server-only `LARAVEL_API_URL`. The Axios client targets `/api`. Laravel's authentication routes are implemented and tested; BFF authentication behavior remains pending, and the current proxy must not be treated as proof that the browser session and CSRF contract is fully integrated.
 
 ## Request Boundary
 
@@ -42,7 +42,7 @@ The planned browser-facing authentication paths are `POST /api/auth/login`, `POS
 
 The BFF must preserve Laravel `Set-Cookie` headers and forward `Cookie`, `Origin`/`Referer`, and `X-XSRF-TOKEN` when present. It must preserve upstream status codes: `401` unauthenticated, `403` forbidden, `419` CSRF mismatch, and `422` validation failure. Requests from server-rendered frontend code must forward the incoming browser session deliberately; they must not use an undocumented credential shortcut.
 
-Authentication implementation and end-to-end BFF behavior are still pending. Verify actual Laravel routes, cookie attributes, headers, and tests before consuming this contract.
+Laravel authentication routes, session cookie attributes, and CSRF behavior are implemented and manually verified. End-to-end BFF behavior remains pending. The BFF contract above must be implemented and verified before phase 8.4 is complete.
 
 Do not put session credentials in local storage, JavaScript-readable persistent storage, URLs, or client-visible environment variables. Do not add JWT or invent a second cookie/session strategy. The documented backend authentication contract and tested BFF behavior must agree.
 

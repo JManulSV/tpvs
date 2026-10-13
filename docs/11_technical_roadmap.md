@@ -125,6 +125,8 @@ Record
 
 ### 8.4 - Authentication and Authorization
 
+**Backend status: IMPLEMENTED. BFF integration: PENDING.**
+
 Implement:
 - login;
 - logout;
@@ -134,7 +136,7 @@ Implement:
 - CSRF protection for state-changing requests, with the Next.js BFF forwarding the session and CSRF cookies/headers;
 - `EDITOR` and `VIEWER` roles: authenticated users may read, and only `EDITOR` may mutate; resource Policies are added with their endpoints.
 
-**Checkpoint:** `EDITOR` can perform authorized mutations; `VIEWER` can read permitted resources but receives a forbidden response for mutations.
+**Checkpoint: PENDING BFF verification.** Backend feature tests confirm `EDITOR` can perform an authorized mutation and `VIEWER` receives `403`, and confirm both roles can read authenticated resources. Complete the checkpoint after the Next.js BFF implements and verifies authenticated cookie and CSRF forwarding from the browser.
 
 **Commit:** `feat: implement authentication and authorization`
 
