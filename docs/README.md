@@ -41,6 +41,8 @@ Planned and not yet implemented:
 
 When documentation conflicts with the code, current behavior in the repository is authoritative for implemented features. Product, business, and target architecture documents remain authoritative for planned behavior.
 
+The approved authentication target is Laravel Sanctum stateful SPA authentication with a database-backed session and an HttpOnly browser-session cookie. The authentication endpoints and BFF session integration remain planned until implemented and verified.
+
 ## Intended Roles
 
 - Product and operations stakeholders should start with `01_product_prd.md`.

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planned.** Authentication, roles, and session handling are not implemented in the current frontend/backend foundation. The existing BFF forwards selected cookies and headers but does not provide an authenticated session contract.
+**Planned.** Backend authentication and frontend session handling are not yet implemented. The approved backend contract uses Laravel Sanctum stateful SPA authentication; the existing BFF proxy still needs the CSRF bridge and verified cookie/header forwarding.
 
 ## Goal and Scope
 
@@ -19,15 +19,23 @@ Target routes, subject to the approved UX and final routing implementation:
 
 Login should provide field validation, pending state, invalid-credential feedback, and a clear successful navigation outcome. Logout should clear the visible user state and return to the unauthenticated experience.
 
-## Session Contract Prerequisite
+## Approved Backend Session Contract
 
-Before implementation, reconcile the JWT/HttpOnly-cookie statement in [`../../04_technical_architecture.md`](../../04_technical_architecture.md) with the BFF requirement in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md). Specify credential ownership, cookie settings, CSRF behavior, current-user endpoint, logout behavior, and expiry handling in the backend API/session contract and [`../03_api_bff_and_sessions.md`](../03_api_bff_and_sessions.md).
+Laravel uses Sanctum stateful SPA authentication and owns the database-backed session. It sets the `tpvs_session` browser-session cookie with `HttpOnly`, `SameSite=Lax`, and `Secure` under HTTPS. The cookie expires when the browser closes; the server session expires after 120 minutes of inactivity. Login regenerates the session and logout invalidates it.
 
-Do not store bearer tokens in local storage or expose them to Client Components. Do not rely on route hiding as authorization; Laravel must enforce permissions.
+The browser calls the same-origin Next.js BFF only. The BFF must expose `GET /api/auth/csrf-cookie` to proxy Laravel's Sanctum CSRF-cookie endpoint, preserve `Set-Cookie`, and forward session/CSRF cookies, `Origin`/`Referer`, and `X-XSRF-TOKEN` on state-changing requests. Do not expose a bearer token or session credential to Client Components, URLs, or local storage. Do not rely on route hiding as authorization; Laravel enforces permissions.
 
 ## Target API
 
-The roadmap calls for login, logout, and current-user (`me`) endpoints. Their precise paths, payloads, response shapes, and error codes remain subject to the implemented Laravel API contract. Verify `backend/routes/` and backend tests before consuming them.
+The planned Laravel endpoints are:
+
+| Method | Path | Request | Result |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/login` | `{ "email": "...", "password": "..." }` | Authenticates, regenerates session, returns current user |
+| `POST` | `/api/auth/logout` | No body | Invalidates the session |
+| `GET` | `/api/auth/me` | No body | `{ "data": { "id", "name", "email", "role" } }` |
+
+Expected failures are `401` for invalid credentials or missing/expired session, `403` for forbidden role actions, `419` for CSRF failure, and `422` for invalid input. Confirm the actual implementation and tests before consuming the contract. The logout success status/body will be documented after backend implementation.
 
 ## Acceptance Criteria
 
@@ -38,6 +46,7 @@ The roadmap calls for login, logout, and current-user (`me`) endpoints. Their pr
 - Expired or invalid sessions return the user to login without revealing protected data.
 - Server-side authorization remains effective even if the UI is manipulated.
 - `EDITOR` and `VIEWER` UI affordances follow the approved permission matrix.
+- Authenticated views use Laravel `me` as the source of identity and clear user-scoped client state after logout or identity change.
 
 ## Related Documents
 

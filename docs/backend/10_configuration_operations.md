@@ -43,6 +43,10 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 | `QUEUE_CONNECTION` | Queue execution mode |
 | `CACHE_STORE` | Cache backend |
 | `FILESYSTEM_DISK` | Application file storage |
+| `SESSION_DRIVER` | Session persistence; use the existing database driver |
+| `SESSION_LIFETIME` | Session inactivity timeout; authentication contract uses 120 minutes |
+| `SESSION_COOKIE` | Session cookie name; authentication contract uses `tpvs_session` |
+| `SESSION_SECURE_COOKIE` | Mark session cookies Secure in HTTPS deployments |
 
 `QUEUE_CONNECTION=sync` is suitable only for the current foundation. Operational AI processing requires an asynchronous worker and persistent failed-job handling.
 
@@ -55,3 +59,6 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 - Persist PostgreSQL data and private uploaded files.
 - Back up database data, uploaded files, logs, and failed jobs according to deployment requirements.
 - Never enable debug output in an operational environment.
+- Keep `APP_KEY` stable and secret; Laravel uses it to protect session and CSRF cookies.
+- Authentication uses a browser-session cookie, `SameSite=Lax`, and CSRF validation for state-changing requests. The BFF must preserve the cookie and CSRF headers.
+- The dedicated test-user seeder is for non-production use only and must never be run in production.

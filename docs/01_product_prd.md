@@ -84,12 +84,12 @@ Excluded:
 ### Authentication
 Requirements:
 - Users must log in and log out.
-- Sessions must persist.
+- Sessions must persist while the browser remains open and expire when it closes or after 120 minutes of inactivity.
 - Users must be differentiated by role.
 
 User stories:
 - As a user, I want to log in so I can access the system securely.
-- As a user, I want my session to persist so I do not need to log in repeatedly.
+- As a user, I want my session to persist while I use the open browser so I do not need to log in repeatedly during work.
 - As the system, I want to enforce role-based access so only allowed actions are available.
 
 ### Image Management

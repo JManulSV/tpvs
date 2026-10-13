@@ -97,7 +97,8 @@ This stack is practical because it provides:
 Responsibilities:
 - login;
 - logout;
-- session persistence;
+- Laravel Sanctum stateful SPA authentication using the database-backed Laravel session;
+- CSRF protection for state-changing requests;
 - role checks.
 
 ### Record Module
@@ -200,9 +201,11 @@ For the MVP:
 ## 7. Security Baseline
 
 - Hash passwords.
-- Use JWT authentication with the token stored in an HttpOnly cookie managed through the Next.js BFF.
+- Use Laravel Sanctum stateful SPA authentication. Laravel owns the database-backed session and sets an HttpOnly `tpvs_session` cookie; the Next.js BFF forwards the browser session and CSRF exchange.
+- Use a session cookie that expires when the browser closes, with a 120-minute inactivity timeout. Use `SameSite=Lax` and set `Secure` for HTTPS.
+- Protect state-changing requests with Laravel CSRF validation. The BFF exposes a same-origin CSRF-cookie bridge and forwards the session cookie, `XSRF-TOKEN` cookie, `X-XSRF-TOKEN`, and required origin headers.
 - Use role-based guards and policies for `EDITOR` and `VIEWER`.
-- Keep session expiration enabled.
+- In the MVP, authenticated users may read; only `EDITOR` may mutate. Add resource Policies with their endpoints.
 - Validate all incoming payloads.
 - Protect uploads with file type and size checks.
 - Log changes to critical data.

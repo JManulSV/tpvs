@@ -5,6 +5,10 @@
 - Keep `APP_DEBUG=false` outside local development.
 - Never commit `.env` or secret values.
 - Hash passwords through Laravel's supported mechanisms.
+- Use Laravel Sanctum stateful SPA authentication with a database-backed Laravel session; do not issue JWTs or personal access tokens for the browser flow.
+- Protect the session in an `HttpOnly`, `SameSite=Lax` cookie named `tpvs_session`; use a browser-session cookie and a 120-minute inactivity timeout, and mark it `Secure` under HTTPS.
+- Enforce CSRF validation on state-changing requests. The same-origin BFF must forward the session cookie, CSRF cookie/header, and required origin headers.
+- Return `401` for unauthenticated requests and `403` for authenticated users forbidden by role.
 - Validate all input with Form Requests or equivalent domain validation.
 - Use Policies for resource authorization.
 - Protect private files behind authorized Laravel responses.

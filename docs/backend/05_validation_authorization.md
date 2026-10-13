@@ -25,9 +25,9 @@ Business validators must enforce the rules in `docs/02_business_rules_and_states
 
 Backend calculations are authoritative. AI values are input for review, never official financial truth.
 
-## Authorization Status
+## Authentication and Authorization Status
 
-Editor and Viewer roles are planned and not implemented in the current backend.
+The approved authentication design uses Laravel Sanctum stateful SPA authentication backed by the Laravel database session. The implementation is planned until routes and tests exist. Authenticated users may read permitted resources; only `EDITOR` may mutate.
 
 | Action | Editor | Viewer |
 | --- | --- | --- |
@@ -38,3 +38,5 @@ Editor and Viewer roles are planned and not implemented in the current backend.
 | Generate reports | Yes | Yes |
 
 Implement resource permissions with Laravel Policies and verify both allowed and forbidden behavior with feature tests.
+
+Protect state-changing requests with Laravel CSRF validation. The Next.js BFF is the browser-facing same-origin boundary and must forward the session cookie and `X-XSRF-TOKEN`; do not exempt API mutations from CSRF to simplify the proxy.

@@ -129,9 +129,10 @@ Implement:
 - login;
 - logout;
 - current-user (`me`) endpoint;
-- JWT authentication stored in an HttpOnly cookie;
-- Next.js Backend-for-Frontend (BFF) handling of authenticated browser requests;
-- `EDITOR` and `VIEWER` roles and authorization policies.
+- Laravel Sanctum stateful SPA authentication using the database-backed session and an HttpOnly `tpvs_session` cookie;
+- session cookie expires when the browser closes, with a 120-minute inactivity timeout; logout invalidates the server session;
+- CSRF protection for state-changing requests, with the Next.js BFF forwarding the session and CSRF cookies/headers;
+- `EDITOR` and `VIEWER` roles: authenticated users may read, and only `EDITOR` may mutate; resource Policies are added with their endpoints.
 
 **Checkpoint:** `EDITOR` can perform authorized mutations; `VIEWER` can read permitted resources but receives a forbidden response for mutations.
 
