@@ -125,7 +125,7 @@ Record
 
 ### 8.4 - Authentication and Authorization
 
-**Backend status: IMPLEMENTED. BFF integration: PENDING.**
+**Backend and frontend/BFF implementation: IMPLEMENTED. Manual browser checkpoint: PENDING.**
 
 Implement:
 - login;
@@ -135,8 +135,10 @@ Implement:
 - session cookie expires when the browser closes, with a 120-minute inactivity timeout; logout invalidates the server session;
 - CSRF protection for state-changing requests, with the Next.js BFF forwarding the session and CSRF cookies/headers;
 - `EDITOR` and `VIEWER` roles: authenticated users may read, and only `EDITOR` may mutate; resource Policies are added with their endpoints.
+- Next.js same-origin CSRF bridge, trusted-origin and session-cookie forwarding, authentication services, basic `/login`, server-protected `/dashboard`, logout, and session-aware `/` and `/login` redirects.
+- Vitest coverage for the BFF contract and a documented browser acceptance flow.
 
-**Checkpoint: PENDING BFF verification.** Backend feature tests confirm `EDITOR` can perform an authorized mutation and `VIEWER` receives `403`, and confirm both roles can read authenticated resources. Complete the checkpoint after the Next.js BFF implements and verifies authenticated cookie and CSRF forwarding from the browser.
+**Checkpoint: PENDING manual browser verification.** Backend feature tests verify `EDITOR` mutation, `VIEWER` forbidden behavior, and authenticated reads. Frontend Vitest tests cover the BFF bridge, cookies, headers, status pass-through, trusted-origin filtering, and gateway failures; lint, TypeScript, and production build pass. Complete the checkpoint after the browser acceptance flow in `docs/frontend/06_testing.md` succeeds against Laravel using both roles, including login, refresh, `/login` and `/` redirects, logout, and session expiry/invalid-session behavior.
 
 **Commit:** `feat: implement authentication and authorization`
 
