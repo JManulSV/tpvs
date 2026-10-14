@@ -1,6 +1,6 @@
 # SPEC 04 — Flujo manual de registros
 
-> **Status:** Draft
+> **Status:** Approved
 > **Depends on:** SPEC 03
 > **Date:** 2026-10-14
 > **Objective:** Implementar de extremo a extremo la consulta, captura, revisión y confirmación de registros manuales con validación autoritativa en Laravel.
