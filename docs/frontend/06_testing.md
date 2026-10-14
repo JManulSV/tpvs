@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend foundation currently documents lint, TypeScript, and production-build verification. The `frontend/package.json` does not currently define a component/unit test runner or browser end-to-end test runner. Add test tooling when a concrete feature and test need justify it, and document the chosen command here.
+The frontend uses Vitest for focused unit/Route Handler tests. It does not currently use a browser end-to-end test runner. Authentication also has a documented manual browser-to-Laravel acceptance flow below.
 
 ## Verification Layers
 
@@ -20,7 +20,15 @@ Execute these from `frontend/`. If project scripts are added or changed, keep th
 
 ### Focused feature tests
 
-When a frontend test runner is adopted, prioritize behavior that matters to the feature:
+Run the focused tests from `frontend/` with:
+
+```bash
+npm test
+```
+
+The BFF test suite covers the CSRF bridge, methods, upstream path/query and request forwarding, multiple `Set-Cookie` headers, Laravel statuses and response headers, safe 502 behavior, trusted-origin filtering, and upstream path validation.
+
+Prioritize externally observable behavior that matters to each feature:
 
 - form validation and mapping of Laravel field errors;
 - loading, empty, success, and recoverable error states;
@@ -31,6 +39,29 @@ When a frontend test runner is adopted, prioritize behavior that matters to the 
 - report filters and file-download behavior.
 
 Test externally observable behavior instead of implementation details such as component state names or internal hook layout.
+
+### Authentication browser acceptance
+
+Run the stack from the repository root and create the local-only test accounts if they are not present:
+
+```bash
+docker compose up -d
+docker compose exec -T tpvs-backend php artisan db:seed --class=TestUsersSeeder
+```
+
+The seeder creates `editor@test.com` and `viewer@test.com`, both with password `12345678`. It is blocked in production and must only be used in local development.
+
+Open the frontend using the same origin configured in `FRONTEND_ORIGIN` and `SANCTUM_STATEFUL_DOMAINS` (for the Compose LAN example, `http://192.168.3.240:3000`). Verify:
+
+1. An anonymous visit to `/` redirects to `/login`; opening `/login` shows the login form.
+2. Submit invalid credentials and confirm a safe error appears without a page reload or credentials in the URL.
+3. Sign in as `editor@test.com`; the browser receives Laravel's `tpvs_session` cookie and navigates to `/dashboard`, which displays the current user's name and role from `/api/auth/me`.
+4. Refresh `/dashboard`; the session and identity remain valid. Open `/login`; the authenticated user is redirected to `/dashboard`. Opening `/` also redirects to `/dashboard`.
+5. Sign out; the browser returns to `/login`, and a subsequent `/dashboard` request redirects to login.
+6. Repeat login as `viewer@test.com` and confirm the displayed role is `VIEWER`.
+7. In browser developer tools, confirm credentials are only sent in the `POST /api/auth/login` JSON body, never in the URL or local storage. Confirm `GET /api/auth/csrf-cookie` returns the CSRF cookie and login/logout requests carry `X-XSRF-TOKEN`.
+
+When using a workstation on the LAN, configure `FRONTEND_ORIGIN`, `SANCTUM_STATEFUL_DOMAINS`, and `NEXT_ALLOWED_DEV_ORIGINS` for the exact frontend address before recreating the Compose services.
 
 ### Integration and end-to-end checks
 
