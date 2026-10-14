@@ -41,7 +41,7 @@ Implemented foundation:
 
 Planned MVP modules:
 
-- Frontend authentication and BFF integration (Laravel Sanctum backend endpoints and `EDITOR`/`VIEWER` role middleware are implemented; the phase 8.4 checkpoint awaits BFF verification).
+- Frontend authentication and BFF integration (backend and core frontend flows are implemented; the phase 8.4 checkpoint awaits documented manual browser verification against Laravel).
 - Companies, records, record details, images, and audit history.
 - Manual record capture and human review.
 - Ollama vision-model processing and asynchronous AI jobs.
@@ -237,7 +237,7 @@ Browser API requests use the Next.js BFF at `/api/*`. The BFF forwards them to L
 LARAVEL_API_URL=http://localhost:8000
 ```
 
-The frontend foundation includes Axios (`src/lib/api-client.ts`) configured to call the BFF, TanStack Query with a global `QueryProvider`, React Hook Form, Zod, and shadcn/ui. Add shadcn components as needed with `npx shadcn add <component>` from `frontend/`.
+The frontend includes Axios (`src/lib/api-client.ts`) configured to call the BFF, TanStack Query with a global `QueryProvider`, React Hook Form, Zod, Vitest for BFF contract tests (`npm test` from `frontend/`), and shadcn/ui. Add shadcn components as needed with `npx shadcn add <component>` from `frontend/`.
 
 Other available commands:
 

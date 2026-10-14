@@ -1,18 +1,9 @@
+import { fetchLaravel } from "@/lib/server/laravel-api";
+
 type RouteContext = {
   params: Promise<{ path: string[] }>;
 };
 
-const requestHeaders = [
-  "accept",
-  "authorization",
-  "content-type",
-  "cookie",
-  "if-modified-since",
-  "if-none-match",
-  "range",
-  "x-request-id",
-  "x-xsrf-token",
-];
 const responseHeaders = [
   "accept-ranges",
   "cache-control",
@@ -21,42 +12,47 @@ const responseHeaders = [
   "content-type",
   "etag",
   "last-modified",
-  "set-cookie",
 ];
 
 async function proxyToLaravel(request: Request, context: RouteContext) {
   const { path } = await context.params;
-  try {
-    const backendUrl = process.env.LARAVEL_API_URL ?? "http://localhost:8000";
-    const target = new URL(
-      `/api/${path.map(encodeURIComponent).join("/")}`,
-      backendUrl,
-    );
-    target.search = new URL(request.url).search;
 
-    const headers = new Headers();
-    for (const name of requestHeaders) {
-      const value = request.headers.get(name);
-      if (value) headers.set(name, value);
+  if (path.join("/") === "auth/csrf-cookie") {
+    if (request.method !== "GET") {
+      return new Response(null, {
+        status: 405,
+        headers: { allow: "GET" },
+      });
     }
 
+    return proxyRequest(request, "/sanctum/csrf-cookie");
+  }
+
+  const apiPath = `/api/${path.map(encodeURIComponent).join("/")}`;
+  return proxyRequest(request, apiPath);
+}
+
+async function proxyRequest(request: Request, upstreamPath: string) {
+  try {
+    const query = new URL(request.url).search;
+
     const hasBody = request.method !== "GET" && request.method !== "HEAD";
-    const upstream = await fetch(target, {
+    const upstream = await fetchLaravel(`${upstreamPath}${query}`, {
       method: request.method,
-      headers,
+      headers: request.headers,
       body: hasBody ? await request.arrayBuffer() : undefined,
-      cache: "no-store",
+      useTrustedOriginFallback: true,
     });
 
     const forwardedHeaders = new Headers();
     for (const name of responseHeaders) {
-      if (name === "set-cookie") continue;
       const value = upstream.headers.get(name);
       if (value) forwardedHeaders.set(name, value);
     }
     for (const cookie of upstream.headers.getSetCookie()) {
       forwardedHeaders.append("set-cookie", cookie);
     }
+    forwardedHeaders.set("cache-control", "no-store");
 
     return new Response(upstream.body, {
       status: upstream.status,

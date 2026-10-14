@@ -125,7 +125,7 @@ Record
 
 ### 8.4 - Authentication and Authorization
 
-**Backend status: IMPLEMENTED. BFF integration: PENDING.**
+**Status: COMPLETE (2026-10-14). Backend, frontend/BFF, and browser checkpoint verified.**
 
 Implement:
 - login;
@@ -135,8 +135,10 @@ Implement:
 - session cookie expires when the browser closes, with a 120-minute inactivity timeout; logout invalidates the server session;
 - CSRF protection for state-changing requests, with the Next.js BFF forwarding the session and CSRF cookies/headers;
 - `EDITOR` and `VIEWER` roles: authenticated users may read, and only `EDITOR` may mutate; resource Policies are added with their endpoints.
+- Next.js same-origin CSRF bridge, trusted-origin and session-cookie forwarding, authentication services, basic `/login`, server-protected `/dashboard`, logout, and session-aware `/` and `/login` redirects.
+- Vitest coverage for the BFF contract and a documented browser acceptance flow.
 
-**Checkpoint: PENDING BFF verification.** Backend feature tests confirm `EDITOR` can perform an authorized mutation and `VIEWER` receives `403`, and confirm both roles can read authenticated resources. Complete the checkpoint after the Next.js BFF implements and verifies authenticated cookie and CSRF forwarding from the browser.
+**Checkpoint: COMPLETE (2026-10-14).** Backend feature tests verify `EDITOR` mutation, `VIEWER` forbidden behavior, and authenticated reads. Vitest BFF tests (12/12), lint, TypeScript, and production build pass. Playwright browser verification against the running LAN stack passed for anonymous access and both `EDITOR` and `VIEWER`: invalid credentials show feedback without reload or credentials in the URL; valid login establishes the HttpOnly browser-session cookie; `/me` returns the expected role; `/dashboard` displays the identity and survives refresh; authenticated visits to `/login` and `/` reach `/dashboard`; logout returns to `/login` and protects `/dashboard`. No browser JavaScript exceptions or unexpected console errors were observed. The expected `401` for invalid credentials was visible in the browser console as a failed HTTP request.
 
 **Commit:** `feat: implement authentication and authorization`
 

@@ -29,7 +29,7 @@ services:
       SESSION_COOKIE: ${SESSION_COOKIE:-tpvs_session}
       SESSION_HTTP_ONLY: ${SESSION_HTTP_ONLY:-true}
       SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
-      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,127.0.0.1:3000,::1:3000}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,127.0.0.1:3000,::1:3000,192.168.3.240:3000}
       DB_CONNECTION: pgsql
       DB_HOST: tpvs-postgres
       DB_PORT: 5432
@@ -69,7 +69,7 @@ services:
       SESSION_COOKIE: ${SESSION_COOKIE:-tpvs_session}
       SESSION_HTTP_ONLY: ${SESSION_HTTP_ONLY:-true}
       SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
-      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,127.0.0.1:3000,::1:3000}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,127.0.0.1:3000,::1:3000,192.168.3.240:3000}
       DB_CONNECTION: pgsql
       DB_HOST: tpvs-postgres
       DB_PORT: 5432
@@ -92,6 +92,8 @@ services:
       context: ./frontend
     environment:
       LARAVEL_API_URL: http://tpvs-backend:8000
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000,http://127.0.0.1:3000,http://192.168.3.240:3000}
+      NEXT_ALLOWED_DEV_ORIGINS: ${NEXT_ALLOWED_DEV_ORIGINS:-192.168.3.240}
     volumes:
       - ./frontend:/app
       - tpvs-frontend-node-modules:/app/node_modules

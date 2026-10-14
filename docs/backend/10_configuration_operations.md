@@ -39,6 +39,16 @@ Compose starts PostgreSQL, Laravel, the database queue worker, and Next.js. Post
 
 Root `.env` variables configure the Compose services. `.env.example` contains local-only defaults; set a unique `APP_KEY` and database password before deployment. PostgreSQL persists data in the `tpvs-postgres-data` volume. `docker compose down` keeps that volume; `docker compose down --volumes` deletes it.
 
+For frontend authentication, configure:
+
+| Variable | Purpose |
+| --- | --- |
+| `FRONTEND_ORIGIN` | Comma-separated trusted frontend origins for the Next.js BFF and SSR, including scheme and port |
+| `SANCTUM_STATEFUL_DOMAINS` | Comma-separated frontend host:port values that Laravel Sanctum recognizes as stateful; keep aligned with frontend origins |
+| `NEXT_ALLOWED_DEV_ORIGINS` | Hostnames allowed to request Next.js development assets over the LAN; hostnames only, no scheme or port |
+
+The local `.env.example` includes localhost and an example LAN address `192.168.3.240`. Replace that address with the server's actual address on the office LAN in each applicable variable. `NEXT_ALLOWED_DEV_ORIGINS` is for local development only. Recreate the frontend and backend services after changing Compose environment values. Never expose `FRONTEND_ORIGIN` or `LARAVEL_API_URL` through a `NEXT_PUBLIC_*` variable.
+
 For host-based Laravel development, copy `backend/.env.example` to `backend/.env`, generate `APP_KEY` with `php artisan key:generate`, use `DB_HOST=127.0.0.1`, and run migrations manually. If using the database queue driver, start a worker with `php artisan queue:work database` after migrations.
 
 ## Important Variables

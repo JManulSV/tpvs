@@ -1,33 +1,23 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
 
-import { useEffect, useState } from "react";
+export const instant = false;
 
-type HealthStatus = "checking" | "up" | "down";
+export default async function HomePage() {
+  let user;
 
-export default function Home() {
-  const [health, setHealth] = useState<HealthStatus>("checking");
+  try {
+    user = await getAuthenticatedUser();
+  } catch {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4">
+        <p className="max-w-md text-center text-sm text-destructive" role="alert">
+          No se pudo validar la sesión con el servidor. Recarga la página para volver a intentarlo.
+        </p>
+      </main>
+    );
+  }
 
-  useEffect(() => {
-    fetch("/api/health", { cache: "no-store" })
-      .then((response) => setHealth(response.ok ? "up" : "down"))
-      .catch(() => setHealth("down"));
-  }, []);
-
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center">
-      <h1 className="text-3xl font-semibold">TPVS</h1>
-      <p className="text-sm text-zinc-600">Frontend running locally.</p>
-      <p
-        className={
-          health === "up"
-            ? "text-green-600"
-            : health === "down"
-              ? "text-red-600"
-              : "text-zinc-500"
-        }
-      >
-        Backend: {health}
-      </p>
-    </main>
-  );
+  if (user) redirect("/dashboard");
+  redirect("/login");
 }

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Backend implemented; frontend/BFF pending.** Laravel Sanctum session authentication, endpoints, central role middleware, feature tests, and the database-backed session configuration are implemented. The existing BFF proxy still needs the CSRF bridge and verified cookie/header forwarding; login UI and protected navigation are not implemented.
+**Implemented and verified (2026-10-14).** Laravel Sanctum session authentication and the frontend BFF CSRF/cookie bridge are integrated. `/login`, protected `/dashboard`, current-user lookup, logout, and session-aware root/login redirects passed Vitest and Playwright browser verification against the running Laravel stack for both roles. See [`../06_testing.md`](../06_testing.md) and the phase 8.4 checkpoint in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
 
 ## Goal and Scope
 
@@ -10,20 +10,20 @@ Provide login and logout, expose the current authenticated user to the applicati
 
 ## Routes and Screens
 
-Target routes, subject to the approved UX and final routing implementation:
+Implemented authentication routes:
 
 ```text
 /login
 /(app)/*    authenticated application route group; group name is not part of the URL
 ```
 
-Login should provide field validation, pending state, invalid-credential feedback, and a clear successful navigation outcome. Logout should clear the visible user state and return to the unauthenticated experience.
+Login provides field validation, pending state, invalid-credential feedback, and a successful navigation outcome. Logout clears the visible user state and returns to the unauthenticated experience. Authenticated visits to `/login` redirect to `/dashboard`; `/` redirects according to session state.
 
 ## Approved Backend Session Contract
 
 Laravel uses Sanctum stateful SPA authentication and owns the database-backed session. It sets the `tpvs_session` browser-session cookie with `HttpOnly` and `SameSite=Lax`. Secure-cookie mode is enabled by default in production, which must use HTTPS; local HTTPS requires `SESSION_SECURE_COOKIE=true`. Manual HTTP checks confirmed the cookie expires when the browser closes and has `HttpOnly`; the server session expires after 120 minutes of inactivity. Login regenerates the session and logout invalidates it with HTTP `200` and `{ "message": "Logged out successfully." }`.
 
-The browser calls the same-origin Next.js BFF only. The BFF must expose `GET /api/auth/csrf-cookie` to proxy Laravel's `GET /sanctum/csrf-cookie` endpoint, preserve `Set-Cookie`, and forward session/CSRF cookies, `Origin`/`Referer`, and `X-XSRF-TOKEN` on state-changing requests. Manual HTTP checks confirmed Laravel issues a non-HttpOnly `XSRF-TOKEN` cookie and accepts its decoded value in `X-XSRF-TOKEN`; invalid CSRF returns `419`. Do not expose a bearer token or session credential to Client Components, URLs, or local storage. Do not rely on route hiding as authorization; Laravel enforces permissions.
+The browser calls the same-origin Next.js BFF only. The BFF exposes `GET /api/auth/csrf-cookie` as a bridge to Laravel's `GET /sanctum/csrf-cookie`, preserves `Set-Cookie`, and forwards session/CSRF cookies, validated `Origin`/`Referer`, and `X-XSRF-TOKEN` on state-changing requests. If the browser omits `Origin`, the BFF supplies a configured trusted frontend origin. Invalid CSRF returns `419`; the frontend refreshes the token and requires explicit user retry without replaying the mutation. Do not expose session credentials to Client Components, URLs, or local storage. Laravel remains the authorization authority.
 
 ## Backend API Contract
 
@@ -47,7 +47,7 @@ Expected failures are `401` for invalid credentials or missing/expired session, 
 - Server-side authorization remains effective even if the UI is manipulated.
 - `EDITOR` and `VIEWER` UI affordances follow the approved permission matrix.
 - Authenticated views use Laravel `me` as the source of identity and clear user-scoped client state after logout or identity change.
-- The BFF CSRF bridge, session/cookie forwarding, login UI, and protected navigation are implemented and verified against the Laravel contract.
+- The BFF CSRF bridge, session/cookie forwarding, login UI, and protected navigation pass the automated and manual checks documented in `../06_testing.md`.
 
 ## Related Documents
 

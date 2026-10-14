@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend is a Next.js 16 and React 19 foundation. It currently includes the App Router shell, a Laravel health proxy, a shared Axios client, TanStack Query provider, and UI primitives. The business screens and authenticated workflows described here are planned until implemented and verified in `frontend/`.
+The frontend uses Next.js 16 and React 19. It includes the App Router shell, same-origin Laravel BFF, Sanctum session/CSRF integration, basic login/logout, a protected identity dashboard, a shared Axios client, TanStack Query, and UI primitives. Business screens and resource workflows remain planned until implemented and verified in `frontend/`.
 
 This guide documents frontend responsibilities and implementation conventions. It does not replace the product requirements, business rules, backend API contract, or current code.
 
@@ -44,7 +44,7 @@ When documents disagree about implemented behavior, inspect the code. Do not cha
 
 | Document | Purpose | Target status |
 | --- | --- | --- |
-| `features/auth.md` | Login, logout, session state, and protected navigation | Planned |
+| `features/auth.md` | Login, logout, session state, and protected navigation | Implemented; phase 8.4 manual checkpoint pending |
 | `features/dashboard.md` | Role-aware operational home screen | Planned |
 | `features/companies.md` | Company listing, search, and creation | Planned |
 | `features/records.md` | Record list, manual/image capture, review, and state actions | Planned |

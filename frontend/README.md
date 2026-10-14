@@ -5,8 +5,9 @@ Next.js 16 and React 19 application for the TPVS internal operations platform. T
 ## Current Status
 
 - Foundation includes the App Router, TypeScript, Tailwind CSS, shared UI primitives, Axios, TanStack Query, React Hook Form, and Zod.
-- `src/app/api/[...path]/route.ts` proxies browser API requests to Laravel using server-only `LARAVEL_API_URL`.
-- Business screens and resource API workflows are planned. Laravel Sanctum backend authentication is implemented; the frontend login UI, CSRF bridge, and verified cookie forwarding remain unimplemented. See the frontend documentation for details.
+- `src/app/api/[...path]/route.ts` proxies browser API requests to Laravel through the server-only `src/lib/server/laravel-api.ts` helper and `LARAVEL_API_URL`.
+- Laravel Sanctum authentication is integrated with the BFF: CSRF bridge, cookie/header forwarding, login/logout, protected `/dashboard`, and session-aware redirects are implemented. BFF tests are available with `npm test`; the browser acceptance flow is documented in `../docs/frontend/06_testing.md`.
+- Business screens and resource API workflows remain planned.
 
 ## Development
 
@@ -17,12 +18,13 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. Browser API requests use same-origin `/api/*`; set `LARAVEL_API_URL` for the server-side BFF when running outside Docker. In Compose it is configured as `http://tpvs-backend:8000`.
+Open `http://localhost:3000`. Browser API requests use same-origin `/api/*`; set server-only `LARAVEL_API_URL` and `FRONTEND_ORIGIN` when running outside Docker. For LAN development, configure `FRONTEND_ORIGIN` (comma-separated origins), `SANCTUM_STATEFUL_DOMAINS` (host:port entries), and `NEXT_ALLOWED_DEV_ORIGINS` (hostnames). Compose defaults are documented in the root `.env.example`; replace the example LAN IP with the frontend host's address as needed.
 
 ## Checks
 
 ```bash
 npm run lint
+npm test
 npx tsc --noEmit
 npm run build
 ```

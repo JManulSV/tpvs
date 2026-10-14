@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend has a same-origin catch-all Route Handler at `src/app/api/[...path]/route.ts` that proxies requests to Laravel using server-only `LARAVEL_API_URL`. The Axios client targets `/api`. Laravel's authentication routes are implemented and tested; BFF authentication behavior remains pending, and the current proxy must not be treated as proof that the browser session and CSRF contract is fully integrated.
+The frontend has a same-origin catch-all Route Handler at `src/app/api/[...path]/route.ts` that proxies requests to Laravel through the server-only helper `src/lib/server/laravel-api.ts`. The upstream is configured by server-only `LARAVEL_API_URL`. The Axios client targets `/api`. The BFF CSRF bridge, session/cookie forwarding, authentication services, login, logout, and protected `/dashboard` are implemented. Vitest covers the proxy contract; the real browser-to-Laravel acceptance flow is documented in `06_testing.md` and remains the phase 8.4 checkpoint evidence.
 
 ## Request Boundary
 
@@ -15,6 +15,8 @@ Browser feature service
 
 - Browser code calls only same-origin `/api/...` paths.
 - `LARAVEL_API_URL` is server-only and must not be renamed to a `NEXT_PUBLIC_*` variable.
+- `FRONTEND_ORIGIN` is a required server-only, comma-separated allowlist of frontend origins used for trusted Origin validation and SSR requests without an incoming Origin. It must not be derived from an untrusted Host header.
+- `NEXT_ALLOWED_DEV_ORIGINS` configures hostnames that may request Next.js development assets when accessing over a LAN; it is only for development and takes hostnames without scheme or port.
 - Laravel is the authority for endpoint validation, authorization, business errors, and state changes.
 - Do not expose PostgreSQL, private file paths, or Ollama directly to browser code.
 - The BFF should forward requests and responses deliberately; it should not silently redefine backend semantics.
@@ -38,11 +40,11 @@ The current allowlist of forwarded headers is an implementation detail. Review i
 
 The approved authentication contract uses Laravel Sanctum stateful SPA authentication with Laravel's database-backed session. Laravel, not the BFF, owns the session. Laravel sets a browser-session cookie named `tpvs_session` with `HttpOnly`, `SameSite=Lax`, and `Secure` under HTTPS. It expires when the browser closes; the server session expires after 120 minutes of inactivity. Login regenerates the session and logout invalidates it.
 
-The planned browser-facing authentication paths are `POST /api/auth/login`, `POST /api/auth/logout`, and `GET /api/auth/me`. The BFF must expose `GET /api/auth/csrf-cookie` as a same-origin bridge to Laravel Sanctum's CSRF-cookie endpoint. The browser receives the `XSRF-TOKEN` cookie through the BFF and sends its decoded value in `X-XSRF-TOKEN` on state-changing requests.
+The browser-facing authentication paths are `POST /api/auth/login`, `POST /api/auth/logout`, and `GET /api/auth/me`. The BFF exposes `GET /api/auth/csrf-cookie` as a same-origin bridge to Laravel Sanctum's `GET /sanctum/csrf-cookie`. The browser receives the `XSRF-TOKEN` cookie through the BFF and sends its decoded value in `X-XSRF-TOKEN` on state-changing requests.
 
-The BFF must preserve Laravel `Set-Cookie` headers and forward `Cookie`, `Origin`/`Referer`, and `X-XSRF-TOKEN` when present. It must preserve upstream status codes: `401` unauthenticated, `403` forbidden, `419` CSRF mismatch, and `422` validation failure. Requests from server-rendered frontend code must forward the incoming browser session deliberately; they must not use an undocumented credential shortcut.
+The BFF preserves all Laravel `Set-Cookie` headers and forwards `Cookie`, `Origin`/`Referer`, and `X-XSRF-TOKEN` when present. `Origin` and `Referer` are accepted only when they match an origin in `FRONTEND_ORIGIN`. When `Origin` is absent, the BFF uses the first configured trusted origin, allowing Sanctum stateful authentication for browser GETs and SSR. It preserves upstream status codes: `401` unauthenticated, `403` forbidden, `419` CSRF mismatch, and `422` validation failure. Server-rendered requests explicitly forward the incoming cookie header through the same server-only helper.
 
-Laravel authentication routes, session cookie attributes, and CSRF behavior are implemented and manually verified. End-to-end BFF behavior remains pending. The BFF contract above must be implemented and verified before phase 8.4 is complete.
+Laravel authentication routes, session cookie attributes, and CSRF behavior are implemented and manually verified. The BFF proxy contract is covered by Vitest tests in `frontend/tests/bff.test.ts`. Complete the manual browser flow in `06_testing.md` against the running stack before marking phase 8.4 complete.
 
 Do not put session credentials in local storage, JavaScript-readable persistent storage, URLs, or client-visible environment variables. Do not add JWT or invent a second cookie/session strategy. The documented backend authentication contract and tested BFF behavior must agree.
 
