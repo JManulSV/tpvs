@@ -2,7 +2,7 @@
 
 ## Status
 
-**Backend and core frontend/BFF authentication implemented; checkpoint verification and documentation alignment remain in progress.** Laravel Sanctum session authentication is implemented. The frontend BFF provides the CSRF bridge and cookie/header forwarding; `/login`, protected `/dashboard`, current-user lookup, logout, and session-aware root/login redirects are implemented. See the manual acceptance flow in [`../06_testing.md`](../06_testing.md).
+**Implemented and verified (2026-10-14).** Laravel Sanctum session authentication and the frontend BFF CSRF/cookie bridge are integrated. `/login`, protected `/dashboard`, current-user lookup, logout, and session-aware root/login redirects passed Vitest and Playwright browser verification against the running Laravel stack for both roles. See [`../06_testing.md`](../06_testing.md) and the phase 8.4 checkpoint in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
 
 ## Goal and Scope
 

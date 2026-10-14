@@ -125,7 +125,7 @@ Record
 
 ### 8.4 - Authentication and Authorization
 
-**Backend and frontend/BFF implementation: IMPLEMENTED. Manual browser checkpoint: PENDING.**
+**Status: COMPLETE (2026-10-14). Backend, frontend/BFF, and browser checkpoint verified.**
 
 Implement:
 - login;
@@ -138,7 +138,7 @@ Implement:
 - Next.js same-origin CSRF bridge, trusted-origin and session-cookie forwarding, authentication services, basic `/login`, server-protected `/dashboard`, logout, and session-aware `/` and `/login` redirects.
 - Vitest coverage for the BFF contract and a documented browser acceptance flow.
 
-**Checkpoint: PENDING manual browser verification.** Backend feature tests verify `EDITOR` mutation, `VIEWER` forbidden behavior, and authenticated reads. Frontend Vitest tests cover the BFF bridge, cookies, headers, status pass-through, trusted-origin filtering, and gateway failures; lint, TypeScript, and production build pass. Complete the checkpoint after the browser acceptance flow in `docs/frontend/06_testing.md` succeeds against Laravel using both roles, including login, refresh, `/login` and `/` redirects, logout, and session expiry/invalid-session behavior.
+**Checkpoint: COMPLETE (2026-10-14).** Backend feature tests verify `EDITOR` mutation, `VIEWER` forbidden behavior, and authenticated reads. Vitest BFF tests (12/12), lint, TypeScript, and production build pass. Playwright browser verification against the running LAN stack passed for anonymous access and both `EDITOR` and `VIEWER`: invalid credentials show feedback without reload or credentials in the URL; valid login establishes the HttpOnly browser-session cookie; `/me` returns the expected role; `/dashboard` displays the identity and survives refresh; authenticated visits to `/login` and `/` reach `/dashboard`; logout returns to `/login` and protects `/dashboard`. No browser JavaScript exceptions or unexpected console errors were observed. The expected `401` for invalid credentials was visible in the browser console as a failed HTTP request.
 
 **Commit:** `feat: implement authentication and authorization`
 

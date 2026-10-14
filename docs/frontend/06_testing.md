@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend uses Vitest for focused unit/Route Handler tests. It does not currently use a browser end-to-end test runner. Authentication also has a documented manual browser-to-Laravel acceptance flow below.
+The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md).
 
 ## Verification Layers
 

@@ -1,6 +1,6 @@
 # SPEC 02 — BFF y autenticación frontend
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 01
 > **Date:** 2026-10-13
 > **Objective:** Integrar el BFF de Next.js con la sesión y protección CSRF de Laravel Sanctum, y habilitar login, logout y una vista autenticada mínima.
