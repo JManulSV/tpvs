@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Policies;
+
+use App\Enums\UserRole;
+use App\Models\Company;
+use App\Models\User;
+
+class CompanyPolicy
+{
+    public function viewAny(User $user): bool
+    {
+        return in_array($user->role, [UserRole::EDITOR, UserRole::VIEWER], true);
+    }
+
+    public function view(User $user, Company $company): bool
+    {
+        return in_array($user->role, [UserRole::EDITOR, UserRole::VIEWER], true);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->role === UserRole::EDITOR;
+    }
+}
