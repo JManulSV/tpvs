@@ -22,11 +22,24 @@ Tests
 
 ## Manual Record
 
-1. Editor creates a manual Record.
-2. The backend stores details without Image or AIProcessing rows.
-3. Business validation runs.
-4. The Record enters `NEEDS_REVIEW`.
-5. An authorized Editor confirms or cancels it.
+**Status:** Contract defined for phase 8.6; planned until implemented and tested.
+
+**Entry points:** `POST /api/records`, `PUT /api/records/{id}`, and `POST /api/records/{id}/confirm`.
+
+**Preconditions:** The user is authenticated. Mutations require `EDITOR`. Creation and replacement reference an existing Company and supply required record fields and at least one valid detail.
+
+**Workflow:**
+
+1. An Editor creates a manual Record with company, ISO period, affiliation, branch, and ordered movement inputs.
+2. The backend validates that the dates are exactly Monday and Sunday for the supplied ISO week-year/week.
+3. For each detail, the backend accepts exactly one commission input: percentage or fixed amount. It calculates the commission using decimal arithmetic and `ROUND_HALF_UP` for percentages, then calculates return as income minus commission.
+4. A transaction persists the Record as `source=MANUAL`, `status=NEEDS_REVIEW`, and its RecordDetails. No Image, AIProcessing, or AI job is created.
+5. An Editor may replace the full aggregate only while it is `MANUAL` and `NEEDS_REVIEW`. Replacement requires a reason; the Record, details, and one generic `manual_record_updated` History event are committed together.
+6. An Editor explicitly confirms a valid manual record in `NEEDS_REVIEW`. The status transition and its History event, with fixed reason `Registro manual confirmado`, are committed together.
+
+**Failure behavior:** Invalid request or business input returns `422`; an unsupported source/state transition returns `409`; a Viewer mutation returns `403`. Create, replace, and confirmation leave no partial writes on failure.
+
+**Tests:** Verify Editor/Viewer authorization, ISO-year boundary weeks, financial rounding and fixed commission, invalid input, no Image/AIProcessing/job, atomic replacement/history, confirmation history, and disallowed transitions.
 
 ## Image Record
 
