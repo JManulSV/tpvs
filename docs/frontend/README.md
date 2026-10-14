@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend uses Next.js 16 and React 19. It includes the App Router shell, same-origin Laravel BFF, Sanctum session/CSRF integration, basic login/logout, a protected identity dashboard, a shared Axios client, TanStack Query, and UI primitives. Business screens and resource workflows remain planned until implemented and verified in `frontend/`.
+The frontend uses Next.js 16 and React 19. It includes the App Router shell, same-origin Laravel BFF, Sanctum session/CSRF integration, basic login/logout, a protected identity dashboard, the basic Companies catalog screen, a shared Axios client, TanStack Query, and UI primitives. Other business screens and resource workflows remain planned until implemented and verified in `frontend/`.
 
 This guide documents frontend responsibilities and implementation conventions. It does not replace the product requirements, business rules, backend API contract, or current code.
 
@@ -44,9 +44,9 @@ When documents disagree about implemented behavior, inspect the code. Do not cha
 
 | Document | Purpose | Target status |
 | --- | --- | --- |
-| `features/auth.md` | Login, logout, session state, and protected navigation | Implemented; phase 8.4 manual checkpoint pending |
+| `features/auth.md` | Login, logout, session state, and protected navigation | Implemented; phase 8.4 verified |
 | `features/dashboard.md` | Role-aware operational home screen | Planned |
-| `features/companies.md` | Company listing, search, and creation | Planned |
+| `features/companies.md` | Company listing, search, and creation | Implemented; phase 8.5 verified |
 | `features/records.md` | Record list, manual/image capture, review, and state actions | Planned |
 | `features/deliveries.md` | Delivery preparation, cash breakdown, and Word download | Planned |
 | `features/reports.md` | Confirmed-record summaries, filters, and Excel download | Planned |

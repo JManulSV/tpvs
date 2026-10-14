@@ -28,7 +28,7 @@ The database is the source of truth. AI proposes data, the backend validates it,
 
 ## Current Status
 
-The repository currently contains the initial Laravel and Next.js foundations, Dockerfiles, PostgreSQL Compose infrastructure, and a backend health endpoint.
+The repository contains Laravel and Next.js foundations, Dockerfiles, PostgreSQL Compose infrastructure, authentication, and the phase 8.5 Companies module.
 
 Implemented foundation:
 
@@ -36,13 +36,14 @@ Implemented foundation:
 - Next.js 16 frontend with React 19 and TypeScript.
 - PostgreSQL service in Docker Compose.
 - Backend health endpoint at `GET /api/health`.
+- Sanctum authentication and role-based authorization.
+- Companies list, detail, and create API plus a basic role-aware `/companies` screen.
 - Initial Laravel migrations and test scaffolding.
 - Local filesystem configuration for application files.
 
-Planned MVP modules:
+Remaining planned MVP modules:
 
-- Frontend authentication and BFF integration (backend and core frontend flows are implemented; the phase 8.4 checkpoint awaits documented manual browser verification against Laravel).
-- Companies, records, record details, images, and audit history.
+- Records, record details, images, and audit history.
 - Manual record capture and human review.
 - Ollama vision-model processing and asynchronous AI jobs.
 - Delivery preparation and cash-denomination validation.
@@ -50,7 +51,7 @@ Planned MVP modules:
 - Confirmed-record reports and Excel export.
 - Office-LAN deployment and end-to-end integration.
 
-The documented business API is not complete yet. At present, `/api/health` is the available API endpoint.
+The business API is still in progress. Health, authentication, and Companies endpoints are implemented; later resource endpoints remain planned.
 
 ## Architecture
 

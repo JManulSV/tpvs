@@ -2,7 +2,7 @@
 
 ## Status
 
-The health and authentication endpoints are implemented and covered by backend feature tests. Business resource endpoints described in the global architecture remain planned.
+The health, authentication, and Companies endpoints are implemented and covered by backend feature tests. Other business resource endpoints described in the global architecture remain planned.
 
 ## Base Path
 
@@ -101,9 +101,9 @@ Business errors should expose a stable code when implemented:
 }
 ```
 
-## Planned Companies Contract — Phase 8.5
+## Implemented Companies Contract — Phase 8.5
 
-The company endpoints below are approved target behavior but remain planned until implemented and covered by tests.
+The company endpoints below are implemented and covered by `CompaniesApiTest`.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |

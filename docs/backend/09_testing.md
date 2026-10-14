@@ -2,7 +2,7 @@
 
 ## Current Status
 
-The backend contains Laravel example tests only. A dedicated `/api/health` feature test should be added before the health endpoint is treated as verified behavior.
+The backend has feature coverage for health, authentication/authorization, Companies API behavior, database relationships, and schema constraints. Run the full suite with `php artisan test` (or `docker compose exec -T tpvs-backend php artisan test`). Configure an isolated PostgreSQL test database before running `RefreshDatabase` tests; do not point test runs at a database whose data must be retained.
 
 ## Test Types
 
@@ -32,3 +32,5 @@ $this->getJson('/api/health')
         'service' => 'backend',
     ]);
 ```
+
+The Companies feature tests cover authenticated access for both roles, Editor-only creation, request validation, normalized duplicate rejection, case-insensitive search, pagination, confirmed-record counts, detail `404`, persistence, and association with a Record.

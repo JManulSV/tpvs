@@ -2,7 +2,7 @@
 
 ## 0. Current Checkpoint
 
-Phases 8.2 (Preparation) and 8.3 (Database) are complete. Laravel 12, PostgreSQL, and Next.js start through Docker Compose; Compose includes a persistent PostgreSQL volume and a database queue worker; Laravel initializes runtime storage directories and applies migrations at startup. The frontend foundation includes TypeScript, Tailwind CSS, shadcn/ui, Axios, TanStack Query, React Hook Form, and Zod. `GET /api/health`, `GET /up`, and the frontend BFF health route have been verified. The remaining business modules in this roadmap have not yet been implemented.
+Phases 8.2 (Preparation), 8.3 (Database), 8.4 (Authentication), and 8.5 (Companies) are complete. Laravel 12, PostgreSQL, and Next.js start through Docker Compose; Compose includes a persistent PostgreSQL volume and a database queue worker; Laravel initializes runtime storage directories and applies migrations at startup. The frontend foundation includes TypeScript, Tailwind CSS, shadcn/ui, Axios, TanStack Query, React Hook Form, and Zod. Health, authentication, and Companies behavior have been verified. The remaining business modules in this roadmap have not yet been implemented.
 
 The roadmap is a target implementation sequence. A module must not be marked complete because its documentation exists; it is complete only after its code, tests, operational requirements, and checkpoint are verified.
 
@@ -144,6 +144,8 @@ Implement:
 
 ### 8.5 - Companies
 
+**Status: COMPLETE (2026-10-14).** Company catalog API, PostgreSQL uniqueness invariant, and basic role-aware frontend workflow are implemented and verified.
+
 Implement:
 
 ```text
@@ -152,11 +154,11 @@ POST /api/companies
 GET  /api/companies/{id}
 ```
 
-Search may be included. Company names are immutable after creation in the MVP; no rename or delete operation is exposed.
+The list supports case-insensitive substring search and pagination (`page=1`, `per_page=15`, maximum 100), ordered by company name. Each list item includes the count of associated `CONFIRMED` records. Company names are trimmed and immutable after creation in the MVP; normalized duplicates are rejected by Laravel and protected by a PostgreSQL unique expression index. No rename or delete operation is exposed. The basic Spanish interface provides search, pagination, a creation dialog for `EDITOR`, and consultation for `VIEWER`; official UI/UX design remains in phase 8.15.
 
-**Checkpoint:** Create a company, retrieve it, and associate it with a `Record`.
+**Checkpoint: COMPLETE (2026-10-14).** Backend feature tests verify authenticated reads, `EDITOR` creation and `VIEWER` rejection, validation, normalized duplicate rejection, search, pagination, confirmed-record counts, detail retrieval, and Company/Record association. The new PostgreSQL migration was applied, rolled back, and reapplied in a temporary database; a pre-existing normalized-name collision stopped the migration with IDs and names, and the unique index rejected an equivalent duplicate. Backend suite: 31 tests, 102 assertions passed. Frontend Vitest: 15 tests passed; lint, TypeScript, production build, and Pint checks for changed backend files passed. Browser acceptance through the BFF verified `EDITOR` creation (`201`), list refresh (`200`), duplicate feedback (`422`), `VIEWER` read (`200`), hidden create action, and forbidden create (`403`). Temporary verification rows and database were removed. See `docs/frontend/06_testing.md` for the browser acceptance record.
 
-**Commit:** `feat: implement company management`
+**Suggested commit:** `feat: implement company management` (not yet committed).
 
 ### 8.6 - Manual Records
 

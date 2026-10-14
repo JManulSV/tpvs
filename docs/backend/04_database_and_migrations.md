@@ -2,15 +2,16 @@
 
 ## Current Foundation
 
-The current Laravel migrations provide:
+The Laravel migrations provide the framework tables and the TPVS domain schema:
 
 - `users`
 - `password_reset_tokens`
 - `sessions`
 - cache storage
 - queue jobs storage
+- TPVS entities including `companies` and `records`, their relationships, and domain constraints
 
-The TPVS domain schema is defined in `docs/03_data_model.md` and is not implemented yet.
+The approved TPVS data model is defined in `docs/03_data_model.md`. The Companies module additionally has a reversible migration that replaces exact company-name uniqueness with case-insensitive uniqueness after trimming surrounding whitespace. It checks for existing normalized collisions before creating the PostgreSQL expression index; conflicts must be resolved manually without merging records.
 
 ## Migration Rules
 

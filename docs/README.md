@@ -22,7 +22,7 @@ The documentation describes both the current repository implementation and the t
 
 ## Implementation Status
 
-The current backend is a Laravel 12 foundation, not the complete MVP backend.
+The current backend is a Laravel 12 foundation with authentication and the Companies catalog implemented; it is not the complete MVP backend.
 
 Implemented now:
 
@@ -30,18 +30,19 @@ Implemented now:
 - PostgreSQL configuration and initial Laravel migrations.
 - `GET /api/health` application endpoint.
 - `GET /up` Laravel framework health endpoint.
+- Laravel Sanctum authentication and role authorization.
+- Companies list, detail, and create API with normalized unique names.
 - Basic Laravel test scaffolding and Docker runtime.
 
 Planned and not yet implemented:
 
-- Next.js BFF session integration and core frontend authentication; backend and frontend implementations are in place, while the phase 8.4 checkpoint awaits documented manual browser verification against Laravel.
-- Company, record, image, AI processing, history, delivery, and report modules.
+- Record, image, AI processing, history, delivery, and report modules.
 - The business API described in `04_technical_architecture.md`.
 - Queue-based AI processing, document generation, and production operations.
 
 When documentation conflicts with the code, current behavior in the repository is authoritative for implemented features. Product, business, and target architecture documents remain authoritative for planned behavior.
 
-Laravel Sanctum stateful authentication, Next.js BFF session integration, and core frontend authentication are implemented. The phase 8.4 checkpoint remains pending until the documented manual browser flow is verified against Laravel.
+Laravel Sanctum stateful authentication, Next.js BFF session integration, and the phase 8.5 Companies workflow are implemented. Browser verification for authentication and Companies is documented in the respective frontend testing guide.
 
 ## Intended Roles
 

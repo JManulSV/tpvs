@@ -1,6 +1,6 @@
 # SPEC 03 — Catálogo de empresas
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 02
 > **Date:** 2026-10-14
 > **Objective:** Implementar el catálogo de empresas de extremo a extremo con listado paginado, búsqueda, consulta individual y creación autorizada desde la aplicación web.
@@ -124,21 +124,21 @@ type CompanyDetail = {
 
 ## Acceptance criteria
 
-- [ ] Los tres endpoints existen y requieren sesión autenticada.
-- [ ] `EDITOR` y `VIEWER` pueden listar y consultar empresas; solo `EDITOR` puede crear.
-- [ ] Una creación válida devuelve `201` con `{data:{id,name}}`.
-- [ ] La entrada vacía, demasiado larga o duplicada devuelve `422`; las duplicaciones cubren diferencias de mayúsculas y espacios externos.
-- [ ] La migración protege la unicidad normalizada, no modifica migraciones aplicadas y falla claramente ante conflictos existentes.
-- [ ] El listado busca coincidencias parciales sin distinguir mayúsculas, ordena por nombre, pagina con los valores acordados y devuelve conteo de Records confirmados.
-- [ ] La consulta individual devuelve `{data:{id,name}}` y `404` para IDs inexistentes.
-- [ ] La interfaz es básica, funcional, está en español y ofrece estados de carga, error, vacío, búsqueda sin resultados y envío pendiente.
-- [ ] La interfaz ofrece paginación y reinicia a la primera página cuando cambia la búsqueda.
-- [ ] Solo `EDITOR` ve la acción de crear; un `VIEWER` recibe `403` si intenta crear directamente.
-- [ ] La creación exitosa cierra y limpia el diálogo, reinicia filtros y paginación, actualiza el listado y muestra confirmación.
-- [ ] La creación de una empresa, su consulta y su asociación con un Record quedan probadas sin añadir el flujo de Records a la interfaz.
-- [ ] Pasan la suite backend, `npm test`, lint, TypeScript y build de producción del frontend.
-- [ ] La verificación de navegador cubre los flujos de `EDITOR` y `VIEWER` a través del BFF.
-- [ ] La UI/UX oficial y el pulido visual quedan para la fase 8.15.
+- [x] Los tres endpoints existen y requieren sesión autenticada.
+- [x] `EDITOR` y `VIEWER` pueden listar y consultar empresas; solo `EDITOR` puede crear.
+- [x] Una creación válida devuelve `201` con `{data:{id,name}}`.
+- [x] La entrada vacía, demasiado larga o duplicada devuelve `422`; las duplicaciones cubren diferencias de mayúsculas y espacios externos.
+- [x] La migración protege la unicidad normalizada, no modifica migraciones aplicadas y falla claramente ante conflictos existentes.
+- [x] El listado busca coincidencias parciales sin distinguir mayúsculas, ordena por nombre, pagina con los valores acordados y devuelve conteo de Records confirmados.
+- [x] La consulta individual devuelve `{data:{id,name}}` y `404` para IDs inexistentes.
+- [x] La interfaz es básica, funcional, está en español y ofrece estados de carga, error, vacío, búsqueda sin resultados y envío pendiente.
+- [x] La interfaz ofrece paginación y reinicia a la primera página cuando cambia la búsqueda.
+- [x] Solo `EDITOR` ve la acción de crear; un `VIEWER` recibe `403` si intenta crear directamente.
+- [x] La creación exitosa cierra y limpia el diálogo, reinicia filtros y paginación, actualiza el listado y muestra confirmación.
+- [x] La creación de una empresa, su consulta y su asociación con un Record quedan probadas sin añadir el flujo de Records a la interfaz.
+- [x] Pasan la suite backend, `npm test`, lint, TypeScript y build de producción del frontend.
+- [x] La verificación de navegador cubre los flujos de `EDITOR` y `VIEWER` a través del BFF.
+- [x] La UI/UX oficial y el pulido visual quedan para la fase 8.15.
 
 ## Decisions
 

@@ -2,7 +2,7 @@
 
 ## 0. Current Implementation Status
 
-This document describes the target MVP architecture and the recommended Laravel boundaries. The repository currently contains only the Laravel foundation and health checks.
+This document describes the target MVP architecture and the recommended Laravel boundaries. The repository currently implements the foundation, authentication, and Companies catalog; remaining business modules are planned.
 
 | Area | Status | Current location or note |
 | --- | --- | --- |
@@ -233,7 +233,7 @@ For the MVP:
 
 ## 11. Official API Surface
 
-The endpoint groups in this section are target interfaces, not a list of currently implemented routes. At the current foundation stage, the only application API endpoint is `GET /api/health`; Laravel also exposes `GET /up` as its framework health route.
+The endpoint groups in this section are target interfaces, not a list of currently implemented routes. Implemented application routes currently include `GET /api/health`, authentication endpoints under `/api/auth`, and the Companies endpoints under `/api/companies`. Other resource groups remain planned; Laravel also exposes `GET /up` as its framework health route.
 
 Base path:
 

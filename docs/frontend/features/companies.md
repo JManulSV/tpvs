@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planned.** The company database model exists, but business API endpoints and frontend screens are not implemented.
+**Implemented and verified (2026-10-14).** Laravel list/detail/create endpoints, the same-origin BFF integration, and the basic `/companies` screen are implemented. Backend and frontend automated checks pass; browser acceptance for `EDITOR` and `VIEWER` is documented in [`../06_testing.md`](../06_testing.md) and the phase 8.5 checkpoint in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
 
 ## Goal and Scope
 
