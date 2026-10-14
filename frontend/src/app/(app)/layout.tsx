@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
@@ -33,6 +34,14 @@ async function AuthenticatedLayout({ children }: { children: ReactNode }) {
           <p className="text-sm text-muted-foreground">
             {user.email} · {user.role}
           </p>
+          <nav aria-label="Navegación principal" className="mt-3 flex gap-4 text-sm">
+            <Link className="underline-offset-4 hover:underline" href="/dashboard">
+              Inicio
+            </Link>
+            <Link className="underline-offset-4 hover:underline" href="/companies">
+              Empresas
+            </Link>
+          </nav>
         </div>
         <LogoutButton />
       </header>
