@@ -100,3 +100,35 @@ Business errors should expose a stable code when implemented:
   }
 }
 ```
+
+## Planned Companies Contract — Phase 8.5
+
+The company endpoints below are approved target behavior but remain planned until implemented and covered by tests.
+
+| Method | Path | Purpose | Authentication / authorization |
+| --- | --- | --- | --- |
+| `GET` | `/api/companies` | List companies with optional search and pagination. | Authenticated `EDITOR` or `VIEWER` |
+| `GET` | `/api/companies/{id}` | Retrieve one company. | Authenticated `EDITOR` or `VIEWER` |
+| `POST` | `/api/companies` | Create a company. | Authenticated `EDITOR` only |
+
+### List and Search
+
+`GET /api/companies` accepts these query parameters:
+
+| Parameter | Rules | Default |
+| --- | --- | --- |
+| `search` | Optional string, trimmed before use, maximum 255 characters. Matches a substring of the company name without case sensitivity. | No filter |
+| `page` | Integer greater than or equal to 1. Invalid values return `422`. | `1` |
+| `per_page` | Integer from 1 to 100. Invalid values return `422`. | `15` |
+
+Results are ordered by company name ascending and use Laravel's standard paginated JSON Resource response, with `data`, `links`, and `meta`. Each item contains `id`, `name`, and `records_count`. `records_count` counts associated records with status `CONFIRMED` only; it is a query result, not persisted company data.
+
+### Detail
+
+`GET /api/companies/{id}` returns `200` with `{ "data": { "id": 1, "name": "Acme" } }`. It returns `404` when the company does not exist. The detail response does not include `records_count`.
+
+### Creation and Name Uniqueness
+
+`POST /api/companies` accepts `{ "name": "Acme" }`. The name is required and may contain at most 255 characters. Laravel trims leading and trailing whitespace before persistence. Names that are equivalent after trimming and case-insensitive comparison are duplicates and return the standard `422` validation response. PostgreSQL enforces the same invariant with a unique expression index on `LOWER(BTRIM(name))`, including for concurrent writes. A `VIEWER` receives `403` for this mutation.
+
+Successful creation returns `201` with `{ "data": { "id": 1, "name": "Acme" } }`.
