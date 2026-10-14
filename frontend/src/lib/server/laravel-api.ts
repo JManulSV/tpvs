@@ -14,7 +14,7 @@ const forwardedRequestHeaders = new Set([
 ]);
 
 type LaravelRequestOptions = RequestInit & {
-  /** Add the configured frontend origin when no valid Origin was supplied. */
+  /** Add the configured frontend origin when the request has no Origin. */
   useTrustedOriginFallback?: boolean;
 };
 
@@ -33,44 +33,46 @@ function getBackendUrl(): URL {
   return backendUrl;
 }
 
-function getTrustedFrontendOrigin(): string {
-  const configuredOrigin = process.env.FRONTEND_ORIGIN;
+function getTrustedFrontendOrigins(): string[] {
+  const configuredOrigins = process.env.FRONTEND_ORIGIN;
 
-  if (!configuredOrigin) {
+  if (!configuredOrigins) {
     throw new Error("FRONTEND_ORIGIN must be configured on the server.");
   }
 
-  const parsedOrigin = new URL(configuredOrigin);
-  if (
-    !["http:", "https:"].includes(parsedOrigin.protocol) ||
-    parsedOrigin.username ||
-    parsedOrigin.password ||
-    parsedOrigin.pathname !== "/" ||
-    parsedOrigin.search ||
-    parsedOrigin.hash
-  ) {
-    throw new Error("FRONTEND_ORIGIN must contain only an origin.");
-  }
+  return configuredOrigins.split(",").map((configuredOrigin) => {
+    const parsedOrigin = new URL(configuredOrigin.trim());
+    if (
+      !["http:", "https:"].includes(parsedOrigin.protocol) ||
+      parsedOrigin.username ||
+      parsedOrigin.password ||
+      parsedOrigin.pathname !== "/" ||
+      parsedOrigin.search ||
+      parsedOrigin.hash
+    ) {
+      throw new Error("FRONTEND_ORIGIN must contain only comma-separated origins.");
+    }
 
-  return parsedOrigin.origin;
+    return parsedOrigin.origin;
+  });
 }
 
-function matchesTrustedOrigin(value: string, trustedOrigin: string): boolean {
+function findTrustedOrigin(value: string, trustedOrigins: string[]): string | null {
   try {
     const parsed = new URL(value);
-    return (
+    return trustedOrigins.find((trustedOrigin) =>
       !parsed.username &&
       !parsed.password &&
       parsed.origin === trustedOrigin
-    );
+    ) ?? null;
   } catch {
-    return false;
+    return null;
   }
 }
 
 function filterRequestHeaders(
   source: HeadersInit | undefined,
-  trustedOrigin: string,
+  trustedOrigins: string[],
   useTrustedOriginFallback: boolean,
 ): Headers {
   const incoming = new Headers(source);
@@ -83,15 +85,16 @@ function filterRequestHeaders(
 
   const origin = incoming.get("origin");
   if (origin) {
-    if (matchesTrustedOrigin(origin, trustedOrigin)) {
+    const trustedOrigin = findTrustedOrigin(origin, trustedOrigins);
+    if (trustedOrigin) {
       forwarded.set("origin", trustedOrigin);
     }
   } else if (useTrustedOriginFallback) {
-    forwarded.set("origin", trustedOrigin);
+    forwarded.set("origin", trustedOrigins[0]);
   }
 
   const referer = incoming.get("referer");
-  if (referer && !matchesTrustedOrigin(referer, trustedOrigin)) {
+  if (referer && !findTrustedOrigin(referer, trustedOrigins)) {
     forwarded.delete("referer");
   }
 
@@ -112,7 +115,7 @@ export async function fetchLaravel(
   }
 
   const backendUrl = getBackendUrl();
-  const trustedOrigin = getTrustedFrontendOrigin();
+  const trustedOrigins = getTrustedFrontendOrigins();
   const target = new URL(path, backendUrl);
 
   if (target.origin !== backendUrl.origin) {
@@ -129,7 +132,7 @@ export async function fetchLaravel(
     ...requestOptions,
     headers: filterRequestHeaders(
       requestHeaders,
-      trustedOrigin,
+      trustedOrigins,
       useTrustedOriginFallback,
     ),
     cache: "no-store",

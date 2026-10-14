@@ -41,6 +41,7 @@ async function proxyRequest(request: Request, upstreamPath: string) {
       method: request.method,
       headers: request.headers,
       body: hasBody ? await request.arrayBuffer() : undefined,
+      useTrustedOriginFallback: true,
     });
 
     const forwardedHeaders = new Headers();
