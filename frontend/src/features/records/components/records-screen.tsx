@@ -54,7 +54,7 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
           <h1 className="text-2xl font-semibold tracking-tight" id="records-heading">Registros</h1>
           <p className="text-sm text-muted-foreground">Consulta y revisa los registros del sistema.</p>
         </div>
-        {canCreate && <Button render={<Link href="/records/new" />}>+ Nuevo registro</Button>}
+        {canCreate && <Link className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/80 focus-visible:outline-2 focus-visible:outline-ring" href="/records/new">+ Nuevo registro</Link>}
       </header>
 
       <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">

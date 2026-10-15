@@ -2,7 +2,7 @@
 
 ## Status
 
-**Contract defined for phase 8.6; implementation planned.** The domain schema exists. Records endpoints and frontend workflows are not implemented until their routes, services, and tests are delivered.
+**Implemented for phase 8.6 (2026-10-15).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and browser acceptance are implemented. Image capture and AI review remain planned for later phases.
 
 ## Goal and Scope
 
@@ -30,7 +30,7 @@ Do not calculate official commission, return, totals, or state transitions as cl
 
 ## API Contract
 
-The phase 8.6 target contract is documented in [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md): `GET /api/records`, `POST /api/records`, `GET /api/records/{id}`, full-replacement `PUT /api/records/{id}`, and `POST /api/records/{id}/confirm` for separate review-required flows. All browser requests use same-origin services through the Next.js BFF. Standard validation errors are `422`; unauthorized, forbidden, missing-resource, and disallowed transition responses retain `401`, `403`, `404`, and `409` respectively.
+The phase 8.6 contract is implemented and documented in [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md): `GET /api/records`, `POST /api/records`, `GET /api/records/{id}`, full-replacement `PUT /api/records/{id}`, and `POST /api/records/{id}/confirm` for separate review-required flows. All browser requests use same-origin services through the Next.js BFF. Standard validation errors are `422`; unauthorized, forbidden, missing-resource, and disallowed transition responses retain `401`, `403`, `404`, and `409` respectively.
 
 The list query uses `search`, `company_id`, `year`, `month`, `week`, `status`, `source`, `page`, and `per_page`. Search spans company name, operation number, affiliation, and branch. A week filter is scoped by business `year`, not ISO; month filters by `week_end_date`. The create payload requires company, business period identifiers and valid date range, affiliation, branch, and non-empty ordered `details`. Each detail includes `operation_number`, `income`, and exactly one of `commission_percentage` or fixed `commission`. Laravel calculates `commission` and `return_amount`. Replacement submits the full aggregate plus required `reason`; future review-required confirmation accepts no client state or reason.
 
@@ -45,6 +45,12 @@ The list query uses `search`, `company_id`, `year`, `month`, `week`, `status`, `
 - The form never shows a record as confirmed before Laravel responds successfully.
 - Invalid financial data, forbidden actions, and invalid transitions are handled using backend responses.
 - The flow supports keyboard navigation and accessible validation/status messaging.
+
+## Phase 8.6 Verification
+
+- Backend feature suite, Vitest, lint, TypeScript, production build, and changed-file Pint checks pass.
+- Browser acceptance with `EDITOR` and `VIEWER` is documented in [`../06_testing.md`](../06_testing.md).
+- The implementation checkpoint is recorded in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
 
 ## Related Documents
 

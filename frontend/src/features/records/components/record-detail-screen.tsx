@@ -40,7 +40,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
         <p className="text-sm text-muted-foreground">{recordQuery.error?.message ?? "El registro no está disponible."}</p>
         <div className="flex justify-center gap-3">
           <Button onClick={() => void recordQuery.refetch()} type="button" variant="outline">Reintentar</Button>
-          <Button render={<Link href="/records" />} variant="outline">Volver a registros</Button>
+          <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href="/records">Volver a registros</Link>
         </div>
       </section>
     );
@@ -65,7 +65,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
     <section aria-labelledby="record-detail-heading" className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
-          <Button render={<Link href="/records" />} variant="outline">← Registros</Button>
+          <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href="/records">← Registros</Link>
           <h1 className="text-2xl font-semibold tracking-tight" id="record-detail-heading">{record.company.name}</h1>
           <p className="text-sm text-muted-foreground">
             Registro #{record.id} · {record.source === "MANUAL" ? "Captura manual" : "Origen imagen"} · Semana {record.week}, {record.year}

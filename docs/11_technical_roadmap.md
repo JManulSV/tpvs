@@ -168,14 +168,14 @@ Implement the first complete business workflow without AI:
 Create Record
   -> Add RecordDetails
   -> Calculate and validate
-  -> NEEDS_REVIEW
-  -> Human review
   -> CONFIRMED
 ```
 
-Build `BusinessValidator` for required fields, commission, return, totals, and applicable business rules. A manual `Record` can be created and confirmed without an image. Delivery can also be prepared without an image; an image must be attached before Word generation.
+Build `BusinessValidator` for required fields, commission, return, totals, and applicable business rules. A valid manual `Record` is confirmed in the save transaction because the Editor enters and reviews the data together. The business period uses the office's week number (1–53), calendar year, and valid start/end dates; do not apply ISO-week or Monday-Sunday assumptions. Image-derived records still require a separate human review before confirmation. A manual Record can be created and confirmed without an image. Delivery can also be prepared without an image; an image must be attached before Word generation.
 
-**Checkpoint:** Create and confirm a valid manual record without creating an `AIProcessing` attempt.
+**Checkpoint: COMPLETE (2026-10-15).** Manual capture validates the business period without ISO weekday assumptions, calculates financial values, creates the record directly as `CONFIRMED`, and writes a `null -> CONFIRMED` History event atomically without Image or `AIProcessing`. The frontend keeps the user on `/records/new`, reports success, and resets the form for the next capture. Backend suite: 55 tests, 313 assertions passed. Frontend Vitest: 21 tests passed; lint, TypeScript, production build, and changed-file Pint checks passed. Browser acceptance verified Editor creation (`201`), backend calculations, form reset, list and detail, Viewer read-only behavior, and direct Viewer mutation rejection (`403`). QA data was removed. See `docs/frontend/06_testing.md` for the browser acceptance record.
+
+**Suggested commit:** `feat: implement manual record workflow` (not yet committed).
 
 **Commit:** `feat: implement manual record workflow`
 

@@ -133,9 +133,9 @@ Results are ordered by company name ascending and use Laravel's standard paginat
 
 Successful creation returns `201` with `{ "data": { "id": 1, "name": "Acme" } }`.
 
-## Records Contract — Phase 8.6 (Implemented; End-to-End Checkpoint Pending)
+## Records Contract — Phase 8.6 (Implemented)
 
-The endpoints below implement the Records contract for phase 8.6. The complete module remains in progress until the specified browser acceptance and checkpoint are verified.
+The endpoints below implement the manual-record workflow for phase 8.6 and are covered by Laravel feature tests.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -207,9 +207,9 @@ On replacement, Laravel accepts only a `MANUAL` record in `NEEDS_REVIEW`. It val
 
 The list resource uses the same record fields and may omit detail fields not needed by the list, but it includes the company, state, period, source, and calculated totals. Response types must be kept consistent between list and detail where a field has the same meaning.
 
-### Confirm Manual Record
+### Confirm a Review-Required Record
 
-`POST /api/records/{id}/confirm` accepts an empty JSON object for records from workflows that require a separate human review. Laravel accepts only a valid record in `NEEDS_REVIEW`, revalidates its business data, and transactionally updates status to `CONFIRMED` with a History row for `status` (`NEEDS_REVIEW` to `CONFIRMED`), the authenticated user, and fixed reason `Registro manual confirmado`. Successful manual creation is the exception to this separate transition: the Editor's capture is the review, so Laravel validates and confirms it atomically when created. Clients cannot choose the status.
+`POST /api/records/{id}/confirm` accepts an empty JSON object for records from workflows that require a separate human review, such as future image/AI capture. Laravel accepts only a valid record in `NEEDS_REVIEW`, revalidates its business data, and transactionally updates status to `CONFIRMED` with a History row for `status` (`NEEDS_REVIEW` to `CONFIRMED`), the authenticated user, and fixed reason `Registro manual confirmado`. Manual creation is different: Laravel validates and confirms it atomically when created, because the Editor enters and reviews the data together. Clients cannot choose the status.
 
 ### Record Errors
 
