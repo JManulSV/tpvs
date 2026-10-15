@@ -69,6 +69,14 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 
 `QUEUE_CONNECTION=sync` is suitable only for the current foundation. Operational AI processing requires an asynchronous worker and persistent failed-job handling.
 
+### Private Record Image Storage (Phase 8.7)
+
+The target image configuration uses a dedicated local private disk rooted under Laravel-managed storage, for example `storage/app/private/record-images`. It must remain separate from the public disk and must not depend on `FILESYSTEM_DISK`; do not run `storage:link` for the image root. The disk definition and API behavior remain planned until the 8.7 implementation checkpoint passes.
+
+The image contract accepts JPEG, PNG, and WebP up to 10 MiB. Configure PHP's `upload_max_filesize=10M` and `post_max_size=12M` in the Docker and host PHP runtimes so transport limits do not unexpectedly undercut Laravel validation. Restart/recreate the relevant runtime after changing PHP configuration and verify effective values with `php -i` or an equivalent runtime check.
+
+Docker Compose currently persists Laravel's complete `backend/storage` directory in `tpvs-backend-storage`; keep that volume for uploaded private images. Backups and recovery must cover both PostgreSQL Image metadata and private image files. Restoring only one side can leave dangling metadata or orphaned files.
+
 ## Operational Checks
 
 - Verify `GET /api/health`.
@@ -76,6 +84,8 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 - Verify the `tpvs-queue-worker` service is running when using Docker.
 - Run migrations before starting application workers in host-based development; Docker backend startup runs them automatically.
 - Persist PostgreSQL data and private uploaded files.
+- Keep the private image disk mounted/persisted and included in backup and restore verification.
+- Verify effective PHP upload limits allow the documented 10 MiB image limit, with multipart overhead accommodated by `post_max_size=12M`.
 - Back up database data, uploaded files, logs, and failed jobs according to deployment requirements.
 - Never enable debug output in an operational environment.
 - Keep `APP_KEY` stable and secret; Laravel uses it to protect session and CSRF cookies.

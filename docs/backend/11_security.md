@@ -20,7 +20,13 @@ Authentication endpoints and central role middleware are implemented. The Next.j
 
 ## Upload Security
 
-Validate MIME type, file size, generated storage names, and record association. Do not trust the original filename or client-provided content type as the only security check.
+For Record images, accept only non-empty JPEG, PNG, or WebP content up to 10 MiB. Detect MIME from bytes; do not trust the original filename, extension, or client-provided content type as the only security check. Sanitize the original filename as metadata and use a server-generated UUID storage key.
+
+Store files on a dedicated private local disk, separate from public storage and `FILESYSTEM_DISK` selection. Never create public links for this disk. Do not return physical paths, storage keys, or public URLs to clients. Serve bytes only from authenticated Laravel routes authorized against the parent Record; use `Content-Disposition: inline` and `Cache-Control: private, no-store`.
+
+Only `EDITOR` may mutate image associations; authenticated `EDITOR` and `VIEWER` may view images on non-canceled Records. Reject access and upload/replacement for canceled Records. Reject replacement while an Image has AIProcessing attempts so processing provenance remains intact. Preserve CSRF validation on the upload route.
+
+Coordinate filesystem and database changes explicitly: write a new random-key file first, update metadata transactionally under a Record lock, remove the new file if the database transaction fails, and delete the previous file only after commit. Log post-commit cleanup failure without exposing storage details to clients. Do not log image contents or sensitive multipart payloads.
 
 ## AI Security
 
