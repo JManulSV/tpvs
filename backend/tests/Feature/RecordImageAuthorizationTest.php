@@ -130,17 +130,15 @@ class RecordImageAuthorizationTest extends TestCase
         Event::listen('eloquent.creating: '.Image::class, static function (): void {
             throw new RuntimeException('Simulated image metadata persistence failure.');
         });
-        $this->withoutExceptionHandling();
 
-        try {
-            $this->actingAs(User::factory()->create(['role' => UserRole::EDITOR]), 'web')
-                ->post('/api/records/'.$record->id.'/image', [
-                    'image' => $this->pngUpload(),
-                ]);
-            $this->fail('Expected the simulated database operation to fail.');
-        } catch (RuntimeException $exception) {
-            $this->assertSame('Simulated image metadata persistence failure.', $exception->getMessage());
-        }
+        $response = $this->actingAs(User::factory()->create(['role' => UserRole::EDITOR]), 'web')
+            ->post('/api/records/'.$record->id.'/image', [
+                'image' => $this->pngUpload(),
+            ]);
+
+        $response->assertStatus(500)
+            ->assertJsonPath('message', 'The image could not be stored.')
+            ->assertDontSee('Simulated image metadata persistence failure.');
 
         $this->assertDatabaseMissing('images', ['record_id' => $record->id]);
         Storage::disk('record_images')->assertDirectoryEmpty('');

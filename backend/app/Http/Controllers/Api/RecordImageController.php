@@ -90,7 +90,11 @@ class RecordImageController extends Controller
             });
         } catch (\Throwable $exception) {
             $this->deleteStagedFile($stored['file_path']);
-            throw $exception;
+            report($exception);
+
+            return response()->json([
+                'message' => 'The image could not be stored.',
+            ], 500);
         }
 
         if ($result instanceof JsonResponse) {
