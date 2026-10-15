@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\RecordController;
+use App\Http\Controllers\Api\RecordImageController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', static fn () => response()->json([
@@ -29,4 +30,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/records/{record}', [RecordController::class, 'show']);
     Route::put('/records/{record}', [RecordController::class, 'update']);
     Route::post('/records/{record}/confirm', [RecordController::class, 'confirm']);
+    Route::post('/records/{record}/image', [RecordImageController::class, 'store']);
+    Route::get('/records/{record}/image', [RecordImageController::class, 'show']);
 });
