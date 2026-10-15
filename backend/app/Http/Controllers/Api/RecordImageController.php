@@ -130,11 +130,22 @@ class RecordImageController extends Controller
             abort(404);
         }
 
+        $storedPath = Storage::disk('record_images')->path($image->file_path);
+        $detectedMimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($storedPath);
+        $imageMetadata = @getimagesize($storedPath);
+        $detectedImageMime = is_array($imageMetadata) ? ($imageMetadata['mime'] ?? null) : null;
+
+        if (! is_string($detectedMimeType)
+            || $detectedMimeType !== $detectedImageMime
+            || ! in_array($detectedMimeType, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            abort(404);
+        }
+
         return Storage::disk('record_images')->response(
             $image->file_path,
             $image->original_file_name,
             [
-                'Content-Type' => $image->mime_type,
+                'Content-Type' => $detectedMimeType,
                 'Content-Disposition' => 'inline; filename="'.addcslashes($image->original_file_name, '"\\').'"',
                 'Cache-Control' => 'private, no-store',
                 'X-Content-Type-Options' => 'nosniff',

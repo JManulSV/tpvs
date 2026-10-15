@@ -53,7 +53,7 @@ class RecordController extends Controller
             return $record;
         });
 
-        $record->load(['company', 'details']);
+        $record->load(['company', 'details', 'image']);
         $record->loadSum('details as income_total', 'income');
         $record->loadSum('details as commission_total', 'commission');
         $record->loadSum('details as return_total', 'return_amount');
@@ -69,7 +69,7 @@ class RecordController extends Controller
         $search = $filters['search'] ?? null;
 
         $records = Record::query()
-            ->with(['company', 'details'])
+            ->with(['company', 'details', 'image'])
             ->withSum('details as income_total', 'income')
             ->withSum('details as commission_total', 'commission')
             ->withSum('details as return_total', 'return_amount')
@@ -148,7 +148,7 @@ class RecordController extends Controller
             return $record;
         });
 
-        $record->load(['company', 'details']);
+        $record->load(['company', 'details', 'image']);
         $record->loadSum('details as income_total', 'income');
         $record->loadSum('details as commission_total', 'commission');
         $record->loadSum('details as return_total', 'return_amount');
@@ -160,7 +160,7 @@ class RecordController extends Controller
     {
         Gate::authorize('view', $record);
 
-        $record->load(['company', 'details']);
+        $record->load(['company', 'details', 'image']);
         $record->loadSum('details as income_total', 'income');
         $record->loadSum('details as commission_total', 'commission');
         $record->loadSum('details as return_total', 'return_amount');
@@ -215,7 +215,7 @@ class RecordController extends Controller
             return $result;
         }
 
-        $result->load(['company', 'details']);
+        $result->load(['company', 'details', 'image']);
         $result->loadSum('details as income_total', 'income');
         $result->loadSum('details as commission_total', 'commission');
         $result->loadSum('details as return_total', 'return_amount');

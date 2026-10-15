@@ -57,6 +57,13 @@ class RecordImageAuthorizationTest extends TestCase
         Storage::disk('record_images')->assertExists($image->file_path);
         $this->assertSame($originalStatus, $record->fresh()->status);
         $this->assertSame(0, AiProcessing::query()->count());
+
+        $detailResponse = $this->getJson('/api/records/'.$record->id);
+        $detailResponse->assertOk()
+            ->assertJsonPath('data.image.id', $image->id)
+            ->assertJsonPath('data.image.original_file_name', 'image.png')
+            ->assertJsonPath('data.image.mime_type', 'image/png')
+            ->assertJsonMissingPath('data.image.file_path');
     }
 
     public function test_editor_can_replace_an_image_without_ai_attempts_and_old_file_is_deleted(): void
@@ -183,10 +190,43 @@ class RecordImageAuthorizationTest extends TestCase
                 ->assertHeader('Content-Type', 'image/png')
                 ->assertHeader('X-Content-Type-Options', 'nosniff');
 
+            $this->assertStringContainsString('inline', (string) $response->headers->get('Content-Disposition'));
+            $this->assertSame($file->getContent(), $response->streamedContent());
+
             $cacheControl = explode(', ', (string) $response->headers->get('Cache-Control'));
             $this->assertContains('private', $cacheControl);
             $this->assertContains('no-store', $cacheControl);
         }
+    }
+
+    public function test_record_without_image_includes_null_metadata_and_image_get_returns_not_found(): void
+    {
+        Storage::fake('record_images');
+        $record = Record::factory()->create();
+        $user = User::factory()->create(['role' => UserRole::EDITOR]);
+
+        $this->actingAs($user, 'web')
+            ->getJson('/api/records/'.$record->id)
+            ->assertOk()
+            ->assertJsonPath('data.image', null);
+
+        $this->actingAs($user, 'web')
+            ->get('/api/records/'.$record->id.'/image')
+            ->assertNotFound();
+    }
+
+    public function test_canceled_record_image_is_not_accessible(): void
+    {
+        Storage::fake('record_images');
+        $record = Record::factory()->create(['status' => RecordStatus::CANCELED]);
+        Storage::disk('record_images')->put('canceled.png', $this->pngUpload()->getContent());
+        Image::factory()->for($record)->create(['file_path' => 'canceled.png']);
+
+        $this->actingAs(User::factory()->create(['role' => UserRole::EDITOR]), 'web')
+            ->getJson('/api/records/'.$record->id.'/image')
+            ->assertConflict()
+            ->assertJsonPath('code', 'IMAGE_ACCESS_BLOCKED')
+            ->assertJsonPath('details.reason', 'RECORD_CANCELED');
     }
 
     private function pngUpload(): UploadedFile
