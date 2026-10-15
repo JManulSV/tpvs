@@ -43,7 +43,7 @@ Protect state-changing requests with Laravel CSRF validation. The Next.js BFF is
 
 ## Records — Phase 8.6 Contract Decisions
 
-The Records API contract is defined in [`03_api_contract.md`](03_api_contract.md). Until its endpoints and tests are implemented, treat it as a target contract, not available behavior.
+The Records API contract is documented in [`03_api_contract.md`](03_api_contract.md). Endpoints are implemented incrementally under SPEC 04; keep this validation guidance aligned with the verified implementation.
 
 ### Authorization and Allowed Operations
 
@@ -61,7 +61,7 @@ Every mutation must authorize on the backend, including requests made directly t
 
 Use Form Requests for list, create, replace, and confirmation inputs. Validate the company relationship, required general fields, detail array shape, decimal precision, mutually exclusive commission inputs, and all query filter types. Return the standard Laravel `422` response for malformed or invalid user input.
 
-`year` and `week` identify an ISO week, not a calendar-year week label. Validate the week number against the ISO week-year and require `week_start_date` and `week_end_date` to equal that period's exact Monday and Sunday. ISO week-year edge cases around December/January must be covered by tests. When a list query supplies `week`, require `year` as well.
+`year` and `week` are business period identifiers: `year` is the calendar year and `week` is an integer from 1 to 53. Do not validate against ISO or derive dates from these values. Require valid `week_start_date` and `week_end_date` dates with start not after end. Do not impose weekdays or a fixed range length. When a list query supplies `week`, require `year` as well.
 
 ### Business Validation and Financial Arithmetic
 
@@ -69,10 +69,10 @@ For every manual detail, exactly one of `commission_percentage` or fixed-amount 
 
 Use decimal arithmetic, not binary floating-point arithmetic, for financial calculations. When a percentage is supplied, calculate commission with `ROUND_HALF_UP` to two decimal places. When a fixed commission is supplied, persist it and leave `commission_percentage` null. In both modes calculate `return_amount = income - commission`; do not accept return or Record-level totals from the client. The resulting return must be non-negative. All values are persisted at their schema's decimal precision.
 
-A valid new manual aggregate is created with `source=MANUAL` and status `NEEDS_REVIEW`. Do not create an Image, AIProcessing, or AI job. A Record and its details are persisted in one transaction.
+A valid new manual aggregate is created with `source=MANUAL` and status `CONFIRMED`, because the Editor enters and reviews the data in one operation. Create a History status event with null previous value, new value `CONFIRMED`, authenticated actor, and fixed reason `Registro manual confirmado`. Do not create an Image, AIProcessing, or AI job. A Record, its details, and History are persisted in one transaction.
 
 Replacement is full-aggregate rather than partial: validate all fields and details, require a non-empty reason, and allow only `MANUAL` + `NEEDS_REVIEW`. Update the Record, replace its details in submitted order, and create one generic History event (`manual_record_updated`, null before/after values, authenticated actor, supplied reason) in one transaction. Do not allow this endpoint to edit `CONFIRMED` records or change source/status.
 
-Confirmation is a separate explicit transition. Revalidate the complete business aggregate, allow only `MANUAL` + `NEEDS_REVIEW`, and transactionally persist status `CONFIRMED` with a History status transition and fixed reason `Registro manual confirmado`. Do not accept a client-provided target state or confirmation reason. Invalid source/state transitions return `409` with a stable business error code; no partial writes are allowed.
+The separate confirmation endpoint is retained for future review-required workflows. Revalidate the complete business aggregate, allow only `NEEDS_REVIEW`, and transactionally persist status `CONFIRMED` with a History status transition and fixed reason `Registro manual confirmado`. Manual creation confirms in its creation transaction instead. Do not accept a client-provided target state or confirmation reason. Invalid source/state transitions return `409` with a stable business error code; no partial writes are allowed.
 
 The list's `month` filter uses `week_end_date`, consistent with the product reporting convention. Search is a case-insensitive substring over company name, operation number, affiliation, and branch. All calculated totals are derived from details and are never persisted as the financial source of truth.

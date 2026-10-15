@@ -49,11 +49,13 @@ An `Image` may be attached to the Record later without running AI. If the Editor
 MANUAL
   -> data capture
   -> BusinessValidator
-  -> NEEDS_REVIEW
-  -> human review
-  -> validation
+  -> financial and period validation
   -> CONFIRMED
 ```
+
+The Editor's manual data entry is also the human review. A valid manual record is created as `CONFIRMED`; it does not pass through a redundant `NEEDS_REVIEW` state. The same create transaction writes a History status event with `previous_value=null`, `new_value=CONFIRMED`, the Editor, and fixed reason `Registro manual confirmado`.
+
+The business week and year follow the office's operational calendar. The week is an integer from 1 to 53 and is not validated as ISO. Period dates must be valid, and the start date cannot be later than the end date. The dates need not be Monday and Sunday and are not calculated from the week number.
 
 ## 5. Shared Validation
 

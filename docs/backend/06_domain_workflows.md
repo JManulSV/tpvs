@@ -22,7 +22,7 @@ Tests
 
 ## Manual Record
 
-**Status:** Contract defined for phase 8.6; planned until implemented and tested.
+**Status:** Phase 8.6 implementation in progress; the endpoint workflow is implemented and automated tests cover its current behavior.
 
 **Entry points:** `POST /api/records`, `PUT /api/records/{id}`, and `POST /api/records/{id}/confirm`.
 
@@ -30,16 +30,16 @@ Tests
 
 **Workflow:**
 
-1. An Editor creates a manual Record with company, ISO period, affiliation, branch, and ordered movement inputs.
-2. The backend validates that the dates are exactly Monday and Sunday for the supplied ISO week-year/week.
+1. An Editor creates a manual Record with company, business year/week, period dates, affiliation, branch, and ordered movement inputs.
+2. The backend validates that dates exist and that the start date is not after the end date. It does not impose ISO week rules or weekday boundaries.
 3. For each detail, the backend accepts exactly one commission input: percentage or fixed amount. It calculates the commission using decimal arithmetic and `ROUND_HALF_UP` for percentages, then calculates return as income minus commission.
-4. A transaction persists the Record as `source=MANUAL`, `status=NEEDS_REVIEW`, and its RecordDetails. No Image, AIProcessing, or AI job is created.
+4. A transaction persists the Record as `source=MANUAL`, `status=CONFIRMED`, its RecordDetails, and a History event (`status`, null to `CONFIRMED`, authenticated user, reason `Registro manual confirmado`). No Image, AIProcessing, or AI job is created.
 5. An Editor may replace the full aggregate only while it is `MANUAL` and `NEEDS_REVIEW`. Replacement requires a reason; the Record, details, and one generic `manual_record_updated` History event are committed together.
-6. An Editor explicitly confirms a valid manual record in `NEEDS_REVIEW`. The status transition and its History event, with fixed reason `Registro manual confirmado`, are committed together.
+6. The explicit confirmation endpoint remains for records from future workflows that start in `NEEDS_REVIEW`, such as AI-assisted capture.
 
 **Failure behavior:** Invalid request or business input returns `422`; an unsupported source/state transition returns `409`; a Viewer mutation returns `403`. Create, replace, and confirmation leave no partial writes on failure.
 
-**Tests:** Verify Editor/Viewer authorization, ISO-year boundary weeks, financial rounding and fixed commission, invalid input, no Image/AIProcessing/job, atomic replacement/history, confirmation history, and disallowed transitions.
+**Tests:** Verify Editor/Viewer authorization, business week values without ISO interpretation, custom valid date ranges, financial rounding and fixed commission, invalid input, no Image/AIProcessing/job, atomic creation/history and replacement/history, and disallowed transitions.
 
 ## Image Record
 

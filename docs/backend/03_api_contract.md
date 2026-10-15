@@ -133,9 +133,9 @@ Results are ordered by company name ascending and use Laravel's standard paginat
 
 Successful creation returns `201` with `{ "data": { "id": 1, "name": "Acme" } }`.
 
-## Records Contract — Phase 8.6 (Defined, Not Yet Implemented)
+## Records Contract — Phase 8.6 (Implemented; End-to-End Checkpoint Pending)
 
-The endpoints below define the manual-record workflow and are planned until Laravel routes, policies, resources, and feature tests are implemented.
+The endpoints below implement the Records contract for phase 8.6. The complete module remains in progress until the specified browser acceptance and checkpoint are verified.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -155,15 +155,15 @@ All endpoints use the authenticated Sanctum session. Laravel remains authoritati
 | --- | --- | --- |
 | `search` | Optional string, trimmed, maximum 255 characters; case-insensitive partial match against company name, operation number, affiliation, or branch. | No filter |
 | `company_id` | Optional existing company identifier. | No filter |
-| `year` | Optional ISO week-year. | No filter |
+| `year` | Optional calendar/business year integer from 1 to 9999. | No filter |
 | `month` | Optional integer from 1 to 12; filters by the month containing `week_end_date`. | No filter |
-| `week` | Optional ISO week number valid for the supplied ISO week-year; requires `year`. | No filter |
+| `week` | Optional business week integer from 1 to 53; requires `year` and is not interpreted as ISO. | No filter |
 | `status` | Optional valid Record status. | No filter |
 | `source` | Optional `IMAGE` or `MANUAL`. | No filter |
 | `page` | Integer greater than or equal to 1. Invalid values return `422`. | `1` |
 | `per_page` | Integer from 1 to 100. Invalid values return `422`. | `15` |
 
-When a `week` filter is supplied, `year` is required so the period is unambiguous. Results are ordered by `updated_at` descending and use Laravel's standard paginated response (`data`, `links`, `meta`). List resources include record identity, company, source, status, period, affiliation, branch, calculated income/commission/return totals, and the ordered movement summary needed by search and display. Financial totals are calculated from `RecordDetail`; they are not stored as Record source-of-truth columns.
+When a `week` filter is supplied, `year` is required so the business period is unambiguous. The API does not validate `week` as an ISO week. Results are ordered by `updated_at` descending and use Laravel's standard paginated response (`data`, `links`, `meta`). List resources include record identity, company, source, status, period, affiliation, branch, calculated income/commission/return totals, and the ordered movement summary needed by search and display. Financial totals are calculated from `RecordDetail`; they are not stored as Record source-of-truth columns.
 
 ### Manual Record Create and Replace Payload
 
@@ -197,7 +197,7 @@ For replacement, add the required top-level field `"reason": "Corrección de cap
 
 For percentage input, Laravel calculates `commission` using decimal arithmetic and `ROUND_HALF_UP` to two decimal places. For fixed commission input, Laravel stores the supplied amount and sets `commission_percentage` to `null`. Laravel always calculates `return_amount = income - commission`; the client must not submit a return amount. Zero-valued income, commission, and return are permitted by the current schema, provided all rules above pass.
 
-`year` and `week` identify an ISO week. The supplied dates must be exactly that ISO week’s Monday and Sunday, and the `year` is the ISO week-year (which can differ from a date's calendar year around New Year). `company_id`, `affiliation`, and `branch` are required. Laravel assigns `source=MANUAL` and initial `status=NEEDS_REVIEW`. Creation persists the record and all details in one transaction and creates no Image or AIProcessing rows and dispatches no AI job.
+`year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id`, `affiliation`, and `branch` are required. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=status`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro manual confirmado`.
 
 On replacement, Laravel accepts only a `MANUAL` record in `NEEDS_REVIEW`. It validates the complete new aggregate before atomically updating the Record and replacing its details. It creates one generic `History` event with `field_name=manual_record_updated`, null `previous_value` and `new_value`, the authenticated `user_id`, and the supplied reason. The aggregate update and History event share one database transaction.
 
@@ -209,11 +209,11 @@ The list resource uses the same record fields and may omit detail fields not nee
 
 ### Confirm Manual Record
 
-`POST /api/records/{id}/confirm` accepts an empty JSON object. Laravel accepts only a `MANUAL` record in `NEEDS_REVIEW`, revalidates its business data, and transactionally updates status to `CONFIRMED` with a History row for `status` (`NEEDS_REVIEW` to `CONFIRMED`), the authenticated user, and the fixed reason `Registro manual confirmado`. Success returns `200` with the updated record resource. Confirmation is an explicit human action; no creation or update request can set `CONFIRMED` directly.
+`POST /api/records/{id}/confirm` accepts an empty JSON object for records from workflows that require a separate human review. Laravel accepts only a valid record in `NEEDS_REVIEW`, revalidates its business data, and transactionally updates status to `CONFIRMED` with a History row for `status` (`NEEDS_REVIEW` to `CONFIRMED`), the authenticated user, and fixed reason `Registro manual confirmado`. Successful manual creation is the exception to this separate transition: the Editor's capture is the review, so Laravel validates and confirms it atomically when created. Clients cannot choose the status.
 
 ### Record Errors
 
 - Unauthenticated requests return `401`; a `VIEWER` mutation returns `403`; missing resources return `404`.
-- Shape, relationship, ISO-period, and financial input errors return Laravel's standard `422` validation structure, with errors keyed to the relevant field or detail index where possible.
+- Shape, relationship, invalid-date, inverted date-range, and financial input errors return Laravel's standard `422` validation structure, with errors keyed to the relevant field or detail index where possible.
 - A disallowed state/source transition returns `409` with a stable business code. Use `RECORD_UPDATE_BLOCKED` for replacement and `RECORD_CONFIRMATION_BLOCKED` for confirmation, with a stable reason in `details` such as `INVALID_STATE`, `INVALID_SOURCE`, or `BUSINESS_VALIDATION_FAILED`.
 - All multi-row create, replace, and confirmation operations roll back completely if persistence or History creation fails.
