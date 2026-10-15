@@ -14,6 +14,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RecordImageController extends Controller
@@ -32,7 +33,18 @@ class RecordImageController extends Controller
             );
         }
 
-        $stored = $imageStorage->store($request->file('image'));
+        try {
+            $stored = $imageStorage->store($request->file('image'));
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'The image could not be stored.',
+            ], 500);
+        }
+
         $disk = Storage::disk('record_images');
         $previousPath = null;
         $wasReplacement = false;
@@ -77,19 +89,19 @@ class RecordImageController extends Controller
                 return $image;
             });
         } catch (\Throwable $exception) {
-            $disk->delete($stored['file_path']);
+            $this->deleteStagedFile($stored['file_path']);
             throw $exception;
         }
 
         if ($result instanceof JsonResponse) {
-            $disk->delete($stored['file_path']);
+            $this->deleteStagedFile($stored['file_path']);
 
             return $result;
         }
 
         if ($previousPath !== null && $previousPath !== $stored['file_path']) {
             try {
-                $disk->delete($previousPath);
+                $this->deleteFile($previousPath);
             } catch (\Throwable $exception) {
                 report($exception);
             }
@@ -151,5 +163,22 @@ class RecordImageController extends Controller
             'code' => $code,
             'details' => ['reason' => $reason],
         ], $status);
+    }
+
+    private function deleteStagedFile(string $path): void
+    {
+        try {
+            $this->deleteFile($path);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+    }
+
+    private function deleteFile(string $path): void
+    {
+        $disk = Storage::disk('record_images');
+        if ($disk->exists($path) && ! $disk->delete($path)) {
+            throw new \RuntimeException('Failed to delete private Record image storage key: '.$path);
+        }
     }
 }

@@ -62,8 +62,31 @@ class RecordImageStorage
         $originalFileName = $this->sanitizeOriginalFileName($file->getClientOriginalName());
         $storageKey = Str::uuid()->toString().'.'.$extension;
 
-        $storedPath = Storage::disk(self::DISK)->putFileAs('', $file, $storageKey);
+        $disk = Storage::disk(self::DISK);
+
+        try {
+            $storedPath = $disk->putFileAs('', $file, $storageKey);
+        } catch (\Throwable $exception) {
+            try {
+                if ($disk->exists($storageKey)) {
+                    $disk->delete($storageKey);
+                }
+            } catch (\Throwable $cleanupException) {
+                report($cleanupException);
+            }
+
+            throw $exception;
+        }
+
         if (! is_string($storedPath) || $storedPath === '') {
+            try {
+                if ($disk->exists($storageKey)) {
+                    $disk->delete($storageKey);
+                }
+            } catch (\Throwable $cleanupException) {
+                report($cleanupException);
+            }
+
             throw new \RuntimeException('The private image could not be stored.');
         }
 
