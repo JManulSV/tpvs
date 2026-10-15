@@ -28,20 +28,12 @@ class IndexRecordsRequest extends FormRequest
      */
     public function rules(): array
     {
-        $year = $this->query('year');
-        $maximumIsoWeek = 53;
-
-        if (is_numeric($year)) {
-            $week53 = (new \DateTimeImmutable)->setISODate((int) $year, 53);
-            $maximumIsoWeek = (int) $week53->format('o') === (int) $year ? 53 : 52;
-        }
-
         return [
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'company_id' => ['sometimes', 'integer', 'min:1', 'exists:companies,id'],
             'year' => ['required_with:week', 'integer', 'between:1,9999'],
             'month' => ['sometimes', 'integer', 'between:1,12'],
-            'week' => ['sometimes', 'integer', 'between:1,'.$maximumIsoWeek],
+            'week' => ['sometimes', 'integer', 'between:1,53'],
             'status' => ['sometimes', Rule::in(array_column(RecordStatus::cases(), 'value'))],
             'source' => ['sometimes', Rule::in(array_column(RecordSource::cases(), 'value'))],
             'page' => ['sometimes', 'integer', 'min:1'],

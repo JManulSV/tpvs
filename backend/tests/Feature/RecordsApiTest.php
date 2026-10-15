@@ -144,7 +144,7 @@ class RecordsApiTest extends TestCase
             '/api/records?status=UNKNOWN',
             '/api/records?source=UNKNOWN',
             '/api/records?week=1',
-            '/api/records?year=2025&week=53',
+            '/api/records?year=2025&week=54',
         ] as $url) {
             $this->actingAs($user, 'web')
                 ->getJson($url)
@@ -180,7 +180,7 @@ class RecordsApiTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('data.source', RecordSource::MANUAL->value)
-            ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
+            ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value)
             ->assertJsonPath('data.details.0.order', 1)
             ->assertJsonPath('data.details.0.commission_percentage', '5.00')
             ->assertJsonPath('data.details.0.commission', '0.01')
@@ -197,9 +197,18 @@ class RecordsApiTest extends TestCase
             'id' => $recordId,
             'company_id' => $company->id,
             'source' => RecordSource::MANUAL->value,
-            'status' => RecordStatus::NEEDS_REVIEW->value,
+            'status' => RecordStatus::CONFIRMED->value,
         ]);
         $this->assertDatabaseCount('record_details', 2);
+        $this->assertDatabaseCount('histories', 1);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $recordId,
+            'user_id' => $editor->id,
+            'field_name' => 'status',
+            'previous_value' => null,
+            'new_value' => RecordStatus::CONFIRMED->value,
+            'reason' => 'Registro manual confirmado',
+        ]);
         $this->assertDatabaseCount('images', 0);
         $this->assertDatabaseCount('ai_processings', 0);
     }
@@ -241,47 +250,35 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('records', 0);
     }
 
-    public function test_manual_creation_rejects_invalid_iso_weeks_and_dates(): void
+    public function test_manual_creation_accepts_business_week_numbers_and_non_monday_date_ranges(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $companyId = Company::factory()->create()->id;
 
-        $invalidWeek = $this->validManualRecordPayload($companyId);
-        $invalidWeek['year'] = 2025;
-        $invalidWeek['week'] = 53;
+        $businessPeriod = $this->validManualRecordPayload($companyId);
+        $businessPeriod['year'] = 2025;
+        $businessPeriod['week'] = 53;
+        $businessPeriod['week_start_date'] = '2025-09-17';
+        $businessPeriod['week_end_date'] = '2025-09-25';
 
         $this->actingAs($editor, 'web')
-            ->postJson('/api/records', $invalidWeek)
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['week']);
-
-        $invalidDates = $this->validManualRecordPayload($companyId);
-        $invalidDates['week_start_date'] = '2026-09-15';
-
-        $this->actingAs($editor, 'web')
-            ->postJson('/api/records', $invalidDates)
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['week_start_date', 'week_end_date']);
-
-        $this->assertDatabaseCount('records', 0);
-    }
-
-    public function test_manual_creation_accepts_an_iso_week_that_crosses_calendar_years(): void
-    {
-        $company = Company::factory()->create();
-        $payload = $this->validManualRecordPayload($company->id);
-        $payload['year'] = 2020;
-        $payload['week'] = 53;
-        $payload['week_start_date'] = '2020-12-28';
-        $payload['week_end_date'] = '2021-01-03';
-
-        $this->actingAs(User::factory()->create(['role' => UserRole::EDITOR]), 'web')
-            ->postJson('/api/records', $payload)
+            ->postJson('/api/records', $businessPeriod)
             ->assertCreated()
-            ->assertJsonPath('data.year', 2020)
+            ->assertJsonPath('data.year', 2025)
             ->assertJsonPath('data.week', 53)
-            ->assertJsonPath('data.week_start_date', '2020-12-28')
-            ->assertJsonPath('data.week_end_date', '2021-01-03');
+            ->assertJsonPath('data.week_start_date', '2025-09-17')
+            ->assertJsonPath('data.week_end_date', '2025-09-25');
+
+        $invalidRange = $this->validManualRecordPayload($companyId);
+        $invalidRange['week_start_date'] = '2026-09-21';
+        $invalidRange['week_end_date'] = '2026-09-20';
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $invalidRange)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['week_end_date']);
+
+        $this->assertDatabaseCount('records', 1);
     }
 
     public function test_manual_creation_rejects_invalid_commission_inputs_without_partial_writes(): void
@@ -464,6 +461,30 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('histories', 0);
     }
 
+    public function test_failed_creation_history_write_rolls_back_manual_record_and_details(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $payload = $this->validManualRecordPayload(Company::factory()->create()->id);
+
+        Event::listen('eloquent.creating: '.History::class, static function (): void {
+            throw new \RuntimeException('Simulated history persistence failure.');
+        });
+
+        try {
+            $this->actingAs($editor, 'web')
+                ->postJson('/api/records', $payload)
+                ->assertStatus(500);
+        } finally {
+            Event::forget('eloquent.creating: '.History::class);
+        }
+
+        $this->assertDatabaseCount('records', 0);
+        $this->assertDatabaseCount('record_details', 0);
+        $this->assertDatabaseCount('histories', 0);
+        $this->assertDatabaseCount('images', 0);
+        $this->assertDatabaseCount('ai_processings', 0);
+    }
+
     public function test_editor_can_confirm_valid_manual_record_with_status_history(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
@@ -506,21 +527,25 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('histories', 0);
     }
 
-    public function test_confirmation_rejects_invalid_source_or_state_without_history(): void
+    public function test_confirmation_rejects_invalid_state_but_accepts_image_source_needing_review(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $confirmed = $this->createRecordWithDetails(null, ['status' => RecordStatus::CONFIRMED]);
         $imageRecord = $this->createRecordWithDetails(null, ['source' => RecordSource::IMAGE]);
 
-        foreach ([[$confirmed, 'INVALID_STATE'], [$imageRecord, 'INVALID_SOURCE']] as [$record, $reason]) {
-            $this->actingAs($editor, 'web')
-                ->postJson('/api/records/'.$record->id.'/confirm', [])
-                ->assertStatus(409)
-                ->assertJsonPath('code', 'RECORD_CONFIRMATION_BLOCKED')
-                ->assertJsonPath('details.reason', $reason);
-        }
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$confirmed->id.'/confirm', [])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'RECORD_CONFIRMATION_BLOCKED')
+            ->assertJsonPath('details.reason', 'INVALID_STATE');
 
-        $this->assertDatabaseCount('histories', 0);
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$imageRecord->id.'/confirm', [])
+            ->assertOk()
+            ->assertJsonPath('data.source', RecordSource::IMAGE->value)
+            ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value);
+
+        $this->assertDatabaseCount('histories', 1);
     }
 
     public function test_confirmation_revalidates_stored_financial_calculations(): void

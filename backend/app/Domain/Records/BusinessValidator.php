@@ -3,6 +3,7 @@
 namespace App\Domain\Records;
 
 use App\Models\Record;
+use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
 
 class BusinessValidator
@@ -15,7 +16,7 @@ class BusinessValidator
      */
     public function validateAndCalculateManualDetails(array $record): array
     {
-        $this->validateIsoPeriod($record);
+        $this->validateBusinessPeriod($record);
 
         $calculated = [];
         foreach ($record['details'] as $index => $detail) {
@@ -107,24 +108,14 @@ class BusinessValidator
     /**
      * @param  array<string, mixed>  $record
      */
-    private function validateIsoPeriod(array $record): void
+    private function validateBusinessPeriod(array $record): void
     {
-        $year = (int) $record['year'];
-        $week = (int) $record['week'];
-        $monday = (new \DateTimeImmutable)->setISODate($year, $week, 1);
+        $start = CarbonImmutable::parse($record['week_start_date'])->startOfDay();
+        $end = CarbonImmutable::parse($record['week_end_date'])->startOfDay();
 
-        if ((int) $monday->format('o') !== $year || (int) $monday->format('W') !== $week) {
+        if ($start->greaterThan($end)) {
             throw ValidationException::withMessages([
-                'week' => ['The week must exist in the supplied ISO week-year.'],
-            ]);
-        }
-
-        $sunday = $monday->modify('+6 days');
-        if ($record['week_start_date'] !== $monday->format('Y-m-d')
-            || $record['week_end_date'] !== $sunday->format('Y-m-d')) {
-            throw ValidationException::withMessages([
-                'week_start_date' => ['The period dates must be the exact Monday and Sunday of the supplied ISO week.'],
-                'week_end_date' => ['The period dates must be the exact Monday and Sunday of the supplied ISO week.'],
+                'week_end_date' => ['The period end date must not be earlier than its start date.'],
             ]);
         }
     }

@@ -11,7 +11,9 @@ use App\Http\Requests\Records\IndexRecordsRequest;
 use App\Http\Requests\Records\StoreRecordRequest;
 use App\Http\Requests\Records\UpdateRecordRequest;
 use App\Http\Resources\RecordResource;
+use App\Models\History;
 use App\Models\Record;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -23,21 +25,30 @@ class RecordController extends Controller
     {
         $validated = $request->validated();
         $details = $businessValidator->validateAndCalculateManualDetails($validated);
+        $userId = $request->user()->id;
 
-        $record = DB::transaction(function () use ($validated, $details): Record {
+        $record = DB::transaction(function () use ($validated, $details, $userId): Record {
             $record = Record::query()->create([
                 'company_id' => $validated['company_id'],
                 'source' => RecordSource::MANUAL,
-                'status' => RecordStatus::NEEDS_REVIEW,
+                'status' => RecordStatus::CONFIRMED,
                 'year' => $validated['year'],
                 'week' => $validated['week'],
-                'week_start_date' => $validated['week_start_date'],
-                'week_end_date' => $validated['week_end_date'],
+                'week_start_date' => CarbonImmutable::parse($validated['week_start_date'])->toDateString(),
+                'week_end_date' => CarbonImmutable::parse($validated['week_end_date'])->toDateString(),
                 'affiliation' => $validated['affiliation'],
                 'branch' => $validated['branch'],
             ]);
 
             $record->details()->createMany($details);
+            History::query()->create([
+                'record_id' => $record->id,
+                'user_id' => $userId,
+                'field_name' => 'status',
+                'previous_value' => null,
+                'new_value' => RecordStatus::CONFIRMED->value,
+                'reason' => 'Registro manual confirmado',
+            ]);
 
             return $record;
         });
@@ -117,8 +128,8 @@ class RecordController extends Controller
                 'company_id' => $validated['company_id'],
                 'year' => $validated['year'],
                 'week' => $validated['week'],
-                'week_start_date' => $validated['week_start_date'],
-                'week_end_date' => $validated['week_end_date'],
+                'week_start_date' => CarbonImmutable::parse($validated['week_start_date'])->toDateString(),
+                'week_end_date' => CarbonImmutable::parse($validated['week_end_date'])->toDateString(),
                 'affiliation' => $validated['affiliation'],
                 'branch' => $validated['branch'],
             ]);
@@ -168,13 +179,11 @@ class RecordController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($record->source !== RecordSource::MANUAL || $record->status !== RecordStatus::NEEDS_REVIEW) {
+            if ($record->status !== RecordStatus::NEEDS_REVIEW) {
                 return response()->json([
                     'message' => 'The record cannot be confirmed in its current state.',
                     'code' => 'RECORD_CONFIRMATION_BLOCKED',
-                    'details' => [
-                        'reason' => $record->source !== RecordSource::MANUAL ? 'INVALID_SOURCE' : 'INVALID_STATE',
-                    ],
+                    'details' => ['reason' => 'INVALID_STATE'],
                 ], 409);
             }
 
