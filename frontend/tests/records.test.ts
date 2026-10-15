@@ -37,16 +37,17 @@ const validRecord = {
 };
 
 describe("manual record schemas", () => {
-  it("accepts exact ISO Monday-Sunday dates and one commission mode", () => {
+  it("accepts business periods and one commission mode", () => {
     expect(manualRecordFormSchema.safeParse(validRecord).success).toBe(true);
     expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "Correction" }).success).toBe(true);
     expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "  " }).success).toBe(false);
   });
 
-  it("rejects invalid ISO dates and financial inputs", () => {
+  it("rejects inverted date ranges and invalid financial inputs", () => {
     expect(manualRecordFormSchema.safeParse({
       ...validRecord,
-      week_start_date: "2026-09-15",
+      week_start_date: "2026-09-21",
+      week_end_date: "2026-09-20",
     }).success).toBe(false);
     expect(manualRecordFormSchema.safeParse({
       ...validRecord,
@@ -58,13 +59,13 @@ describe("manual record schemas", () => {
     }).success).toBe(false);
   });
 
-  it("accepts a week crossing the calendar-year boundary when its ISO year is correct", () => {
+  it("accepts week 53 with custom dates without ISO interpretation", () => {
     expect(manualRecordFormSchema.safeParse({
       ...validRecord,
-      year: 2020,
+      year: 2025,
       week: 53,
-      week_start_date: "2020-12-28",
-      week_end_date: "2021-01-03",
+      week_start_date: "2025-09-17",
+      week_end_date: "2025-09-25",
     }).success).toBe(true);
   });
 });

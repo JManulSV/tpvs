@@ -40,63 +40,32 @@ function toMinorUnits(amount: string): number {
   return Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
 }
 
-function isoWeekDates(year: number, week: number): { monday: string; sunday: string } | null {
-  const fourthOfJanuary = new Date(Date.UTC(year, 0, 4));
-  const mondayOfWeekOne = new Date(fourthOfJanuary);
-  mondayOfWeekOne.setUTCDate(fourthOfJanuary.getUTCDate() - ((fourthOfJanuary.getUTCDay() + 6) % 7));
-
-  const monday = new Date(mondayOfWeekOne);
-  monday.setUTCDate(mondayOfWeekOne.getUTCDate() + (week - 1) * 7);
-
-  const isoYear = new Date(monday);
-  isoYear.setUTCDate(monday.getUTCDate() + 3);
-  if (isoYear.getUTCFullYear() !== year) return null;
-
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
-
-  return {
-    monday: monday.toISOString().slice(0, 10),
-    sunday: sunday.toISOString().slice(0, 10),
-  };
-}
-
 const manualRecordFormBaseSchema = z.object({
   company_id: z.number().int().positive("Selecciona una empresa."),
   year: z.number().int().min(1).max(9999),
   week: z.number().int().min(1).max(53),
-  week_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  week_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  week_start_date: z.string().date("Ingresa una fecha de inicio válida."),
+  week_end_date: z.string().date("Ingresa una fecha de fin válida."),
   affiliation: z.string().trim().min(1, "La afiliación es obligatoria.").max(255),
   branch: z.string().trim().min(1, "La sucursal es obligatoria.").max(255),
   details: z.array(recordDetailFormSchema).min(1, "Agrega al menos un movimiento."),
 });
 
-function validateIsoDates(
+function validateBusinessDateRange(
   record: z.infer<typeof manualRecordFormBaseSchema>,
   context: z.RefinementCtx,
 ) {
-  const dates = isoWeekDates(record.year, record.week);
-
-  if (!dates) {
-    context.addIssue({ code: "custom", message: "La semana no existe en el año ISO indicado.", path: ["week"] });
-    return;
-  }
-
-  if (record.week_start_date !== dates.monday) {
-    context.addIssue({ code: "custom", message: "La fecha inicial debe ser el lunes de la semana ISO.", path: ["week_start_date"] });
-  }
-  if (record.week_end_date !== dates.sunday) {
-    context.addIssue({ code: "custom", message: "La fecha final debe ser el domingo de la semana ISO.", path: ["week_end_date"] });
+  if (record.week_start_date > record.week_end_date) {
+    context.addIssue({ code: "custom", message: "La fecha inicial no puede ser posterior a la fecha final.", path: ["week_end_date"] });
   }
 }
 
-export const manualRecordFormSchema = manualRecordFormBaseSchema.superRefine(validateIsoDates);
+export const manualRecordFormSchema = manualRecordFormBaseSchema.superRefine(validateBusinessDateRange);
 
 export const updateManualRecordFormSchema = z.object({
   ...manualRecordFormBaseSchema.shape,
   reason: z.string().trim().min(1, "El motivo de la edición es obligatorio.").max(2000),
-}).superRefine(validateIsoDates);
+}).superRefine(validateBusinessDateRange);
 
 export type ManualRecordFormValues = z.infer<typeof manualRecordFormSchema>;
 export type UpdateManualRecordFormValues = z.infer<typeof updateManualRecordFormSchema>;
