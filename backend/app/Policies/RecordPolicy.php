@@ -22,4 +22,9 @@ class RecordPolicy
     {
         return $user->role === UserRole::EDITOR;
     }
+
+    public function update(User $user, Record $record): bool
+    {
+        return $user->role === UserRole::EDITOR;
+    }
 }

@@ -36,6 +36,10 @@ class StoreRecordRequest extends FormRequest
             'details.*.commission' => [
                 'sometimes', 'nullable', 'string', 'regex:/^\d{1,10}(?:\.\d{1,2})?$/',
             ],
+            'source' => ['prohibited'],
+            'status' => ['prohibited'],
+            'details.*.order' => ['prohibited'],
+            'details.*.return_amount' => ['prohibited'],
         ];
     }
 }

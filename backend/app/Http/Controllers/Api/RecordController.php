@@ -8,6 +8,7 @@ use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Records\IndexRecordsRequest;
 use App\Http\Requests\Records\StoreRecordRequest;
+use App\Http\Requests\Records\UpdateRecordRequest;
 use App\Http\Resources\RecordResource;
 use App\Models\Record;
 use Illuminate\Http\JsonResponse;
@@ -89,6 +90,57 @@ class RecordController extends Controller
             ->appends($filters);
 
         return RecordResource::collection($records);
+    }
+
+    public function update(
+        UpdateRecordRequest $request,
+        Record $record,
+        BusinessValidator $businessValidator,
+    ): RecordResource|JsonResponse {
+        if ($record->source !== RecordSource::MANUAL || $record->status !== RecordStatus::NEEDS_REVIEW) {
+            return response()->json([
+                'message' => 'The record cannot be updated in its current state.',
+                'code' => 'RECORD_UPDATE_BLOCKED',
+                'details' => [
+                    'reason' => $record->source !== RecordSource::MANUAL ? 'INVALID_SOURCE' : 'INVALID_STATE',
+                ],
+            ], 409);
+        }
+
+        $validated = $request->validated();
+        $details = $businessValidator->validateAndCalculateManualDetails($validated);
+
+        $record = DB::transaction(function () use ($request, $record, $validated, $details): Record {
+            $record->update([
+                'company_id' => $validated['company_id'],
+                'year' => $validated['year'],
+                'week' => $validated['week'],
+                'week_start_date' => $validated['week_start_date'],
+                'week_end_date' => $validated['week_end_date'],
+                'affiliation' => $validated['affiliation'],
+                'branch' => $validated['branch'],
+            ]);
+
+            $record->details()->delete();
+            $record->details()->createMany($details);
+
+            $record->histories()->create([
+                'user_id' => $request->user()->id,
+                'field_name' => 'manual_record_updated',
+                'previous_value' => null,
+                'new_value' => null,
+                'reason' => $validated['reason'],
+            ]);
+
+            return $record;
+        });
+
+        $record->load(['company', 'details']);
+        $record->loadSum('details as income_total', 'income');
+        $record->loadSum('details as commission_total', 'commission');
+        $record->loadSum('details as return_total', 'return_amount');
+
+        return new RecordResource($record);
     }
 
     public function show(Record $record): RecordResource
