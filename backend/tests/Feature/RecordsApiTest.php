@@ -157,6 +157,159 @@ class RecordsApiTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_editor_can_create_a_manual_record_and_backend_calculates_money(): void
+    {
+        $company = Company::factory()->create();
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+
+        $response = $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $this->validManualRecordPayload($company->id, [
+                [
+                    'operation_number' => 'OP-HALF-UP',
+                    'income' => '0.10',
+                    'commission_percentage' => '5.00',
+                ],
+                [
+                    'operation_number' => 'OP-FIXED',
+                    'income' => '100.00',
+                    'commission' => '7.25',
+                ],
+            ]));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.source', RecordSource::MANUAL->value)
+            ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
+            ->assertJsonPath('data.details.0.order', 1)
+            ->assertJsonPath('data.details.0.commission_percentage', '5.00')
+            ->assertJsonPath('data.details.0.commission', '0.01')
+            ->assertJsonPath('data.details.0.return_amount', '0.09')
+            ->assertJsonPath('data.details.1.commission_percentage', null)
+            ->assertJsonPath('data.details.1.commission', '7.25')
+            ->assertJsonPath('data.details.1.return_amount', '92.75')
+            ->assertJsonPath('data.income_total', '100.10')
+            ->assertJsonPath('data.commission_total', '7.26')
+            ->assertJsonPath('data.return_total', '92.84');
+
+        $recordId = $response->json('data.id');
+        $this->assertDatabaseHas('records', [
+            'id' => $recordId,
+            'company_id' => $company->id,
+            'source' => RecordSource::MANUAL->value,
+            'status' => RecordStatus::NEEDS_REVIEW->value,
+        ]);
+        $this->assertDatabaseCount('record_details', 2);
+        $this->assertDatabaseCount('images', 0);
+        $this->assertDatabaseCount('ai_processings', 0);
+    }
+
+    public function test_record_creation_requires_authentication_and_editor_role(): void
+    {
+        $payload = $this->validManualRecordPayload(Company::factory()->create()->id);
+
+        $this->postJson('/api/records', $payload)->assertUnauthorized();
+
+        $this->actingAs(User::factory()->create(['role' => UserRole::VIEWER]), 'web')
+            ->postJson('/api/records', $payload)
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('records', 0);
+    }
+
+    public function test_manual_creation_validates_required_fields_details_and_company(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $validPayload = $this->validManualRecordPayload(Company::factory()->create()->id);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'company_id', 'year', 'week', 'week_start_date', 'week_end_date',
+                'affiliation', 'branch', 'details',
+            ]);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', array_merge($validPayload, [
+                'company_id' => 999999,
+                'details' => [],
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['company_id', 'details']);
+
+        $this->assertDatabaseCount('records', 0);
+    }
+
+    public function test_manual_creation_rejects_invalid_iso_weeks_and_dates(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $companyId = Company::factory()->create()->id;
+
+        $invalidWeek = $this->validManualRecordPayload($companyId);
+        $invalidWeek['year'] = 2025;
+        $invalidWeek['week'] = 53;
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $invalidWeek)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['week']);
+
+        $invalidDates = $this->validManualRecordPayload($companyId);
+        $invalidDates['week_start_date'] = '2026-09-15';
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $invalidDates)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['week_start_date', 'week_end_date']);
+
+        $this->assertDatabaseCount('records', 0);
+    }
+
+    public function test_manual_creation_accepts_an_iso_week_that_crosses_calendar_years(): void
+    {
+        $company = Company::factory()->create();
+        $payload = $this->validManualRecordPayload($company->id);
+        $payload['year'] = 2020;
+        $payload['week'] = 53;
+        $payload['week_start_date'] = '2020-12-28';
+        $payload['week_end_date'] = '2021-01-03';
+
+        $this->actingAs(User::factory()->create(['role' => UserRole::EDITOR]), 'web')
+            ->postJson('/api/records', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.year', 2020)
+            ->assertJsonPath('data.week', 53)
+            ->assertJsonPath('data.week_start_date', '2020-12-28')
+            ->assertJsonPath('data.week_end_date', '2021-01-03');
+    }
+
+    public function test_manual_creation_rejects_invalid_commission_inputs_without_partial_writes(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $companyId = Company::factory()->create()->id;
+        $payload = $this->validManualRecordPayload($companyId);
+
+        foreach ([
+            ['income' => '10.00'],
+            ['income' => '10.00', 'commission' => '1.00', 'commission_percentage' => '5.00'],
+            ['income' => '10.00', 'commission' => '10.01'],
+            ['income' => '10.00', 'commission_percentage' => '100.01'],
+            ['income' => '10.001', 'commission' => '1.00'],
+            ['income' => '-1.00', 'commission' => '0.00'],
+        ] as $invalidDetail) {
+            $invalidPayload = $payload;
+            $invalidPayload['details'] = [array_merge([
+                'operation_number' => 'OP-INVALID',
+            ], $invalidDetail)];
+
+            $this->actingAs($editor, 'web')
+                ->postJson('/api/records', $invalidPayload)
+                ->assertUnprocessable();
+        }
+
+        $this->assertDatabaseCount('records', 0);
+        $this->assertDatabaseCount('record_details', 0);
+    }
+
     /**
      * @param  array<string, mixed>  $recordAttributes
      * @param  array<string, mixed>  $detailAttributes
@@ -180,5 +333,27 @@ class RecordsApiTest extends TestCase
         ], $detailAttributes));
 
         return $record;
+    }
+
+    /**
+     * @param  list<array<string, string>>|null  $details
+     * @return array<string, mixed>
+     */
+    private function validManualRecordPayload(int $companyId, ?array $details = null): array
+    {
+        return [
+            'company_id' => $companyId,
+            'year' => 2026,
+            'week' => 38,
+            'week_start_date' => '2026-09-14',
+            'week_end_date' => '2026-09-20',
+            'affiliation' => 'AFF-123',
+            'branch' => 'Guadalajara',
+            'details' => $details ?? [[
+                'operation_number' => 'OP-NEW',
+                'income' => '100.00',
+                'commission_percentage' => '5.00',
+            ]],
+        ];
     }
 }

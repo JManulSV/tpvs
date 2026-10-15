@@ -17,4 +17,9 @@ class RecordPolicy
     {
         return in_array($user->role, [UserRole::EDITOR, UserRole::VIEWER], true);
     }
+
+    public function create(User $user): bool
+    {
+        return $user->role === UserRole::EDITOR;
+    }
 }

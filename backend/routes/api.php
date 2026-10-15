@@ -25,5 +25,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/companies', [CompanyController::class, 'store']);
 
     Route::get('/records', [RecordController::class, 'index']);
+    Route::post('/records', [RecordController::class, 'store']);
     Route::get('/records/{record}', [RecordController::class, 'show']);
 });

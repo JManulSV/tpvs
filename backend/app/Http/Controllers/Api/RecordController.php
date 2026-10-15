@@ -2,14 +2,53 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domain\Records\BusinessValidator;
+use App\Enums\RecordSource;
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Records\IndexRecordsRequest;
+use App\Http\Requests\Records\StoreRecordRequest;
 use App\Http\Resources\RecordResource;
 use App\Models\Record;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class RecordController extends Controller
 {
+    public function store(StoreRecordRequest $request, BusinessValidator $businessValidator): JsonResponse
+    {
+        $validated = $request->validated();
+        $details = $businessValidator->validateAndCalculateManualDetails($validated);
+
+        $record = DB::transaction(function () use ($validated, $details): Record {
+            $record = Record::query()->create([
+                'company_id' => $validated['company_id'],
+                'source' => RecordSource::MANUAL,
+                'status' => RecordStatus::NEEDS_REVIEW,
+                'year' => $validated['year'],
+                'week' => $validated['week'],
+                'week_start_date' => $validated['week_start_date'],
+                'week_end_date' => $validated['week_end_date'],
+                'affiliation' => $validated['affiliation'],
+                'branch' => $validated['branch'],
+            ]);
+
+            $record->details()->createMany($details);
+
+            return $record;
+        });
+
+        $record->load(['company', 'details']);
+        $record->loadSum('details as income_total', 'income');
+        $record->loadSum('details as commission_total', 'commission');
+        $record->loadSum('details as return_total', 'return_amount');
+
+        return (new RecordResource($record))
+            ->response()
+            ->setStatusCode(201);
+    }
+
     public function index(IndexRecordsRequest $request)
     {
         $filters = $request->validated();
