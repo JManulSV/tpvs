@@ -35,4 +35,4 @@ $this->getJson('/api/health')
 
 The Companies feature tests cover authenticated access for both roles, Editor-only creation, request validation, normalized duplicate rejection, case-insensitive search, pagination, confirmed-record counts, detail `404`, persistence, and association with a Record.
 
-The Records feature tests cover authenticated reads and Editor-only mutations, search and filters, business week/date ranges, pagination, manual capture with backend-calculated amounts and initial History, absence of Image/AIProcessing rows, atomic replacement and confirmation, rollback on History persistence failure, and invalid states and inputs.
+The Records feature tests cover authenticated reads and Editor-only mutations, search and filters, business week/date ranges, pagination, manual capture with backend-calculated amounts and initial confirmed History, absence of Image/AIProcessing rows, atomic replacement and confirmation, rollback on History persistence failure, and invalid states and inputs.

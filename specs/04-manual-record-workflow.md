@@ -1,6 +1,6 @@
 # SPEC 04 — Flujo manual de registros
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 03
 > **Date:** 2026-10-14
 > **Objective:** Implementar la consulta y captura manual de registros que Laravel valida y confirma al guardarlos, con el formulario listo para la siguiente captura.

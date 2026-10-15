@@ -39,7 +39,7 @@ The AI model is validated early with a technical spike. Do not build the complet
 | 8.3 | Database | Migrations, constraints, indexes, and Eloquent relationships |
 | 8.4 | Authentication | Login, logout, current user, roles, and authorization |
 | 8.5 | Companies | Read and create company catalog entries |
-| 8.6 | Manual records | Create, validate, review, and confirm records without AI |
+| 8.6 | Manual records | Create, validate, and confirm records without AI |
 | 8.7 | Images | Private upload, storage, association, and authorized viewing |
 | 8.8 | AI spike | Measure Ollama and vision-model feasibility using sample images |
 | 8.9 | AI pipeline | Asynchronous extraction, validation, persistence, and error handling |
