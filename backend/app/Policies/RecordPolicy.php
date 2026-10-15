@@ -27,4 +27,9 @@ class RecordPolicy
     {
         return $user->role === UserRole::EDITOR;
     }
+
+    public function confirm(User $user, Record $record): bool
+    {
+        return $user->role === UserRole::EDITOR;
+    }
 }

@@ -464,6 +464,125 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('histories', 0);
     }
 
+    public function test_editor_can_confirm_valid_manual_record_with_status_history(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/confirm', [])
+            ->assertOk()
+            ->assertJsonPath('data.id', $record->id)
+            ->assertJsonPath('data.source', RecordSource::MANUAL->value)
+            ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value)
+            ->assertJsonPath('data.return_total', '95.00');
+
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'status' => RecordStatus::CONFIRMED->value,
+        ]);
+        $this->assertDatabaseCount('histories', 1);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'status',
+            'previous_value' => RecordStatus::NEEDS_REVIEW->value,
+            'new_value' => RecordStatus::CONFIRMED->value,
+            'reason' => 'Registro manual confirmado',
+        ]);
+    }
+
+    public function test_confirmation_requires_authentication_and_editor_role(): void
+    {
+        $record = $this->createRecordWithDetails();
+
+        $this->postJson('/api/records/'.$record->id.'/confirm', [])->assertUnauthorized();
+
+        $this->actingAs(User::factory()->create(['role' => UserRole::VIEWER]), 'web')
+            ->postJson('/api/records/'.$record->id.'/confirm', [])
+            ->assertForbidden();
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_confirmation_rejects_invalid_source_or_state_without_history(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $confirmed = $this->createRecordWithDetails(null, ['status' => RecordStatus::CONFIRMED]);
+        $imageRecord = $this->createRecordWithDetails(null, ['source' => RecordSource::IMAGE]);
+
+        foreach ([[$confirmed, 'INVALID_STATE'], [$imageRecord, 'INVALID_SOURCE']] as [$record, $reason]) {
+            $this->actingAs($editor, 'web')
+                ->postJson('/api/records/'.$record->id.'/confirm', [])
+                ->assertStatus(409)
+                ->assertJsonPath('code', 'RECORD_CONFIRMATION_BLOCKED')
+                ->assertJsonPath('details.reason', $reason);
+        }
+
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_confirmation_revalidates_stored_financial_calculations(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+        $record->details()->firstOrFail()->update([
+            'commission' => '6.00',
+            'return_amount' => '94.00',
+        ]);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/confirm', [])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'RECORD_CONFIRMATION_BLOCKED')
+            ->assertJsonPath('details.reason', 'BUSINESS_VALIDATION_FAILED');
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_confirmation_does_not_accept_client_control_of_state_or_reason(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/confirm', [
+                'status' => RecordStatus::CONFIRMED->value,
+                'reason' => 'Client supplied reason',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['status', 'reason']);
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_failed_confirmation_history_write_rolls_back_status(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+
+        Event::listen('eloquent.creating: '.History::class, static function (): void {
+            throw new \RuntimeException('Simulated history persistence failure.');
+        });
+
+        try {
+            $this->actingAs($editor, 'web')
+                ->postJson('/api/records/'.$record->id.'/confirm', [])
+                ->assertStatus(500);
+        } finally {
+            Event::forget('eloquent.creating: '.History::class);
+        }
+
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'status' => RecordStatus::NEEDS_REVIEW->value,
+        ]);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
     /**
      * @param  array<string, mixed>  $recordAttributes
      * @param  array<string, mixed>  $detailAttributes

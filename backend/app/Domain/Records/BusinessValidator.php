@@ -2,6 +2,7 @@
 
 namespace App\Domain\Records;
 
+use App\Models\Record;
 use Illuminate\Validation\ValidationException;
 
 class BusinessValidator
@@ -55,6 +56,49 @@ class BusinessValidator
                 'return_amount' => $this->fromCents($incomeCents - $commissionCents),
                 'order' => $index + 1,
             ];
+        }
+
+        return $calculated;
+    }
+
+    /**
+     * Revalidate an already persisted manual aggregate without trusting its stored calculations.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function validatePersistedManualRecord(Record $record): array
+    {
+        $details = $record->details->map(static function ($detail): array {
+            $input = [
+                'operation_number' => $detail->operation_number,
+                'income' => $detail->income,
+            ];
+
+            if ($detail->commission_percentage !== null) {
+                $input['commission_percentage'] = $detail->commission_percentage;
+            } else {
+                $input['commission'] = $detail->commission;
+            }
+
+            return $input;
+        })->all();
+
+        $calculated = $this->validateAndCalculateManualDetails([
+            'year' => $record->year,
+            'week' => $record->week,
+            'week_start_date' => $record->week_start_date->toDateString(),
+            'week_end_date' => $record->week_end_date->toDateString(),
+            'details' => $details,
+        ]);
+
+        foreach ($record->details as $index => $detail) {
+            if ($detail->commission !== $calculated[$index]['commission']
+                || $detail->return_amount !== $calculated[$index]['return_amount']
+                || (int) $detail->order !== $calculated[$index]['order']) {
+                throw ValidationException::withMessages([
+                    "details.{$index}" => ['The persisted movement calculations are inconsistent.'],
+                ]);
+            }
         }
 
         return $calculated;

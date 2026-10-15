@@ -6,6 +6,7 @@ use App\Domain\Records\BusinessValidator;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Records\ConfirmRecordRequest;
 use App\Http\Requests\Records\IndexRecordsRequest;
 use App\Http\Requests\Records\StoreRecordRequest;
 use App\Http\Requests\Records\UpdateRecordRequest;
@@ -14,6 +15,7 @@ use App\Models\Record;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class RecordController extends Controller
 {
@@ -153,5 +155,62 @@ class RecordController extends Controller
         $record->loadSum('details as return_total', 'return_amount');
 
         return new RecordResource($record);
+    }
+
+    public function confirm(
+        ConfirmRecordRequest $request,
+        Record $record,
+        BusinessValidator $businessValidator,
+    ): RecordResource|JsonResponse {
+        $result = DB::transaction(function () use ($request, $record, $businessValidator): Record|JsonResponse {
+            $record = Record::query()
+                ->whereKey($record->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($record->source !== RecordSource::MANUAL || $record->status !== RecordStatus::NEEDS_REVIEW) {
+                return response()->json([
+                    'message' => 'The record cannot be confirmed in its current state.',
+                    'code' => 'RECORD_CONFIRMATION_BLOCKED',
+                    'details' => [
+                        'reason' => $record->source !== RecordSource::MANUAL ? 'INVALID_SOURCE' : 'INVALID_STATE',
+                    ],
+                ], 409);
+            }
+
+            $record->load('details');
+            try {
+                $businessValidator->validatePersistedManualRecord($record);
+            } catch (ValidationException) {
+                return response()->json([
+                    'message' => 'The record cannot be confirmed until its business data is valid.',
+                    'code' => 'RECORD_CONFIRMATION_BLOCKED',
+                    'details' => ['reason' => 'BUSINESS_VALIDATION_FAILED'],
+                ], 409);
+            }
+
+            $record->status = RecordStatus::CONFIRMED;
+            $record->save();
+            $record->histories()->create([
+                'user_id' => $request->user()->id,
+                'field_name' => 'status',
+                'previous_value' => RecordStatus::NEEDS_REVIEW->value,
+                'new_value' => RecordStatus::CONFIRMED->value,
+                'reason' => 'Registro manual confirmado',
+            ]);
+
+            return $record;
+        });
+
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+
+        $result->load(['company', 'details']);
+        $result->loadSum('details as income_total', 'income');
+        $result->loadSum('details as commission_total', 'commission');
+        $result->loadSum('details as return_total', 'return_amount');
+
+        return new RecordResource($result);
     }
 }
