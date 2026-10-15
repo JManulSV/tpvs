@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\RecordController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', static fn () => response()->json([
@@ -22,4 +23,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/companies', [CompanyController::class, 'index']);
     Route::get('/companies/{company}', [CompanyController::class, 'show']);
     Route::post('/companies', [CompanyController::class, 'store']);
+
+    Route::get('/records', [RecordController::class, 'index']);
+    Route::get('/records/{record}', [RecordController::class, 'show']);
 });
