@@ -71,9 +71,9 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 
 ### Private Record Image Storage (Phase 8.7)
 
-The target image configuration uses a dedicated local private disk rooted under Laravel-managed storage, for example `storage/app/private/record-images`. It must remain separate from the public disk and must not depend on `FILESYSTEM_DISK`; do not run `storage:link` for the image root. The disk definition and API behavior remain planned until the 8.7 implementation checkpoint passes.
+The implemented image configuration uses the `record_images` local private disk rooted at `storage/app/private/record-images`. It is separate from the public disk and does not depend on `FILESYSTEM_DISK`; do not run `storage:link` for the image root.
 
-The image contract accepts JPEG, PNG, and WebP up to 10 MiB. Configure PHP's `upload_max_filesize=10M` and `post_max_size=12M` in the Docker and host PHP runtimes so transport limits do not unexpectedly undercut Laravel validation. Restart/recreate the relevant runtime after changing PHP configuration and verify effective values with `php -i` or an equivalent runtime check.
+The image contract accepts JPEG, PNG, and WebP up to 10 MiB. PHP's Docker runtime uses `upload_max_filesize=10M` and `post_max_size=12M` so transport limits do not undercut Laravel validation. Host-based PHP deployments must set the same values in their PHP configuration and verify them with `php -i` or an equivalent runtime check.
 
 Docker Compose currently persists Laravel's complete `backend/storage` directory in `tpvs-backend-storage`; keep that volume for uploaded private images. Backups and recovery must cover both PostgreSQL Image metadata and private image files. Restoring only one side can leave dangling metadata or orphaned files.
 

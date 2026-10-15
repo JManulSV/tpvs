@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md).
+The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md). Backend-only phase 8.7 image HTTP acceptance is recorded in [`../11_technical_roadmap.md`](../11_technical_roadmap.md) and its API contract in [`../backend/03_api_contract.md`](../backend/03_api_contract.md).
 
 ## Verification Layers
 

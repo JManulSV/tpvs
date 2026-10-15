@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Laravel local filesystem configuration exists. Record image endpoints remain planned for phase 8.7; document generation remains planned for phase 8.13.
+Laravel local filesystem configuration and Record image upload, replacement, private viewing, authorization, and feature tests are implemented for phase 8.7. Document generation remains planned for phase 8.13.
 
 ## Private Images
 
@@ -15,7 +15,7 @@ Laravel local filesystem configuration exists. Record image endpoints remain pla
 - Return `404` when a non-canceled Record has no image. Block image access and upload/replacement on `CANCELED` Records with stable `409` errors.
 - Reject replacement if the active Image has AIProcessing attempts. This preserves the association between attempts and the bytes processed.
 - Store the new file before updating Image metadata transactionally under a Record lock. Remove the new file if database persistence fails; delete the old file only after commit.
-- If post-commit deletion of an old file fails, keep the new image active and log the orphan for cleanup; never disclose storage details in the HTTP response.
+- If post-commit deletion of an old file fails, keep the new image active and log the orphan for cleanup; never disclose storage details in the HTTP response. A staged-file or metadata-persistence failure returns a safe generic `500` and removes the staged file when possible.
 - Image attachment alone does not create `AIProcessing`, dispatch AI jobs, alter Record source/status, or write History.
 - Persist the private storage volume and include it in backup/recovery procedures.
 
@@ -25,4 +25,4 @@ Word and Excel files are outputs, not sources of truth. They should be generated
 
 Word generation requires a confirmed Record, valid Delivery preparation, cash reconciliation, and an associated Image.
 
-The phase 8.7 API contract and checkpoint are documented in [`03_api_contract.md`](03_api_contract.md) and the technical roadmap. Until the implementation and tests pass, these image-handling rules describe the target behavior, not a live endpoint.
+The phase 8.7 API contract is implemented in Laravel and documented in [`03_api_contract.md`](03_api_contract.md). The roadmap checkpoint is recorded only after the integrated HTTP acceptance flow passes.

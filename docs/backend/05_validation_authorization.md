@@ -74,7 +74,7 @@ Validate the uploaded file as non-empty JPEG, PNG, or WebP no larger than 10 MiB
 
 Only `EDITOR` may upload or replace. `VIEWER` mutation attempts return `403`. An attempt to upload or view an image on a canceled Record returns a stable `409` domain response; no image for a non-canceled Record returns `404` on GET. Replacing an image that has associated `AIProcessing` rows returns `409 IMAGE_REPLACEMENT_BLOCKED`, preserving processing provenance.
 
-The upload must not change source/status, create History or AIProcessing, or enqueue work. Keep file and database consistency with a generated new file, transactionally updated association under a Record lock, compensation on database failure, and post-commit deletion of the old file. Filesystem cleanup failure after commit is diagnostic/operational; it must not undo or misreport the committed database association.
+The upload must not change source/status, create History or AIProcessing, or enqueue work. Keep file and database consistency with a generated new file, transactionally updated association under a Record lock, compensation on database failure, and post-commit deletion of the old file. Staging/database failures return a generic `500` without internal details; filesystem cleanup failure after commit is diagnostic/operational and must not undo or misreport the committed database association.
 
 ### HTTP and Period Validation
 

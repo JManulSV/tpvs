@@ -218,9 +218,9 @@ The list resource uses the same record fields and may omit detail fields not nee
 - A disallowed state/source transition returns `409` with a stable business code. Use `RECORD_UPDATE_BLOCKED` for replacement and `RECORD_CONFIRMATION_BLOCKED` for confirmation, with a stable reason in `details` such as `INVALID_STATE`, `INVALID_SOURCE`, or `BUSINESS_VALIDATION_FAILED`.
 - All multi-row create, replace, and confirmation operations roll back completely if persistence or History creation fails.
 
-## Record Images Contract — Phase 8.7 (Planned)
+## Record Images Contract — Phase 8.7 (Implemented)
 
-The endpoints below define the target backend contract for private Record images. They are planned until implemented and covered by Laravel feature tests. Uploading an image in phase 8.7 stores and associates the file only; it does not create an AI processing attempt or dispatch a job.
+The endpoints below implement private Record image handling. Uploading an image stores and associates the file only; it does not create an AI processing attempt or dispatch a job.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -245,7 +245,7 @@ Store the new file before changing the database reference. Update/create Image m
 
 If a non-canceled Record has no associated Image, return `404`. If the Record is `CANCELED`, GET returns `409` with `code=IMAGE_ACCESS_BLOCKED` and `details.reason=RECORD_CANCELED`. Upload/replacement on a canceled Record returns `409` with `code=IMAGE_UPLOAD_BLOCKED` and the same reason.
 
-Unauthenticated requests return `401`; `VIEWER` upload attempts return `403`; missing Records return `404`. Invalid/empty files, unsupported or mismatched content, unsafe/empty sanitized filenames, and files above 10 MiB return Laravel's standard `422` validation response. Storage failures return a safe generic server error without exception details or storage paths. Stateful mutation requests retain Laravel CSRF behavior, including `419` for invalid CSRF.
+Unauthenticated requests return `401`; `VIEWER` upload attempts return `403`; missing Records return `404`. Invalid/empty files, unsupported or mismatched content, unsafe/empty sanitized filenames, and files above 10 MiB return Laravel's standard `422` validation response. Storage or metadata persistence failures return `500` with a safe generic message and no exception details or storage paths; the staged file is removed when possible. A post-commit deletion failure does not fail the already committed upload, keeps the new association active, and is logged for operator cleanup. Stateful mutation requests retain Laravel CSRF behavior, including `419` for invalid CSRF.
 
 ### Record Image Metadata
 

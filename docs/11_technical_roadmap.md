@@ -181,7 +181,7 @@ Build `BusinessValidator` for required fields, commission, return, totals, and a
 
 ### 8.7 - Images
 
-Implement upload, private storage, `Image` metadata, and association with `Record`. Validate MIME type, file size, filename handling, storage location, authorized access, and record association.
+**Status: COMPLETE (2026-10-15). Backend implementation and HTTP acceptance verified.** Implemented private image upload/replacement, `Image` metadata, association with `Record`, and authorized viewing. JPEG, PNG, and WebP content up to 10 MiB is detected and validated; names are sanitized and storage keys are generated. The dedicated private local disk is persisted by Docker and PHP upload limits are `10M`/`12M`. `EDITOR` can upload/replace except on canceled Records or images with AI attempts; authenticated `EDITOR` and `VIEWER` can view images on non-canceled Records. Upload does not start AI or change Record state. Backend suite: 70 tests, 401 assertions passed. Focused image suite: 15 tests, 88 assertions passed. HTTP acceptance verified Editor upload (`201`) and read (`200`), Viewer read (`200`) and direct upload rejection (`403`), MIME and private cache headers, and metadata without storage paths. QA data and seeded test users were removed. See `docs/backend/03_api_contract.md` and `docs/backend/08_files_and_documents.md` for the contract and operational rules.
 
 **Checkpoint:** An `EDITOR` can attach an image to a `Record` and view it through an authorized request.
 

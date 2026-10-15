@@ -1,6 +1,6 @@
 # SPEC 05 — Almacenamiento de imágenes de registros
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 04
 > **Date:** 2026-10-15
 > **Objective:** Implementar en Laravel la carga, reemplazo, almacenamiento privado y consulta autorizada de la imagen asociada a un registro.
