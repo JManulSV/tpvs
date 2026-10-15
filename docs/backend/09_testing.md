@@ -2,7 +2,7 @@
 
 ## Current Status
 
-The backend has feature coverage for health, authentication/authorization, Companies API behavior, database relationships, and schema constraints. Run the full suite with `php artisan test` (or `docker compose exec -T tpvs-backend php artisan test`). Configure an isolated PostgreSQL test database before running `RefreshDatabase` tests; do not point test runs at a database whose data must be retained.
+The backend has feature coverage for health, authentication/authorization, Companies and Records API behavior, database relationships, and schema constraints. Run the full suite with `php artisan test` (or `docker compose exec -T tpvs-backend php artisan test`). Configure an isolated PostgreSQL test database before running `RefreshDatabase` tests; do not point test runs at a database whose data must be retained.
 
 ## Test Types
 
@@ -34,3 +34,5 @@ $this->getJson('/api/health')
 ```
 
 The Companies feature tests cover authenticated access for both roles, Editor-only creation, request validation, normalized duplicate rejection, case-insensitive search, pagination, confirmed-record counts, detail `404`, persistence, and association with a Record.
+
+The Records feature tests cover authenticated reads and Editor-only mutations, search and filters, business week/date ranges, pagination, manual capture with backend-calculated amounts and initial confirmed History, absence of Image/AIProcessing rows, atomic replacement and confirmation, rollback on History persistence failure, and invalid states and inputs.

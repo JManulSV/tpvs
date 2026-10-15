@@ -38,6 +38,9 @@ async function AuthenticatedLayout({ children }: { children: ReactNode }) {
             <Link className="underline-offset-4 hover:underline" href="/dashboard">
               Inicio
             </Link>
+            <Link className="underline-offset-4 hover:underline" href="/records">
+              Registros
+            </Link>
             <Link className="underline-offset-4 hover:underline" href="/companies">
               Empresas
             </Link>
@@ -45,7 +48,7 @@ async function AuthenticatedLayout({ children }: { children: ReactNode }) {
         </div>
         <LogoutButton />
       </header>
-      <main className="mx-auto w-full max-w-5xl px-6 py-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-6 py-10">{children}</main>
     </div>
   );
 }

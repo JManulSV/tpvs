@@ -102,7 +102,7 @@ Excluded:
 - The final image replaces the active one; old images are not part of the active record flow.
 - History is the only required audit mechanism for the MVP.
 
-## 8. Week and Year Rule
+## 8. Business Week and Year Rule
 
 The business period must be stored as a combination of:
 - `week`: the week identifier within the year
@@ -115,10 +115,13 @@ Examples:
 - Week 32 of 2026
 
 Validation expectations:
-- `week` must be a valid week identifier for the selected calendar standard.
-- `year` must be stored alongside it in the `Record` entity.
-- Reports and filters must treat week and year as a combined period key.
-- If a week crosses two months, month-based reports use the month containing `week_end_date`.
+- `week` is the business's week identifier and is stored as an integer from 1 to 53.
+- `year` is the calendar/business year selected by the Editor and is stored with `week` in `Record`.
+- Do not interpret the business week as an ISO week or derive its dates from the number.
+- `week_start_date` and `week_end_date` are valid dates chosen according to the operational calendar; they need not be Monday and Sunday.
+- `week_start_date` must not be later than `week_end_date`.
+- Reports and filters treat week and year as a combined business-period key.
+- If a period crosses two months, month-based reports use the month containing `week_end_date`.
 
 ## 9. Company Name Rule
 
@@ -152,9 +155,11 @@ It does not require:
 - `Image`
 - `AIProcessing`
 
+A valid manual record is confirmed when the Editor saves it, because the Editor enters and reviews the data in the same workflow. The creation transaction records `status` from `null` to `CONFIRMED` in `History`. A later phase will add the audited `CONFIRMED -> NEEDS_REVIEW -> CONFIRMED` editing workflow.
+
 ### Shared Rule
 
-Both sources use the same business validation rules and both must pass through human review before `CONFIRMED`.
+Both sources use the same financial business validation rules. Image-derived records require later human review before confirmation. A valid manual record is confirmed during creation because the Editor reviews it while entering the data.
 
 ## 11. Delivery Rules
 
