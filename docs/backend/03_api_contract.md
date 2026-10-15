@@ -2,7 +2,7 @@
 
 ## Status
 
-The health, authentication, and Companies endpoints are implemented and covered by backend feature tests. Other business resource endpoints described in the global architecture remain planned.
+The health, authentication, Companies, and Records endpoints are implemented and covered by backend feature tests. Image endpoints described below for phase 8.7 remain planned until implemented and verified.
 
 ## Base Path
 
@@ -217,3 +217,50 @@ The list resource uses the same record fields and may omit detail fields not nee
 - Shape, relationship, invalid-date, inverted date-range, and financial input errors return Laravel's standard `422` validation structure, with errors keyed to the relevant field or detail index where possible.
 - A disallowed state/source transition returns `409` with a stable business code. Use `RECORD_UPDATE_BLOCKED` for replacement and `RECORD_CONFIRMATION_BLOCKED` for confirmation, with a stable reason in `details` such as `INVALID_STATE`, `INVALID_SOURCE`, or `BUSINESS_VALIDATION_FAILED`.
 - All multi-row create, replace, and confirmation operations roll back completely if persistence or History creation fails.
+
+## Record Images Contract — Phase 8.7 (Implemented)
+
+The endpoints below implement private Record image handling. Uploading an image stores and associates the file only; it does not create an AI processing attempt or dispatch a job.
+
+| Method | Path | Purpose | Authentication / authorization |
+| --- | --- | --- | --- |
+| `POST` | `/api/records/{record}/image` | Upload the first image or replace the active image. | Authenticated `EDITOR` only; stateful SPA requests require CSRF. |
+| `GET` | `/api/records/{record}/image` | Stream the associated private image. | Authenticated `EDITOR` or `VIEWER`. |
+
+### Upload
+
+`POST /api/records/{record}/image` accepts `multipart/form-data` with one required `image` file. Accepted detected formats are JPEG, PNG, and WebP; the file must be non-empty and no larger than 10 MiB (10,485,760 bytes). Validate content-derived MIME in addition to client filename and `Content-Type`. The generated storage key uses a server-generated UUID and extension derived from detected MIME. The sanitized original filename is metadata only and never determines a storage path.
+
+The route stores the file on a dedicated private local disk, not the public disk or a disk selected by `FILESYSTEM_DISK`. It accepts any existing Record except one in `CANCELED`. The endpoint does not accept client-controlled `record_id`, `file_path`, `mime_type`, or `file_size` fields. Laravel derives association and metadata from the route model, detected file, and stored bytes.
+
+First attachment returns `201` with `{ "data": { "id", "original_file_name", "mime_type", "file_size", "created_at" } }`. A permitted replacement returns `200` with the same shape. Neither response exposes `file_path`, disk root, storage key, or a public URL. Upload does not change Record source/status, create `History`/`AIProcessing`, or dispatch jobs.
+
+An existing image may be replaced only while it has no associated `AIProcessing` rows. If attempts exist, return `409` with `code=IMAGE_REPLACEMENT_BLOCKED`; keep the current image and all attempts intact. This protects the association between an AI attempt and the bytes it processed. Policy for replacement after AI processing is deferred to the AI pipeline phase.
+
+Store the new file before changing the database reference. Update/create Image metadata in a database transaction while locking the Record and rechecking state and AI attempts. If database persistence fails, remove the new file and preserve the previous association. Delete the old file only after commit. If post-commit cleanup fails, keep the new association active and log the failure for operator cleanup; do not represent the committed database update as rolled back.
+
+### Authorized Image Response
+
+`GET /api/records/{record}/image` returns `200` with the original bytes, the MIME type detected from stored content, `Content-Disposition: inline`, and `Cache-Control: private, no-store`. The response must not redirect to a public URL or disclose physical paths or storage keys. Byte-range behavior is not part of this contract.
+
+If a non-canceled Record has no associated Image, return `404`. If the Record is `CANCELED`, GET returns `409` with `code=IMAGE_ACCESS_BLOCKED` and `details.reason=RECORD_CANCELED`. Upload/replacement on a canceled Record returns `409` with `code=IMAGE_UPLOAD_BLOCKED` and the same reason.
+
+Unauthenticated requests return `401`; `VIEWER` upload attempts return `403`; missing Records return `404`. Invalid/empty files, unsupported or mismatched content, unsafe/empty sanitized filenames, and files above 10 MiB return Laravel's standard `422` validation response. Storage or metadata persistence failures return `500` with a safe generic message and no exception details or storage paths; the staged file is removed when possible. A post-commit deletion failure does not fail the already committed upload, keeps the new association active, and is logged for operator cleanup. Stateful mutation requests retain Laravel CSRF behavior, including `419` for invalid CSRF.
+
+### Record Image Metadata
+
+The Record resource includes an `image` object or `null`:
+
+```json
+{
+  "image": {
+    "id": 12,
+    "original_file_name": "documento.jpg",
+    "mime_type": "image/jpeg",
+    "file_size": 184320,
+    "created_at": "2026-10-15T12:00:00.000000Z"
+  }
+}
+```
+
+The metadata contains no `file_path`, storage key, physical path, or public URL. It is included in Record detail and Record responses where the relation is loaded; a Record without an image reports `image: null`.

@@ -30,6 +30,14 @@ return [
 
     'disks' => [
 
+        'record_images' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/record-images'),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => true,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

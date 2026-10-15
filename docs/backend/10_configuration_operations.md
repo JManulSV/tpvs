@@ -69,6 +69,14 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 
 `QUEUE_CONNECTION=sync` is suitable only for the current foundation. Operational AI processing requires an asynchronous worker and persistent failed-job handling.
 
+### Private Record Image Storage (Phase 8.7)
+
+The implemented image configuration uses the `record_images` local private disk rooted at `storage/app/private/record-images`. It is separate from the public disk and does not depend on `FILESYSTEM_DISK`; do not run `storage:link` for the image root.
+
+The image contract accepts JPEG, PNG, and WebP up to 10 MiB. PHP's Docker runtime uses `upload_max_filesize=10M` and `post_max_size=12M` so transport limits do not undercut Laravel validation. Host-based PHP deployments must set the same values in their PHP configuration and verify them with `php -i` or an equivalent runtime check.
+
+Docker Compose currently persists Laravel's complete `backend/storage` directory in `tpvs-backend-storage`; keep that volume for uploaded private images. Backups and recovery must cover both PostgreSQL Image metadata and private image files. Restoring only one side can leave dangling metadata or orphaned files.
+
 ## Operational Checks
 
 - Verify `GET /api/health`.
@@ -76,6 +84,8 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 - Verify the `tpvs-queue-worker` service is running when using Docker.
 - Run migrations before starting application workers in host-based development; Docker backend startup runs them automatically.
 - Persist PostgreSQL data and private uploaded files.
+- Keep the private image disk mounted/persisted and included in backup and restore verification.
+- Verify effective PHP upload limits allow the documented 10 MiB image limit, with multipart overhead accommodated by `post_max_size=12M`.
 - Back up database data, uploaded files, logs, and failed jobs according to deployment requirements.
 - Never enable debug output in an operational environment.
 - Keep `APP_KEY` stable and secret; Laravel uses it to protect session and CSRF cookies.

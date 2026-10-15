@@ -18,12 +18,22 @@ class RecordPolicy
         return in_array($user->role, [UserRole::EDITOR, UserRole::VIEWER], true);
     }
 
+    public function viewImage(User $user, Record $record): bool
+    {
+        return $this->view($user, $record);
+    }
+
     public function create(User $user): bool
     {
         return $user->role === UserRole::EDITOR;
     }
 
     public function update(User $user, Record $record): bool
+    {
+        return $user->role === UserRole::EDITOR;
+    }
+
+    public function uploadImage(User $user, Record $record): bool
     {
         return $user->role === UserRole::EDITOR;
     }

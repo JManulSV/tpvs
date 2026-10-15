@@ -5,6 +5,7 @@ set -e
 mkdir -p \
     bootstrap/cache \
     storage/app/private \
+    storage/app/private/record-images \
     storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/testing \

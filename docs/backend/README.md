@@ -4,7 +4,7 @@ This directory documents how the TPVS backend is implemented and operated with L
 
 ## Current Status
 
-Status: Laravel foundation, authentication, and the Companies catalog are implemented; remaining business modules are planned.
+Status: Laravel foundation, authentication, Companies, manual Records, and private Record image handling are implemented; remaining business modules are planned.
 
 Implemented:
 
@@ -15,14 +15,15 @@ Implemented:
 - `GET /up` Laravel framework health endpoint.
 - Laravel Sanctum stateful session authentication endpoints and central `EDITOR` mutation middleware.
 - Company list, detail, and create endpoints with resource policy, request validation, normalized name uniqueness, and feature tests.
+- Manual Records list, create, detail, replacement, confirmation, validation, authorization, and feature tests.
+- Private Record image upload, safe replacement, authorized viewing, metadata serialization, and feature/unit tests (phase 8.7).
 - Basic Laravel test scaffolding.
 - Docker development runtime.
 
 Not implemented:
 
-- Business resource-specific Policies will be implemented with their endpoints.
-- Records, record details, images, AI processing, history, deliveries, and reports.
-- Business API endpoints beyond health, authentication, and Companies.
+- AI processing, history, deliveries, and reports.
+- Business API endpoints beyond health, authentication, Companies, manual Records, and Record images.
 - Asynchronous AI jobs, document generation, and production operations.
 
 ## Authority Rules

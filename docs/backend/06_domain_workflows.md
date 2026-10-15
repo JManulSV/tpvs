@@ -43,12 +43,21 @@ Tests
 
 ## Image Record
 
-1. Editor uploads an image.
-2. Laravel stores private file metadata and creates the record context.
-3. A processing attempt is created.
-4. AI output is normalized and validated.
-5. The Record enters `NEEDS_REVIEW` or `ERROR`.
-6. An Editor reviews and confirms or cancels it.
+**Storage and association — phase 8.7:**
+
+1. An authenticated Editor uploads one JPEG, PNG, or WebP image of at most 10 MiB to `POST /api/records/{record}/image`.
+2. Laravel validates file content and Record state, stores the file under a generated key on a private local disk, and transactionally associates the Image metadata with the Record.
+3. A manual Record may receive its image later. Upload alone does not change Record source/status, create `AIProcessing` or History, or dispatch a job.
+4. An authenticated Editor or Viewer retrieves the image bytes through `GET /api/records/{record}/image`; no public file URL is exposed.
+5. An Editor may replace an image only if it has no AI processing attempts. The old file is deleted after the new association commits.
+6. Canceled Records do not allow image upload, replacement, or viewing. A non-canceled Record without an image returns `404` on GET.
+
+**AI extraction — phases 8.8–8.9:**
+
+1. A later AI workflow creates a processing attempt for the stored Image.
+2. AI output is normalized and validated.
+3. The Record enters `NEEDS_REVIEW` or `ERROR`.
+4. An Editor reviews and confirms or cancels it.
 
 ## Confirmation
 

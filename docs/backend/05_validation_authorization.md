@@ -36,6 +36,7 @@ Authentication is implemented with Laravel Sanctum stateful SPA authentication b
 | Edit, confirm, or cancel | Yes | No |
 | Prepare delivery | Yes | No |
 | Generate reports | Yes | Yes |
+| View a Record image | Yes | Yes |
 
 Implement resource-specific permissions with Laravel Policies as each resource is introduced. Feature tests currently verify the central allowed and forbidden role behavior.
 
@@ -56,6 +57,24 @@ The Records API contract is documented in [`03_api_contract.md`](03_api_contract
 | Replace or confirm a record with another source or state | No (`409`) | No (`403`) |
 
 Every mutation must authorize on the backend, including requests made directly to Laravel or through the BFF. Client-hidden controls are only presentation.
+
+## Record Images — Phase 8.7 Contract Decisions
+
+The target image endpoint contract is documented in [`03_api_contract.md`](03_api_contract.md) and remains planned until implemented and tested.
+
+| Operation | `EDITOR` | `VIEWER` |
+| --- | --- | --- |
+| Upload or replace a Record image | Yes, except a canceled Record or an image with AI attempts | No (`403`) |
+| View an image on a non-canceled Record | Yes | Yes |
+| View or mutate an image on a canceled Record | No (`409`) | No (`409` for read, `403` for mutation authorization if applicable) |
+
+Require `auth:sanctum` on both routes. The upload is state-changing and retains stateful CSRF validation. Authorize image access through the parent Record Policy; do not expose an independent public image URL or rely on frontend visibility.
+
+Validate the uploaded file as non-empty JPEG, PNG, or WebP no larger than 10 MiB. Determine MIME from the content and do not trust the supplied content type or extension alone. Sanitize the client filename before persisting it as metadata and generate the storage key on the server. Reject unsupported content, mismatches, invalid filenames, and oversize files with the standard `422` response.
+
+Only `EDITOR` may upload or replace. `VIEWER` mutation attempts return `403`. An attempt to upload or view an image on a canceled Record returns a stable `409` domain response; no image for a non-canceled Record returns `404` on GET. Replacing an image that has associated `AIProcessing` rows returns `409 IMAGE_REPLACEMENT_BLOCKED`, preserving processing provenance.
+
+The upload must not change source/status, create History or AIProcessing, or enqueue work. Keep file and database consistency with a generated new file, transactionally updated association under a Record lock, compensation on database failure, and post-commit deletion of the old file. Staging/database failures return a generic `500` without internal details; filesystem cleanup failure after commit is diagnostic/operational and must not undo or misreport the committed database association.
 
 ### HTTP and Period Validation
 
