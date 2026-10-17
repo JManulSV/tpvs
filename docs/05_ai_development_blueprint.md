@@ -90,13 +90,7 @@ Design the provider as an interface so the model vendor can be replaced later.
 
 ### Prompt: AI Extraction Contract
 ```text
-Define the AI output contract for the MVP.
-The AI must return structured JSON containing record, company_name, year, week, week_start_date, week_end_date, affiliation, branch, details, and source_totals.
-Each field must contain value and confidence.
-If a field cannot be read, keep the property and return value = null and confidence = 0.
-Never omit required properties.
-Use null for unreadable values instead of inventing data.
-Preserve the visual order of multiple movement details.
+Use the canonical output contract and JSON example in docs/06_ai_design.md. Return exactly that structure, including all required properties and value/confidence objects. Preserve the visual order of movements, use null with confidence 0 for unreadable values, and never invent data. Source values are transcribed evidence, not official calculated values.
 ```
 
 ### Prompt: Extraction Validator

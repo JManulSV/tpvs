@@ -59,52 +59,58 @@ MCP is not required for this MVP because the system is performing information ex
 
 ## 4. Output Contract
 
-The AI returns structured JSON.
-
-The structure contains:
-- `record`
-- `company_name`
-- `year`
-- `week`
-- `week_start_date`
-- `week_end_date`
-- `affiliation`
-- `branch`
-- `details`
-- `source_totals`
-
-Each movement contains:
-- `operation_number`
-- `income`
-- `commission_percentage`
-- `source_commission`
-- `source_return_amount`
-
-`source_totals` may contain:
-- `income`
-- `commission`
-- `return_amount`
-
-The `source_*` values represent what appears in the document and are evidence only.
-
-They are not the official values stored in `RecordDetail`.
-
-## 5. Required JSON Shape
-
-Every expected property must exist.
-
-If a field cannot be read:
+The AI returns one JSON object using the following canonical shape. `record` contains the general record fields, `details` contains the movements in visual order, and `source_totals` contains totals transcribed from the document when present.
 
 ```json
 {
-  "value": null,
-  "confidence": 0
+  "record": {
+    "company_name": { "value": "Compañía Ejemplo", "confidence": 0.98 },
+    "year": { "value": 2026, "confidence": 0.99 },
+    "week": { "value": 38, "confidence": 0.95 },
+    "week_start_date": { "value": "2026-09-14", "confidence": 0.90 },
+    "week_end_date": { "value": "2026-09-20", "confidence": 0.90 },
+    "affiliation": { "value": "AF-123", "confidence": 0.92 },
+    "branch": { "value": "Guadalajara", "confidence": 0.96 }
+  },
+  "details": [
+    {
+      "operation_number": { "value": "10231", "confidence": 0.99 },
+      "income": { "value": "10000.00", "confidence": 0.98 },
+      "commission_percentage": { "value": "2.00", "confidence": 0.88 },
+      "source_commission": { "value": "200.00", "confidence": 0.96 },
+      "source_return_amount": { "value": "9800.00", "confidence": 0.96 }
+    }
+  ],
+  "source_totals": {
+    "income": { "value": "10000.00", "confidence": 0.95 },
+    "commission": { "value": "200.00", "confidence": 0.95 },
+    "return_amount": { "value": "9800.00", "confidence": 0.95 }
+  }
 }
 ```
 
-The property must still exist. Only the value becomes `null`.
+All properties shown in the contract are required, including when a value is not visible. Each extracted field is an object containing `value` and `confidence`.
 
-If an entire property disappears from the JSON, that is a contract violation.
+### Value types and normalization
+
+- `company_name`, `affiliation`, `branch`, and `operation_number` use strings or `null`.
+- `year` and `week` use integers or `null`. A business week is not interpreted as an ISO week.
+- `week_start_date` and `week_end_date` use `YYYY-MM-DD` strings or `null`. Do not derive dates from the year/week; only transcribe dates supported by the image.
+- Monetary amounts and `commission_percentage` use decimal strings with a period as the decimal separator and exactly two fractional digits (for example, `"10000.00"`, `"2.00"`) or `null`. Do not include currency symbols or thousands separators.
+- `details` is an array with at least one movement. Array order is the visual order in the document; the backend assigns the persisted `order` value.
+- `source_totals` always contains `income`, `commission`, and `return_amount`. If a total is not shown or cannot be read, its value is `null`.
+
+The `source_commission`, `source_return_amount`, and `source_totals` values are evidence transcribed from the document only. They are not official values and must not be calculated or treated as the values stored in `RecordDetail`.
+
+## 5. Required JSON Shape and Missing Values
+
+Every expected property must exist. When a field is not visible, is unreadable, or cannot be identified without guessing, return:
+
+```json
+{ "value": null, "confidence": 0 }
+```
+
+This includes `operation_number`; do not invent an identifier. A missing property is a contract violation, even if its value would have been unknown. `confidence` is a number from `0.0` to `1.0`; it is an expression of model confidence, not a statistical probability or business validation.
 
 ## 6. Confidence Rules
 
