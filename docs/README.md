@@ -17,6 +17,7 @@ The documentation describes both the current repository implementation and the t
 - `docs/09_manual_capture.md` - Manual record capture rules and hybrid workflow.
 - `docs/10_ui_ux.md` - UI/UX phase 7 screens, flows, and role-based behavior.
 - `docs/11_technical_roadmap.md` - Phase 8 implementation sequence, checkpoints, and module acceptance criteria.
+- `docs/ai-spike/benchmark-v1.md` - Initial Ollama vision-model spike results; v2 runner is `tools/ai-spike/run_ollama_spike.py`.
 - `docs/frontend/README.md` - Next.js frontend status, architecture, conventions, and feature guides.
 - `docs/backend/README.md` - Laravel backend status, structure, conventions, API, operations, security, and AI development rules.
 

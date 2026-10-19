@@ -5,3 +5,11 @@
 *.skill-lock
 .opencode/skills/cache/
 .opencode/skills/temp/
+
+/test-images/
+
+# --- Python Files ---
+__pycache__/
+*.py[cod]
+*$py.class
+

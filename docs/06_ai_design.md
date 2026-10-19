@@ -17,10 +17,8 @@ The AI is responsible for:
 - identifying the company;
 - extracting `year` and `week`;
 - extracting `week_start_date` and `week_end_date` when visible;
-- extracting `affiliation`;
-- extracting `branch`;
 - identifying multiple movements within one image;
-- extracting `operation_number`;
+- extracting `affiliation` and `branch` for each movement;
 - extracting `income`;
 - extracting `commission_percentage` when visible;
 - extracting `source_commission` as shown in the document;
@@ -59,7 +57,7 @@ MCP is not required for this MVP because the system is performing information ex
 
 ## 4. Output Contract
 
-The AI returns one JSON object using the following canonical shape. `record` contains the general record fields, `details` contains the movements in visual order, and `source_totals` contains totals transcribed from the document when present.
+The AI returns one JSON object using the following extraction shape for the phase 8.8 spike. `record` contains general document fields, each item in `details` contains movement-specific fields in visual order, and `source_totals` contains totals transcribed from the document when present. The application data model and manual-capture contract may require separate alignment before production AI integration.
 
 ```json
 {
@@ -68,13 +66,12 @@ The AI returns one JSON object using the following canonical shape. `record` con
     "year": { "value": 2026, "confidence": 0.99 },
     "week": { "value": 38, "confidence": 0.95 },
     "week_start_date": { "value": "2026-09-14", "confidence": 0.90 },
-    "week_end_date": { "value": "2026-09-20", "confidence": 0.90 },
-    "affiliation": { "value": "AF-123", "confidence": 0.92 },
-    "branch": { "value": "Guadalajara", "confidence": 0.96 }
+    "week_end_date": { "value": "2026-09-20", "confidence": 0.90 }
   },
   "details": [
     {
-      "operation_number": { "value": "10231", "confidence": 0.99 },
+      "affiliation": { "value": "AF-123", "confidence": 0.92 },
+      "branch": { "value": "Guadalajara", "confidence": 0.96 },
       "income": { "value": "10000.00", "confidence": 0.98 },
       "commission_percentage": { "value": "2.00", "confidence": 0.88 },
       "source_commission": { "value": "200.00", "confidence": 0.96 },
@@ -93,11 +90,13 @@ All properties shown in the contract are required, including when a value is not
 
 ### Value types and normalization
 
-- `company_name`, `affiliation`, `branch`, and `operation_number` use strings or `null`.
+- `company_name`, `affiliation`, and `branch` use strings or `null`.
 - `year` and `week` use integers or `null`. A business week is not interpreted as an ISO week.
 - `week_start_date` and `week_end_date` use `YYYY-MM-DD` strings or `null`. Do not derive dates from the year/week; only transcribe dates supported by the image.
 - Monetary amounts and `commission_percentage` use decimal strings with a period as the decimal separator and exactly two fractional digits (for example, `"10000.00"`, `"2.00"`) or `null`. Do not include currency symbols or thousands separators.
 - `details` is an array with at least one movement. Array order is the visual order in the document; the backend assigns the persisted `order` value.
+- `affiliation` and `branch` are movement-level fields and belong inside each `details` item.
+- `operation_number` is omitted from AI extraction for this spike. Movement order comes from each item's array position.
 - `source_totals` always contains `income`, `commission`, and `return_amount`. If a total is not shown or cannot be read, its value is `null`.
 
 The `source_commission`, `source_return_amount`, and `source_totals` values are evidence transcribed from the document only. They are not official values and must not be calculated or treated as the values stored in `RecordDetail`.
@@ -110,7 +109,7 @@ Every expected property must exist. When a field is not visible, is unreadable, 
 { "value": null, "confidence": 0 }
 ```
 
-This includes `operation_number`; do not invent an identifier. A missing property is a contract violation, even if its value would have been unknown. `confidence` is a number from `0.0` to `1.0`; it is an expression of model confidence, not a statistical probability or business validation.
+Every expected property must remain present, even if its value is unknown. `confidence` is a number from `0.0` to `1.0`; it is an expression of model confidence, not a statistical probability or business validation.
 
 ## 6. Confidence Rules
 
@@ -152,7 +151,7 @@ The system does not create multiple records for one image.
 
 The movements preserve their visual order and Laravel assigns the `order` field.
 
-If an `operation_number` cannot be identified, it must not be invented.
+The AI extraction contract does not include `operation_number`; Laravel assigns movement order from array position.
 
 ## 8. Validation Layers
 

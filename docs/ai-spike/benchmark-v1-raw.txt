@@ -1,0 +1,405 @@
+ # AI Spike — Benchmark v1 (initial extraction contract)
+
+**Status:** Initial exploratory round; five image samples tested once each.  
+**Platform:** Ollama  
+**Model:** `qwen2.5vl:3b`  
+**Goal:** Evaluate vision extraction feasibility before production AI pipeline work.  
+**Outcome:** Promising latency and generally strong visible-field extraction, with recurring contract/normalization errors. This is not the v2 checkpoint decision.
+
+This report preserves the original expected values and model outputs as recorded during the exploratory run. The expected values have not been independently re-verified against the original images. They must be reviewed before being used as benchmark ground truth.
+
+## Prompt used for v1
+
+The prompt below is the original v1 prompt, retained to make the results reproducible. It is superseded for the next test round by `tools/ai-spike/run_ollama_spike.py` and the revised extraction contract.
+
+Analiza la imagen del documento y extrae únicamente la información que sea visible.
+Devuelve un único objeto JSON válido, sin Markdown ni texto adicional, usando exactamente
+la estructura indicada abajo y conservando todas las propiedades.
+
+Reglas:
+- Cada campo debe tener "value" y "confidence".
+- "confidence" es un número entre 0.0 y 1.0; expresa tu confianza de lectura,
+  no es una validación del dato.
+- Si un dato no aparece, no se lee con claridad o no puede identificarse sin adivinar,
+  usa "value": null y "confidence": 0.
+- No inventes, completes ni derives valores.
+- Los importes y porcentajes deben ser cadenas decimales con punto y dos decimales,
+  sin símbolo de moneda ni separadores de miles.
+- year y week deben ser enteros.
+- Las fechas deben tener formato YYYY-MM-DD; no deduzcas fechas a partir de year o week.
+- Incluye un elemento en details por cada movimiento visible y conserva su orden visual.
+- Si el número de operación de un movimiento no se lee, devuelve null; no lo inventes.
+- source_commission, source_return_amount y source_totals son transcripciones
+  de lo impreso en el documento. No calcules esos valores ni los presentes como
+  valores oficiales.
+- Si un total no aparece o no puede leerse, conserva la propiedad con value null.
+
+Estructura obligatoria:
+{
+  "record": {
+    "company_name": { "value": null, "confidence": 0 },
+    "year": { "value": null, "confidence": 0 },
+    "week": { "value": null, "confidence": 0 },
+    "week_start_date": { "value": null, "confidence": 0 },
+    "week_end_date": { "value": null, "confidence": 0 },
+    "affiliation": { "value": null, "confidence": 0 },
+    "branch": { "value": null, "confidence": 0 }
+  },
+  "details": [
+    {
+      "operation_number": { "value": null, "confidence": 0 },
+      "income": { "value": null, "confidence": 0 },
+      "commission_percentage": { "value": null, "confidence": 0 },
+      "source_commission": { "value": null, "confidence": 0 },
+      "source_return_amount": { "value": null, "confidence": 0 }
+    }
+  ],
+  "source_totals": {
+    "income": { "value": null, "confidence": 0 },
+    "commission": { "value": null, "confidence": 0 },
+    "return_amount": { "value": null, "confidence": 0 }
+  }
+}
+
+
+Prueba 1: Imagen con solo detalle.
+Resultado esperado:
+{
+  "record": {
+    "company_name": { "value": "Mi empresa", "confidence": 100 },
+    "year": { "value": 2026, "confidence": 100 },
+    "week": { "value": 36, "confidence": 100 },
+    "week_start_date": { "value": "2026-09-07", "confidence": 100 },
+    "week_end_date": { "value": "2026-09-13", "confidence": 100 },
+  },
+  "details": [
+    {
+      "operation_number": { "value": 1, "confidence": 100 },
+      "affiliation": { "value": "AFIL.-1234", "confidence": 100 },
+      "branch": { "value": "Mi sucursal", "confidence": 100 },
+      "income": { "value": 1000.00, "confidence": 100 },
+      "commission_percentage": { "value": 8, "confidence": 100 },
+      "source_commission": { "value": 80, "confidence": 100 },
+      "source_return_amount": { "value": 920, "confidence": 100 }
+    }
+  ],
+  "source_totals": {
+    "income": { "value": 1000.00, "confidence": 100 },
+    "commission": { "value": 80.00, "confidence": 100 },
+    "return_amount": { "value": 920.00, "confidence": 100 }
+  }
+}
+
+Resultado
+
+Tiempo reportado por Ollama: 35.97 segundos
+{
+  "record": {
+    "company_name": { "value": "Mi empresa", "confidence": 1 },
+    "year": { "value": 2026, "confidence": 1 },
+    "week": { "value": 36, "confidence": 1 },
+    "week_start_date": { "value": "2026-07-07", "confidence": 1 },
+    "week_end_date": { "value": "2026-09-13", "confidence": 1 }
+  },
+  "details": [
+    {
+      "operation_number": { "value": 1, "confidence": 1 },
+      "branch": { "value": "Mi sucursal", "confidence": 1 },
+      "affiliation": { "value": "AFIL.-1234", "confidence": 1 },
+      "income": { "value": "1,000.00", "confidence": 1 },
+      "commission_percentage": { "value": "8%", "confidence": 1 },
+      "source_commission": { "value": "80.00", "confidence": 1 },
+      "source_return_amount": { "value": "920.00", "confidence": 1 }
+    }
+  ],
+  "source_totals": {
+    "income": { "value": "1,000.00", "confidence": 1 },
+    "commission": { "value": "80.00", "confidence": 1 },
+    "return_amount": { "value": "920.00", "confidence": 1 }
+  }
+}
+
+Imagen 2: Imagen con 2 detalles
+{
+  "record": {
+    "company_name": { "value": "EVENTOS", "confidence": 1 },
+    "year": { "value": 2026, "confidence": 1 },
+    "week": { "value": 40, "confidence": 1 },
+    "week_start_date": { "value": "2026-10-05", "confidence": 1 },
+    "week_end_date": { "value": "2026-10-11", "confidence": 1 }
+  },
+  "details": [
+    {
+      "operation_number": { "value": EVENTOS, "confidence": 1 },
+      "branch": { "value": "CASA TRAPICHE", "confidence": 1 },
+      "affiliation": { "value": "AFIL.-009060269", "confidence": 1 },
+      "income": { "value": "48,204.21", "confidence": 1 },
+      "commission_percentage": { "value": "7%", "confidence": 1 },
+      "source_commission": { "value": "3,374.29", "confidence": 1 },
+    },
+    {
+      "operation_number": { "value": EVENTOS, "confidence": 1 },
+      "branch": { "value": "CASA TRAPICHE", "confidence": 1 },
+      "affiliation": { "value": "AFIL.-009634394", "confidence": 1 },
+      "income": { "value": "28,384.35", "confidence": 1 },
+      "commission_percentage": { "value": "7%", "confidence": 1 },
+      "source_commission": { "value": "1,986.90", "confidence": 1 },
+    }
+  ],
+  "source_totals": {
+    "income": { "value": "76,588.56", "confidence": 1 },
+    "commission": { "value": "5,361.19", "confidence": 1 },
+    "return_amount": { "value": "71,227.37", "confidence": 1 }
+  }
+}
+
+Resultado: 
+Tiempo reportado por Ollama: 46.11 segundos
+{
+  "record": {
+    "company_name": { "value": "EMPRESA: EVENTOS", "confidence": 1 },
+    "year": { "value": 2026, "confidence": 1 },
+    "week": { "value": 40, "confidence": 1 },
+    "week_start_date": { "value": "2026-10-05", "confidence": 1 },
+    "week_end_date": { "value": "2026-10-11", "confidence": 1 }
+  },
+  "details": [
+    {
+      "operation_number": { "value": "AFIL.-009060269", "confidence": 1 },
+      "branch": { "value": "CASA TRAPICHE", "confidence": 1 },
+      "affiliation": { "value": null, "confidence": 1 },
+      "income": { "value": "48.204,21", "confidence": 1 },
+      "commission_percentage": { "value": "7%", "confidence": 1 },
+      "source_commission": { "value": "3.374,29", "confidence": 1 }
+    },
+    {
+      "operation_number": { "value": "AFIL.-009634394", "confidence": 1 },
+      "branch": { "value": "CASA TRAPICHE", "confidence": 1 },
+      "affiliation": { "value": null, "confidence": 1 },
+      "income": { "value": "28.384,35", "confidence": 1 },
+      "commission_percentage": { "value": "7%", "confidence": 1 },
+      "source_commission": { "value": "1.986,90", "confidence": 1 }
+    }
+  ],
+  "source_totals": {
+    "income": { "value": "76.588,56", "confidence": 1 },
+    "commission": { "value": "5.361,20", "confidence": 1 },
+    "return_amount": { "value": "71.227,36", "confidence": 1 }
+  }
+}
+
+Imagen 3: Imagen con solo un movimiento visible
+{
+  "record": {
+    "company_name": { "value": "LUUM", "confidence": 1 },
+    "year": { "value": 2026, "confidence": 1 },
+    "week": { "value": 10, "confidence": 1 },
+    "week_start_date": { "value": "2026-03-09", "confidence": 1 },
+    "week_end_date": { "value": "2026-03-15", "confidence": 1 }
+  },
+  "details": [
+    {
+      "operation_number": { "value": 1, "confidence": 1 },
+      "branch": { "value": "JAMAICA", "confidence": 1 },
+      "affiliation": { "value": "AFIL.-009538185", "confidence": 1 },
+      "income": { "value": "6,073.00", "confidence": 1 },
+      "commission_percentage": { "value": "6.5%", "confidence": 1 },
+      "source_commission": { "value": "394.75", "confidence": 1 },
+    }
+  ],
+  "source_totals": {
+    "income": { "value": "6,073.00", "confidence": 1 },
+    "commission": { "value": "394.75", "confidence": 1 },
+    "return_amount": { "value": "5,678.25", "confidence": 1 }
+  }
+}
+
+Resultado: 
+{
+  "record": {
+    "company_name": {
+      "value": "LUUM",
+      "confidence": 1
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 1
+    },
+    "week": {
+      "value": 10,
+      "confidence": 1
+    },
+    "week_start_date": {
+      "value": "2026-03-09",
+      "confidence": 1
+    },
+    "week_end_date": {
+      "value": "2026-03-15",
+      "confidence": 1
+    }
+  },
+  "details": [
+    {
+      "operation_number": {
+        "value": "1",
+        "confidence": 1
+      },
+      "branch": {
+        "value": "JAMAICA",
+        "confidence": 1
+      },
+      "affiliation": {
+        "value": "AFIL.- 009538185",
+        "confidence": 1
+      },
+      "income": {
+        "value": "6,073.00",
+        "confidence": 1
+      },
+      "commission_percentage": {
+        "value": "6.5%",
+        "confidence": 1
+      },
+      "source_commission": {
+        "value": "394.75",
+        "confidence": 1
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "6,073.00",
+      "confidence": 1
+    },
+    "commission": {
+      "value": "394.75",
+      "confidence": 1
+    },
+    "return_amount": {
+      "value": "5,678.26",
+      "confidence": 1
+    }
+  }
+}
+
+Imagen 4: Imagen con solo un movimiento visible
+{
+  "record": {
+    "company_name": { "value": "Defentia", "confidence": 1 },
+    "year": { "value": 2026, "confidence": 1 },
+    "week": { "value": 36, "confidence": 1 },
+    "week_start_date": { "value": "2026-09-01", "confidence": 1 },
+    "week_end_date": { "value": "2026-09-15", "confidence": 1 }
+  },
+  "details": [
+    {
+      "operation_number": { "value": 1, "confidence": 1 },
+      "branch": { "value": "INNOVA", "confidence": 1 },
+      "affiliation": { "value": "AFIL.-1234567", "confidence": 1 },
+      "income": { "value": "2,000.00", "confidence": 1 },
+      "commission_percentage": { "value": "8%", "confidence": 1 },
+      "source_commission": { "value": "160.00", "confidence": 1 },
+    }
+  ],
+  "source_totals": {
+    "income": { "value": "2,000.00", "confidence": 1 },
+    "commission": { "value": "160.00", "confidence": 1 },
+    "return_amount": { "value": "1,840.00", "confidence": 1 }
+  }
+}
+
+Resultado:
+
+Tiempo reportado por Ollama: 61.06 segundos
+{
+  "record": {
+    "company_name": { "value": "Defentia", "confidence": 1 },
+    "year": { "value": 2026, "confidence": 1 },
+    "week": { "value": 36, "confidence": 1 },
+    "week_start_date": { "value": "01", "confidence": 1 },
+    "week_end_date": { "value": "15", "confidence": 1 }
+  },
+  "details": [
+    {
+      "operation_number": { "value": "1", "confidence": 1 },
+      "branch": { "value": "INNOVA", "confidence": 1 },
+      "affiliation": { "value": "AFIL.-1234567", "confidence": 1 },
+      "income": { "value": "2,000.00", "confidence": 1 },
+      "commission_percentage": { "value": "8%", "confidence": 1 },
+      "source_commission": { "value": "160.00", "confidence": 1 }
+    }
+  ],
+  "source_totals": {
+    "income": { "value": "2,000.00", "confidence": 1 },
+    "commission": { "value": "160.00", "confidence": 1 },
+    "return_amount": { "value": "1,840.00", "confidence": 1 }
+  }
+}
+
+Imagen 5: Imagen con 2 movimientos visibles
+
+{
+  "record": {
+    "company_name": { "value": "LUUM", "confidence": 1 },
+    "year": { "value": 2026, "confidence": 1 },
+    "week": { "value": 39, "confidence": 1 },
+    "week_start_date": { "value": "2026-09-28", "confidence": 1 },
+    "week_end_date": { "value": "2026-10-04", "confidence": 1 }
+  },
+  "details": [
+    {
+      "affiliation": { "value": "AFIL.-9574699", "confidence": 1 },
+      "branch": { "value": "NEJAYOTE MOLINO", "confidence": 1 },
+      "income": { "value": "55,963.03", "confidence": 1 },
+      "commission_percentage": { "value": "6%", "confidence": 1 },
+      "source_commission": { "value": "3,357.78", "confidence": 1 },
+    },
+    {
+      "branch": { "value": "NEJAYOTE MOLINO", "confidence": 1 },
+      "affiliation": { "value": "AFIL.-9757895", "confidence": 1 },
+      "income": { "value": "44,971.67", "confidence": 1 },
+      "commission_percentage": { "value": "6%", "confidence": 1 },
+      "source_commission": { "value": "2,698.30", "confidence": 1 },
+    }
+  ],
+  "source_totals": {
+    "income": { "value": "100,934.70", "confidence": 1 },
+    "commission": { "value": "6,056.08", "confidence": 1 },
+    "return_amount": { "value": "94,878.62", "confidence": 1 }
+  }
+}
+
+Resultado:
+Tiempo reportado por Ollama: 80.22 segundos
+{
+  "record": {
+    "company_name": { "value": "LUUM", "confidence": 1 },
+    "year": { "value": 2026, "confidence": 1 },
+    "week": { "value": 39, "confidence": 1 },
+    "week_start_date": { "value": "2026-09-28", "confidence": 1 },
+    "week_end_date": { "value": "2026-10-04", "confidence": 1 }
+  },
+  "details": [
+    {
+      "operation_number": { "value": "AFIL.-9574699", "confidence": 1 },
+      "branch": { "value": "NEJAYOTE MOLINO", "confidence": 1 },
+      "affiliation": { "value": "AFIL.-9574699", "confidence": 1 },
+      "income": { "value": "$55.963,03", "confidence": 1 },
+      "commission_percentage": { "value": "6%", "confidence": 1 },
+      "source_commission": { "value": "$3.357,78", "confidence": 1 }
+    },
+    {
+      "operation_number": { "value": "AFIL.-9757895", "confidence": 1 },
+      "branch": { "value": "NEJAYOTE MOLINO", "confidence": 1 },
+      "affiliation": { "value": "AFIL.-9757895", "confidence": 1 },
+      "income": { "value": "$44.971,67", "confidence": 1 },
+      "commission_percentage": { "value": "6%", "confidence": 1 },
+      "source_commission": { "value": "$2.698,30", "confidence": 1 }
+    }
+  ],
+  "source_totals": {
+    "income": { "value": "$100.934,70", "confidence": 1 },
+    "commission": { "value": "$6.056,08", "confidence": 1 },
+    "return_amount": { "value": "$94.878,62", "confidence": 1 }
+  }
+}
