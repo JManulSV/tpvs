@@ -13,92 +13,39 @@ from pathlib import Path
 from typing import Any
 
 
-PROMPT = r"""Analiza la imagen del documento y extrae únicamente información que sea visible.
-Devuelve un único objeto JSON válido, sin Markdown ni texto adicional, usando exactamente
-la estructura obligatoria indicada abajo y conservando todas sus propiedades.
+PROMPT_VERSION = "v3"
+PROMPT = r"""You are a document transcription system. Inspect the supplied image and extract only
+information that is visibly printed in it. Return the extracted fields in the JSON object
+constrained by the supplied JSON Schema. Do not return Markdown, comments, or surrounding text.
 
-Reglas:
-- Cada dato es un objeto con "value" y "confidence".
-- "confidence" es un número entre 0.0 y 1.0; expresa confianza de lectura, no validación.
-- Si un dato no aparece, no se lee claramente o no puede identificarse sin adivinar,
-  usa "value": null y "confidence": 0.
-- No inventes, completes, calcules ni derives valores.
-- Los importes y porcentajes son cadenas decimales con punto y exactamente dos decimales,
-  sin símbolos de moneda, separadores de miles ni el signo % (por ejemplo "48204.21", "7.00").
-- year y week son enteros; no interpretes week como semana ISO.
-- Las fechas visibles usan YYYY-MM-DD. No deduzcas fechas a partir de year o week.
-- Incluye un elemento en details por cada movimiento visible y conserva el orden visual.
-- affiliation y branch pertenecen a cada movimiento y deben aparecer dentro de cada elemento
-  de details, no dentro de record.
-- No extraigas ni inventes operation_number. El orden se deriva de la posición en details.
-- source_commission, source_return_amount y source_totals son únicamente transcripciones
-  de lo impreso. No calcules valores faltantes ni los presentes como valores oficiales.
-- Si una propiedad no se muestra o no puede leerse, consérvala con value null y confidence 0.
-- source_totals siempre debe contener income, commission y return_amount.
-- details debe contener al menos un elemento; no agregues movimientos que no sean visibles.
+Follow these rules exactly:
+1. Transcribe; do not infer, calculate, repair, or complete missing document data.
+2. Include every property required by the schema. If a field is absent, unreadable, ambiguous,
+   or would require guessing, set value to null and confidence to 0.
+3. Confidence is your reading confidence from 0 to 1, not business validation. Do not use 1.0
+   automatically. Use a value that reflects how clearly the characters are visible.
+4. Keep year and week as JSON integers. Do not infer dates from the week number, and do not
+   reinterpret the business week as an ISO week. Copy complete visible dates as YYYY-MM-DD.
+5. Return money and commission percentages as strings with exactly two decimal places, a dot as
+   the decimal separator, and no grouping separators, currency symbol, or percent sign.
+   Examples: printed "$1,234.56" -> "1234.56"; printed "1.234,56" -> "1234.56";
+   printed "8%" -> "8.00"; printed "6.5%" -> "6.50". These are formatting conversions only.
+6. If separators are malformed or the intended numeric value is ambiguous, do not guess: return
+   null with confidence 0 for that field. In particular, do not reinterpret strings such as
+   "55.963.03" unless the image makes the intended decimal unambiguous.
+7. The record object contains document-level company and period fields only. Affiliation and
+   branch belong to each individual movement in details and must never be moved to record.
+8. Include exactly one details item for each visible movement, in visual reading order. Do not
+   merge rows or create movements from totals. Array position represents movement order; do not
+   extract operation_number.
+9. source_commission, source_return_amount, and source_totals are transcriptions of printed
+   source amounts only. Never calculate them. If the document does not print a per-movement
+   return amount, use null even if it can be calculated from income and commission.
+10. source_totals must contain income, commission, and return_amount. Use null for totals not
+    visibly printed or not readable.
 
-Ejemplo de una respuesta completa con dos movimientos. Es solo una ilustración del formato;
-extrae los valores reales de la imagen y no copies estos datos de ejemplo:
-{
-  "record": {
-    "company_name": {"value": "EVENTOS", "confidence": 0.98},
-    "year": {"value": 2026, "confidence": 0.99},
-    "week": {"value": 40, "confidence": 0.99},
-    "week_start_date": {"value": "2026-10-05", "confidence": 0.95},
-    "week_end_date": {"value": "2026-10-11", "confidence": 0.95}
-  },
-  "details": [
-    {
-      "affiliation": {"value": "AFIL.-009060269", "confidence": 0.98},
-      "branch": {"value": "CASA TRAPICHE", "confidence": 0.97},
-      "income": {"value": "48204.21", "confidence": 0.96},
-      "commission_percentage": {"value": "7.00", "confidence": 0.98},
-      "source_commission": {"value": "3374.29", "confidence": 0.95},
-      "source_return_amount": {"value": null, "confidence": 0}
-    },
-    {
-      "affiliation": {"value": "AFIL.-009634394", "confidence": 0.98},
-      "branch": {"value": "CASA TRAPICHE", "confidence": 0.97},
-      "income": {"value": "28384.35", "confidence": 0.96},
-      "commission_percentage": {"value": "7.00", "confidence": 0.98},
-      "source_commission": {"value": "1986.90", "confidence": 0.95},
-      "source_return_amount": {"value": null, "confidence": 0}
-    }
-  ],
-  "source_totals": {
-    "income": {"value": "76588.56", "confidence": 0.95},
-    "commission": {"value": "5361.19", "confidence": 0.94},
-    "return_amount": {"value": "71227.37", "confidence": 0.95}
-  }
-}
-
-Plantilla obligatoria que debes completar con los datos de la imagen:
-No agregues propiedades fuera de esta estructura y no omitas ninguna propiedad.
-Estructura obligatoria:
-{
-  "record": {
-    "company_name": {"value": null, "confidence": 0},
-    "year": {"value": null, "confidence": 0},
-    "week": {"value": null, "confidence": 0},
-    "week_start_date": {"value": null, "confidence": 0},
-    "week_end_date": {"value": null, "confidence": 0}
-  },
-  "details": [
-    {
-      "affiliation": {"value": null, "confidence": 0},
-      "branch": {"value": null, "confidence": 0},
-      "income": {"value": null, "confidence": 0},
-      "commission_percentage": {"value": null, "confidence": 0},
-      "source_commission": {"value": null, "confidence": 0},
-      "source_return_amount": {"value": null, "confidence": 0}
-    }
-  ],
-  "source_totals": {
-    "income": {"value": null, "confidence": 0},
-    "commission": {"value": null, "confidence": 0},
-    "return_amount": {"value": null, "confidence": 0}
-  }
-}"""
+Now inspect the supplied image and transcribe its actual contents. The JSON Schema is the output
+contract. Do not use any values from this instruction text as evidence about the image."""
 
 FIELD_NAMES = ("value", "confidence")
 DECIMAL_PATTERN = re.compile(r"^-?\d+\.\d{2}$")
@@ -116,6 +63,79 @@ DECIMAL_FIELDS = {
     "source_return_amount", "commission", "return_amount",
 }
 DATE_FIELDS = {"week_start_date", "week_end_date"}
+
+
+def field_schema(value_schema: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "value": value_schema,
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        },
+        "required": ["value", "confidence"],
+        "additionalProperties": False,
+    }
+
+
+DECIMAL_VALUE_SCHEMA = {
+    "anyOf": [
+        {"type": "string", "pattern": r"^-?\d+\.\d{2}$"},
+        {"type": "null"},
+    ]
+}
+STRING_VALUE_SCHEMA = {"anyOf": [{"type": "string"}, {"type": "null"}]}
+INTEGER_VALUE_SCHEMA = {
+    "anyOf": [{"type": "integer"}, {"type": "null"}]
+}
+DATE_VALUE_SCHEMA = {
+    "anyOf": [
+        {"type": "string", "pattern": r"^\d{4}-\d{2}-\d{2}$"},
+        {"type": "null"},
+    ]
+}
+
+
+def object_schema(fields: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {name: field_schema(schema) for name, schema in fields.items()},
+        "required": list(fields),
+        "additionalProperties": False,
+    }
+
+
+EXTRACTION_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "record": object_schema({
+            "company_name": STRING_VALUE_SCHEMA,
+            "year": INTEGER_VALUE_SCHEMA,
+            "week": INTEGER_VALUE_SCHEMA,
+            "week_start_date": DATE_VALUE_SCHEMA,
+            "week_end_date": DATE_VALUE_SCHEMA,
+        }),
+        "details": {
+            "type": "array",
+            "minItems": 1,
+            "items": object_schema({
+                "affiliation": STRING_VALUE_SCHEMA,
+                "branch": STRING_VALUE_SCHEMA,
+                "income": DECIMAL_VALUE_SCHEMA,
+                "commission_percentage": DECIMAL_VALUE_SCHEMA,
+                "source_commission": DECIMAL_VALUE_SCHEMA,
+                "source_return_amount": DECIMAL_VALUE_SCHEMA,
+            }),
+        },
+        "source_totals": object_schema({
+            "income": DECIMAL_VALUE_SCHEMA,
+            "commission": DECIMAL_VALUE_SCHEMA,
+            "return_amount": DECIMAL_VALUE_SCHEMA,
+        }),
+    },
+    "required": ["record", "details", "source_totals"],
+    "additionalProperties": False,
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -220,7 +240,7 @@ def main() -> int:
         "prompt": PROMPT,
         "images": [image],
         "stream": False,
-        "format": "json",
+        "format": EXTRACTION_SCHEMA,
     }
     request = urllib.request.Request(
         f"{args.url.rstrip('/')}/api/generate",
@@ -257,7 +277,7 @@ def main() -> int:
         return 1
 
     issues = contract_issues(extraction)
-    print(f"Contrato v2: {'VÁLIDO' if not issues else 'REVISAR'}")
+    print(f"Contrato {PROMPT_VERSION}: {'VÁLIDO' if not issues else 'REVISAR'}")
     for issue in issues:
         print(f"- {issue}")
     print("Respuesta:")
