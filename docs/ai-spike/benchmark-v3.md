@@ -4,7 +4,7 @@
 
 The five representative images were each processed twice with the English v3 prompt and `qwen2.5vl:3b`. All ten runs finished below the agreed five-minute limit, but **0/10 responses passed local contract validation**. The structured-output setting did not reliably enforce the requested date and decimal formats, and the model sometimes produced extra movement rows.
 
-**Decision: optimize before production integration.** The model remains promising on latency and can read many of the visible values, but v3 does not yet reliably satisfy the extraction contract. Do not begin the production extraction pipeline on the assumption that the JSON Schema alone guarantees valid data. Phase 8.8 remains open until representative-run resource use and the final go/optimize/change checkpoint are documented.
+**Decision: OPTIMIZE before production integration.** The model remains promising on latency and can read many of the visible values, but v3 does not yet reliably satisfy the extraction contract. Do not begin the production extraction pipeline on the assumption that the JSON Schema alone guarantees valid data.
 
 ## Environment
 
@@ -48,9 +48,18 @@ The runner's local validation correctly rejected every response. Ollama's JSON S
 
 ## Resource measurements
 
-The raw v3 runs do not include contemporaneous `docker stats` samples. Existing one-time snapshots around synthetic 1x1 blank-image diagnostics showed approximately `754.9 MiB` at `96.82%` CPU and `3.92–3.97 GiB` at `567.98%` CPU. These are not measurements from the representative image runs and are not reliable peak values. CPU percentages over 100% are aggregate multi-core utilization.
+During the five representative image tests, the user sampled `docker stats` approximately every two seconds. Per-image observed maxima were:
 
-Therefore, latency feasibility is demonstrated for the sample set, but **peak RAM/CPU usage on the representative workload remains unmeasured**. The container has no configured Docker memory limit; Docker reported host memory around 14.86 GiB in the earlier environment inspection.
+| Image | Highest sampled CPU | Highest sampled container memory |
+| --- | ---: | ---: |
+| `prueba1.jpeg` | 602.07% | 3.967 GiB |
+| `prueba2.jpeg` | 602.58% | 4.067 GiB |
+| `prueba3.jpeg` | 602.07% | 4.183 GiB |
+| `prueba4.jpeg` | 601.72% | 4.281 GiB |
+| `prueba5.jpeg` | 602.49% | 4.381 GiB |
+| **Observed maximum** | **602.58%** | **4.381 GiB** |
+
+The readings are sampled maxima, not exact instantaneous peaks. Docker CPU percentages are aggregate multi-core use, so values near 600% indicate use of about six logical CPUs at that instant, not an error. Container memory stayed below 30% of the Docker-reported 14.86 GiB host memory during the observations. Earlier synthetic-image snapshots are retained in the raw report but are not used for this representative workload assessment.
 
 ## Controlled failures
 
@@ -66,11 +75,11 @@ These checks cover the standalone spike runner only. Queue retries and Laravel `
 
 The v3 prompt/schema change **did not resolve format adherence** and exposed additional multiple-row classification errors. The latency remains acceptable for the expected low-volume asynchronous workflow. Keep the current model as a candidate while optimizing extraction, not as a production-ready provider yet.
 
-Before closing phase 8.8:
+The technical spike checkpoint is complete with an **OPTIMIZE** decision: the time/resource envelope is acceptable for the observed low-volume workload, but the candidate does not meet output-contract quality for production. Optimize and validate the extraction before relying on it in the production pipeline. Remaining candidate work:
 
 1. Capture RAM and CPU during at least one representative image inference, preferably polling `docker stats` at a short interval to record an observed peak; record cold/warm state.
 2. Investigate why summary/total rows are emitted as detail movements; refine the prompt/schema or adjust the model candidate, then run a focused comparison on samples 1 and 3 plus one multi-movement sample.
 3. Preserve the current v3 raw output and record any follow-up prompt/model as a new version rather than overwriting it.
-4. Update this report with resource observations and a final go/optimize/change decision supported by sample accuracy, contract adherence, repeatability, latency, and hardware use.
+4. Record any follow-up prompt/model benchmark as a new version and use its accuracy, contract adherence, repeatability, latency, and resource measurements to decide production suitability during phase 8.9 preparation.
 
 Do not silently coerce ambiguous numeric strings. Clearly unambiguous transformations such as `8%` to `8.00` may be considered later as a separately tested backend normalization rule, while locale-ambiguous or malformed values must remain review issues. The extraction shape also still needs alignment with the existing application/domain model before phase 8.9.

@@ -104,9 +104,18 @@ services:
       tpvs-backend:
         condition: service_healthy
 
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ai-spike"]
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11435}:11434"
+    volumes:
+      - tpvs-ollama-data:/root/.ollama
+
 volumes:
   tpvs-postgres-data:
   tpvs-backend-vendor:
   tpvs-backend-storage:
   tpvs-frontend-node-modules:
   tpvs-frontend-next:
+  tpvs-ollama-data:

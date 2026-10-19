@@ -37,6 +37,47 @@ docker compose up --build
 
 Compose starts PostgreSQL, Laravel, the database queue worker, and Next.js. PostgreSQL must pass its health check before Laravel starts. Laravel creates runtime storage directories and runs migrations on startup; the queue worker starts after Laravel is healthy.
 
+### Temporary Ollama AI Spike Service (Phase 8.8)
+
+Ollama is available as an opt-in Docker Compose profile for local technical experiments. It is deliberately excluded from the normal application stack and is not connected to Laravel or its queue worker. The profile publishes Ollama only on `127.0.0.1` and persists downloaded models in the `tpvs-ollama-data` volume.
+
+Start Ollama from the repository root:
+
+```bash
+docker compose --profile ai-spike up -d ollama
+docker compose exec ollama ollama pull qwen2.5vl:3b
+docker compose exec ollama ollama list
+```
+
+The host API is `http://127.0.0.1:11435` by default. This avoids colliding with an independently started Ollama service on port `11434`. Set `OLLAMA_PORT=11434` in the root `.env` only when that port is free. Use the spike runner from the same host:
+
+```bash
+python3 tools/ai-spike/run_ollama_spike.py test-images/prueba1.jpeg \
+  --url http://127.0.0.1:11435 --model qwen2.5vl:3b
+```
+
+`OLLAMA_PORT` in the root `.env` optionally changes the host port; it defaults to `11435`. Do not publish the service to a LAN or public interface. The spike profile only supports local testing; the deployment architecture in phase 8.18 places Ollama on the designated AI host and requires separately planned LAN access controls.
+
+Stop the temporary service while preserving downloaded model data:
+
+```bash
+docker compose --profile ai-spike stop ollama
+```
+
+Remove the container and its network while keeping the named model volume:
+
+```bash
+docker compose --profile ai-spike down
+```
+
+To remove the downloaded model data as well, explicitly delete the named volume:
+
+```bash
+docker volume rm tpvs_tpvs-ollama-data
+```
+
+Ollama/model storage can consume several gigabytes. This temporary profile does not represent production integration: no Laravel provider, queue job, backend URL, AI API endpoint, or production retry configuration is added in phase 8.8.
+
 Root `.env` variables configure the Compose services. `.env.example` contains local-only defaults; set a unique `APP_KEY` and database password before deployment. PostgreSQL persists data in the `tpvs-postgres-data` volume. `docker compose down` keeps that volume; `docker compose down --volumes` deletes it.
 
 For frontend authentication, configure:

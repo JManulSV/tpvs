@@ -189,6 +189,8 @@ Build `BusinessValidator` for required fields, commission, return, totals, and a
 
 ### 8.8 - Technical AI Spike
 
+**Status: COMPLETE — decision: OPTIMIZE (2026-10-19).** Ollama with `qwen2.5vl:3b` was evaluated on five representative images, twice each. All ten v3 runs were below five minutes (37.01–84.95 seconds; 65.69 seconds mean), but 0/10 passed strict contract validation. Observed sampled container maxima during image runs were 4.381 GiB RAM and 602.58% aggregate CPU on the reported CPU-only Intel Core i5-12400/16 GB Debian host. Controlled missing-file, unreachable-service, and missing-model failures were also verified. The decision is to optimize extraction and validation before production integration; see [`ai-spike/benchmark-v3.md`](ai-spike/benchmark-v3.md). A temporary opt-in Compose profile is documented in [`backend/10_configuration_operations.md`](backend/10_configuration_operations.md).
+
 This is a controlled experiment, not the production AI module. Use 5-10 real or anonymized representative images and test:
 
 - image submission to Ollama and the candidate vision model;
@@ -201,7 +203,7 @@ This is a controlled experiment, not the production AI module. Use 5-10 real or 
 
 Record measurements and sample outcomes. Decide whether to continue, optimize the model/runtime, or change the model before building the complete pipeline. Do not build production architecture solely on an unvalidated assumption.
 
-**Checkpoint:** A documented go/optimize/change decision is supported by measurements from the sample set.
+**Checkpoint: COMPLETE.** A documented optimize decision is supported by measured latency, contract adherence, extraction outcomes, representative-run CPU/RAM samples, and controlled failure tests. Production AI integration remains in phase 8.9.
 
 ### 8.9 - AI Pipeline
 
