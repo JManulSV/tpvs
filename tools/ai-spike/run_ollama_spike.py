@@ -37,6 +37,43 @@ Reglas:
 - source_totals siempre debe contener income, commission y return_amount.
 - details debe contener al menos un elemento; no agregues movimientos que no sean visibles.
 
+Ejemplo de una respuesta completa con dos movimientos. Es solo una ilustración del formato;
+extrae los valores reales de la imagen y no copies estos datos de ejemplo:
+{
+  "record": {
+    "company_name": {"value": "EVENTOS", "confidence": 0.98},
+    "year": {"value": 2026, "confidence": 0.99},
+    "week": {"value": 40, "confidence": 0.99},
+    "week_start_date": {"value": "2026-10-05", "confidence": 0.95},
+    "week_end_date": {"value": "2026-10-11", "confidence": 0.95}
+  },
+  "details": [
+    {
+      "affiliation": {"value": "AFIL.-009060269", "confidence": 0.98},
+      "branch": {"value": "CASA TRAPICHE", "confidence": 0.97},
+      "income": {"value": "48204.21", "confidence": 0.96},
+      "commission_percentage": {"value": "7.00", "confidence": 0.98},
+      "source_commission": {"value": "3374.29", "confidence": 0.95},
+      "source_return_amount": {"value": null, "confidence": 0}
+    },
+    {
+      "affiliation": {"value": "AFIL.-009634394", "confidence": 0.98},
+      "branch": {"value": "CASA TRAPICHE", "confidence": 0.97},
+      "income": {"value": "28384.35", "confidence": 0.96},
+      "commission_percentage": {"value": "7.00", "confidence": 0.98},
+      "source_commission": {"value": "1986.90", "confidence": 0.95},
+      "source_return_amount": {"value": null, "confidence": 0}
+    }
+  ],
+  "source_totals": {
+    "income": {"value": "76588.56", "confidence": 0.95},
+    "commission": {"value": "5361.19", "confidence": 0.94},
+    "return_amount": {"value": "71227.37", "confidence": 0.95}
+  }
+}
+
+Plantilla obligatoria que debes completar con los datos de la imagen:
+No agregues propiedades fuera de esta estructura y no omitas ninguna propiedad.
 Estructura obligatoria:
 {
   "record": {

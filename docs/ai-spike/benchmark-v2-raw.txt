@@ -1,0 +1,1038 @@
+AI SPIKE — BENCHMARK V2 RAW RESULTS
+Model: qwen2.5vl:3b
+Prompt/contract: v2 in tools/ai-spike/run_ollama_spike.py
+
+EXPECTED RESPONSES
+The expected values below are carried forward from the v1 expected responses, corrected by checking the original images, and reshaped to the v2 contract. Numeric formatting was normalized and v1 confidence 100 was represented as 1.0. Treat these values as the verified reference for this sample set.
+
+Expected response — prueba1.jpeg:
+```json
+{
+  "record": {
+    "company_name": {"value": "Mi empresa", "confidence": 1.0},
+    "year": {"value": 2026, "confidence": 1.0},
+    "week": {"value": 36, "confidence": 1.0},
+    "week_start_date": {"value": "2026-10-07", "confidence": 1.0},
+    "week_end_date": {"value": "2026-10-13", "confidence": 1.0}
+  },
+  "details": [
+    {
+      "affiliation": {"value": "AFIL.-1234", "confidence": 1.0},
+      "branch": {"value": "Mi sucursal", "confidence": 1.0},
+      "income": {"value": "1000.00", "confidence": 1.0},
+      "commission_percentage": {"value": "8.00", "confidence": 1.0},
+      "source_commission": {"value": "80.00", "confidence": 1.0},
+      "source_return_amount": {"value": "920.00", "confidence": 1.0}
+    }
+  ],
+  "source_totals": {
+    "income": {"value": "1000.00", "confidence": 1.0},
+    "commission": {"value": "80.00", "confidence": 1.0},
+    "return_amount": {"value": "920.00", "confidence": 1.0}
+  }
+}
+```
+
+Expected response — prueba2.jpeg:
+```json
+{
+  "record": {
+    "company_name": {"value": "EVENTOS", "confidence": 1.0},
+    "year": {"value": 2026, "confidence": 1.0},
+    "week": {"value": 40, "confidence": 1.0},
+    "week_start_date": {"value": "2026-10-05", "confidence": 1.0},
+    "week_end_date": {"value": "2026-10-11", "confidence": 1.0}
+  },
+  "details": [
+    {
+      "affiliation": {"value": "AFIL.-009060269", "confidence": 1.0},
+      "branch": {"value": "CASA TRAPICHE", "confidence": 1.0},
+      "income": {"value": "48204.21", "confidence": 1.0},
+      "commission_percentage": {"value": "7.00", "confidence": 1.0},
+      "source_commission": {"value": "3374.29", "confidence": 1.0},
+      "source_return_amount": {"value": null, "confidence": 0}
+    },
+    {
+      "affiliation": {"value": "AFIL.-009634394", "confidence": 1.0},
+      "branch": {"value": "CASA TRAPICHE", "confidence": 1.0},
+      "income": {"value": "28384.35", "confidence": 1.0},
+      "commission_percentage": {"value": "7.00", "confidence": 1.0},
+      "source_commission": {"value": "1986.90", "confidence": 1.0},
+      "source_return_amount": {"value": null, "confidence": 0}
+    }
+  ],
+  "source_totals": {
+    "income": {"value": "76588.56", "confidence": 1.0},
+    "commission": {"value": "5361.19", "confidence": 1.0},
+    "return_amount": {"value": "71227.37", "confidence": 1.0}
+  }
+}
+```
+
+Expected response — prueba3.jpeg:
+```json
+{
+  "record": {
+    "company_name": {"value": "LUUM", "confidence": 1.0},
+    "year": {"value": 2026, "confidence": 1.0},
+    "week": {"value": 10, "confidence": 1.0},
+    "week_start_date": {"value": "2026-03-09", "confidence": 1.0},
+    "week_end_date": {"value": "2026-03-15", "confidence": 1.0}
+  },
+  "details": [
+    {
+      "affiliation": {"value": "AFIL.-009538185", "confidence": 1.0},
+      "branch": {"value": "JAMAICA", "confidence": 1.0},
+      "income": {"value": "6073.00", "confidence": 1.0},
+      "commission_percentage": {"value": "6.50", "confidence": 1.0},
+      "source_commission": {"value": "394.75", "confidence": 1.0},
+      "source_return_amount": {"value": "5678.26", "confidence": 1.0}
+    }
+  ],
+  "source_totals": {
+    "income": {"value": "6073.00", "confidence": 1.0},
+    "commission": {"value": "394.75", "confidence": 1.0},
+    "return_amount": {"value": "5678.26", "confidence": 1.0}
+  }
+}
+```
+
+Expected response — prueba4.jpeg:
+```json
+{
+  "record": {
+    "company_name": {"value": "Defentia", "confidence": 1.0},
+    "year": {"value": 2026, "confidence": 1.0},
+    "week": {"value": 36, "confidence": 1.0},
+    "week_start_date": {"value": "2026-09-01", "confidence": 1.0},
+    "week_end_date": {"value": "2026-09-15", "confidence": 1.0}
+  },
+  "details": [
+    {
+      "affiliation": {"value": "AFIL.-1234567", "confidence": 1.0},
+      "branch": {"value": "INNOVA", "confidence": 1.0},
+      "income": {"value": "2000.00", "confidence": 1.0},
+      "commission_percentage": {"value": "8.00", "confidence": 1.0},
+      "source_commission": {"value": "160.00", "confidence": 1.0},
+      "source_return_amount": {"value": null, "confidence": 0}
+    }
+  ],
+  "source_totals": {
+    "income": {"value": "2000.00", "confidence": 1.0},
+    "commission": {"value": "160.00", "confidence": 1.0},
+    "return_amount": {"value": "1840.00", "confidence": 1.0}
+  }
+}
+```
+
+Expected response — prueba5.jpeg:
+```json
+{
+  "record": {
+    "company_name": {"value": "LUUM", "confidence": 1.0},
+    "year": {"value": 2026, "confidence": 1.0},
+    "week": {"value": 39, "confidence": 1.0},
+    "week_start_date": {"value": "2026-09-28", "confidence": 1.0},
+    "week_end_date": {"value": "2026-10-04", "confidence": 1.0}
+  },
+  "details": [
+    {
+      "affiliation": {"value": "AFIL.-9574699", "confidence": 1.0},
+      "branch": {"value": "NEJAYOTE MOLINO", "confidence": 1.0},
+      "income": {"value": "55963.03", "confidence": 1.0},
+      "commission_percentage": {"value": "6.00", "confidence": 1.0},
+      "source_commission": {"value": "3357.78", "confidence": 1.0},
+      "source_return_amount": {"value": null, "confidence": 0}
+    },
+    {
+      "affiliation": {"value": "AFIL.-9757895", "confidence": 1.0},
+      "branch": {"value": "NEJAYOTE MOLINO", "confidence": 1.0},
+      "income": {"value": "44971.67", "confidence": 1.0},
+      "commission_percentage": {"value": "6.00", "confidence": 1.0},
+      "source_commission": {"value": "2698.30", "confidence": 1.0},
+      "source_return_amount": {"value": null, "confidence": 0}
+    }
+  ],
+  "source_totals": {
+    "income": {"value": "100934.70", "confidence": 1.0},
+    "commission": {"value": "6056.08", "confidence": 1.0},
+    "return_amount": {"value": "94878.62", "confidence": 1.0}
+  }
+}
+```
+
+OBSERVED MODEL RUNS
+
+Imagen: test-images/prueba1.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 42.87 segundos
+Tiempo reportado por Ollama: 42.86 segundos
+Contrato v2: REVISAR
+- details[0].income.value debe ser cadena decimal con dos decimales.
+- source_totals.income.value debe ser cadena decimal con dos decimales.
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "Mi empresa",
+      "confidence": 1.0
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 1.0
+    },
+    "week": {
+      "value": 36,
+      "confidence": 1.0
+    },
+    "week_start_date": {
+      "value": "2026-07-07",
+      "confidence": 1.0
+    },
+    "week_end_date": {
+      "value": "2026-09-13",
+      "confidence": 1.0
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-1234",
+        "confidence": 1.0
+      },
+      "branch": {
+        "value": "Mi sucursal",
+        "confidence": 1.0
+      },
+      "income": {
+        "value": "1,000.00",
+        "confidence": 1.0
+      },
+      "commission_percentage": {
+        "value": "8.00",
+        "confidence": 1.0
+      },
+      "source_commission": {
+        "value": "80.00",
+        "confidence": 1.0
+      },
+      "source_return_amount": {
+        "value": "920.00",
+        "confidence": 1.0
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "1,000.00",
+      "confidence": 1.0
+    },
+    "commission": {
+      "value": "80.00",
+      "confidence": 1.0
+    },
+    "return_amount": {
+      "value": "920.00",
+      "confidence": 1.0
+    }
+  }
+}
+
+Imagen: test-images/prueba1.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 34.17 segundos
+Tiempo reportado por Ollama: 34.16 segundos
+Contrato v2: REVISAR
+- details[0].income.value debe ser cadena decimal con dos decimales.
+- source_totals.income.value debe ser cadena decimal con dos decimales.
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "Mi empresa",
+      "confidence": 1.0
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 1.0
+    },
+    "week": {
+      "value": 36,
+      "confidence": 1.0
+    },
+    "week_start_date": {
+      "value": "2026-07-07",
+      "confidence": 1.0
+    },
+    "week_end_date": {
+      "value": "2026-09-13",
+      "confidence": 1.0
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-1234",
+        "confidence": 1.0
+      },
+      "branch": {
+        "value": "Mi sucursal",
+        "confidence": 1.0
+      },
+      "income": {
+        "value": "1,000.00",
+        "confidence": 1.0
+      },
+      "commission_percentage": {
+        "value": "8.00",
+        "confidence": 1.0
+      },
+      "source_commission": {
+        "value": "80.00",
+        "confidence": 1.0
+      },
+      "source_return_amount": {
+        "value": "920.00",
+        "confidence": 1.0
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "1,000.00",
+      "confidence": 1.0
+    },
+    "commission": {
+      "value": "80.00",
+      "confidence": 1.0
+    },
+    "return_amount": {
+      "value": "920.00",
+      "confidence": 1.0
+    }
+  }
+}
+
+Imagen: test-images/prueba2.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 86.14 segundos
+Tiempo reportado por Ollama: 86.13 segundos
+Contrato v2: VÁLIDO
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "EVENTOS",
+      "confidence": 0.98
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 0.99
+    },
+    "week": {
+      "value": 40,
+      "confidence": 0.99
+    },
+    "week_start_date": {
+      "value": "2026-10-05",
+      "confidence": 0.95
+    },
+    "week_end_date": {
+      "value": "2026-10-11",
+      "confidence": 0.95
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-009060269",
+        "confidence": 0.98
+      },
+      "branch": {
+        "value": "CASA TRAPICHE",
+        "confidence": 0.97
+      },
+      "income": {
+        "value": "48204.21",
+        "confidence": 0.96
+      },
+      "commission_percentage": {
+        "value": "7.00",
+        "confidence": 0.98
+      },
+      "source_commission": {
+        "value": "3374.29",
+        "confidence": 0.95
+      },
+      "source_return_amount": {
+        "value": null,
+        "confidence": 0
+      }
+    },
+    {
+      "affiliation": {
+        "value": "AFIL.-009634394",
+        "confidence": 0.98
+      },
+      "branch": {
+        "value": "CASA TRAPICHE",
+        "confidence": 0.97
+      },
+      "income": {
+        "value": "28384.35",
+        "confidence": 0.96
+      },
+      "commission_percentage": {
+        "value": "7.00",
+        "confidence": 0.98
+      },
+      "source_commission": {
+        "value": "1986.90",
+        "confidence": 0.95
+      },
+      "source_return_amount": {
+        "value": null,
+        "confidence": 0
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "76588.56",
+      "confidence": 0.95
+    },
+    "commission": {
+      "value": "5361.19",
+      "confidence": 0.94
+    },
+    "return_amount": {
+      "value": "71227.37",
+      "confidence": 0.95
+    }
+  }
+}
+
+Imagen: test-images/prueba2.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 50.49 segundos
+Tiempo reportado por Ollama: 50.48 segundos
+Contrato v2: VÁLIDO
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "EVENTOS",
+      "confidence": 0.98
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 0.99
+    },
+    "week": {
+      "value": 40,
+      "confidence": 0.99
+    },
+    "week_start_date": {
+      "value": "2026-10-05",
+      "confidence": 0.95
+    },
+    "week_end_date": {
+      "value": "2026-10-11",
+      "confidence": 0.95
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-009060269",
+        "confidence": 0.98
+      },
+      "branch": {
+        "value": "CASA TRAPICHE",
+        "confidence": 0.97
+      },
+      "income": {
+        "value": "48204.21",
+        "confidence": 0.96
+      },
+      "commission_percentage": {
+        "value": "7.00",
+        "confidence": 0.98
+      },
+      "source_commission": {
+        "value": "3374.29",
+        "confidence": 0.95
+      },
+      "source_return_amount": {
+        "value": null,
+        "confidence": 0
+      }
+    },
+    {
+      "affiliation": {
+        "value": "AFIL.-009634394",
+        "confidence": 0.98
+      },
+      "branch": {
+        "value": "CASA TRAPICHE",
+        "confidence": 0.97
+      },
+      "income": {
+        "value": "28384.35",
+        "confidence": 0.96
+      },
+      "commission_percentage": {
+        "value": "7.00",
+        "confidence": 0.98
+      },
+      "source_commission": {
+        "value": "1986.90",
+        "confidence": 0.95
+      },
+      "source_return_amount": {
+        "value": null,
+        "confidence": 0
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "76588.56",
+      "confidence": 0.95
+    },
+    "commission": {
+      "value": "5361.19",
+      "confidence": 0.94
+    },
+    "return_amount": {
+      "value": "71227.37",
+      "confidence": 0.95
+    }
+  }
+}
+
+Imagen: test-images/prueba3.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 72.45 segundos
+Tiempo reportado por Ollama: 72.44 segundos
+Contrato v2: REVISAR
+- details[0].income.value debe ser cadena decimal con dos decimales.
+- details[0].source_return_amount.value debe ser cadena decimal con dos decimales.
+- details[0].commission_percentage.value debe ser cadena decimal con dos decimales.
+- source_totals.income.value debe ser cadena decimal con dos decimales.
+- source_totals.return_amount.value debe ser cadena decimal con dos decimales.
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "LUUM",
+      "confidence": 1.0
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 1.0
+    },
+    "week": {
+      "value": 10,
+      "confidence": 1.0
+    },
+    "week_start_date": {
+      "value": "2026-03-09",
+      "confidence": 1.0
+    },
+    "week_end_date": {
+      "value": "2026-03-15",
+      "confidence": 1.0
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-009538185",
+        "confidence": 1.0
+      },
+      "branch": {
+        "value": "JAMAICA",
+        "confidence": 1.0
+      },
+      "income": {
+        "value": "6,073.00",
+        "confidence": 1.0
+      },
+      "commission_percentage": {
+        "value": "6.5%",
+        "confidence": 1.0
+      },
+      "source_commission": {
+        "value": "394.75",
+        "confidence": 1.0
+      },
+      "source_return_amount": {
+        "value": "5,678.26",
+        "confidence": 1.0
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "6,073.00",
+      "confidence": 1.0
+    },
+    "commission": {
+      "value": "394.75",
+      "confidence": 1.0
+    },
+    "return_amount": {
+      "value": "5,678.26",
+      "confidence": 1.0
+    }
+  }
+}
+Imagen: test-images/prueba3.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 35.16 segundos
+Tiempo reportado por Ollama: 35.15 segundos
+Contrato v2: REVISAR
+- details[0].income.value debe ser cadena decimal con dos decimales.
+- details[0].commission_percentage.value debe ser cadena decimal con dos decimales.
+- details[0].source_return_amount.value debe ser cadena decimal con dos decimales.
+- source_totals.return_amount.value debe ser cadena decimal con dos decimales.
+- source_totals.income.value debe ser cadena decimal con dos decimales.
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "LUUM",
+      "confidence": 1.0
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 1.0
+    },
+    "week": {
+      "value": 10,
+      "confidence": 1.0
+    },
+    "week_start_date": {
+      "value": "2026-03-09",
+      "confidence": 1.0
+    },
+    "week_end_date": {
+      "value": "2026-03-15",
+      "confidence": 1.0
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-009538185",
+        "confidence": 1.0
+      },
+      "branch": {
+        "value": "JAMAICA",
+        "confidence": 1.0
+      },
+      "income": {
+        "value": "6,073.00",
+        "confidence": 1.0
+      },
+      "commission_percentage": {
+        "value": "6.5%",
+        "confidence": 1.0
+      },
+      "source_commission": {
+        "value": "394.75",
+        "confidence": 1.0
+      },
+      "source_return_amount": {
+        "value": "5,678.26",
+        "confidence": 1.0
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "6,073.00",
+      "confidence": 1.0
+    },
+    "commission": {
+      "value": "394.75",
+      "confidence": 1.0
+    },
+    "return_amount": {
+      "value": "5,678.26",
+      "confidence": 1.0
+    }
+  }
+}
+
+Imagen: test-images/prueba4.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 72.07 segundos
+Tiempo reportado por Ollama: 72.06 segundos
+Contrato v2: REVISAR
+- details[0].source_return_amount.value debe ser cadena decimal con dos decimales.
+- details[0].commission_percentage.value debe ser cadena decimal con dos decimales.
+- details[0].income.value debe ser cadena decimal con dos decimales.
+- source_totals.return_amount.value debe ser cadena decimal con dos decimales.
+- source_totals.income.value debe ser cadena decimal con dos decimales.
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "Defentia",
+      "confidence": 1.0
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 1.0
+    },
+    "week": {
+      "value": 36,
+      "confidence": 1.0
+    },
+    "week_start_date": {
+      "value": "2026-09-01",
+      "confidence": 1.0
+    },
+    "week_end_date": {
+      "value": "2026-09-15",
+      "confidence": 1.0
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-1234567",
+        "confidence": 1.0
+      },
+      "branch": {
+        "value": "INNOVA",
+        "confidence": 1.0
+      },
+      "income": {
+        "value": "2,000.00",
+        "confidence": 1.0
+      },
+      "commission_percentage": {
+        "value": "8%",
+        "confidence": 1.0
+      },
+      "source_commission": {
+        "value": "160.00",
+        "confidence": 1.0
+      },
+      "source_return_amount": {
+        "value": "1,840.00",
+        "confidence": 1.0
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "2,000.00",
+      "confidence": 1.0
+    },
+    "commission": {
+      "value": "160.00",
+      "confidence": 1.0
+    },
+    "return_amount": {
+      "value": "1,840.00",
+      "confidence": 1.0
+    }
+  }
+}
+
+Imagen: test-images/prueba4.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 36.12 segundos
+Tiempo reportado por Ollama: 36.11 segundos
+Contrato v2: REVISAR
+- details[0].income.value debe ser cadena decimal con dos decimales.
+- details[0].source_return_amount.value debe ser cadena decimal con dos decimales.
+- details[0].commission_percentage.value debe ser cadena decimal con dos decimales.
+- source_totals.income.value debe ser cadena decimal con dos decimales.
+- source_totals.return_amount.value debe ser cadena decimal con dos decimales.
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "Defentia",
+      "confidence": 0.99
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 0.99
+    },
+    "week": {
+      "value": 36,
+      "confidence": 0.99
+    },
+    "week_start_date": {
+      "value": "2026-09-01",
+      "confidence": 0.99
+    },
+    "week_end_date": {
+      "value": "2026-09-15",
+      "confidence": 0.99
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-1234567",
+        "confidence": 0.99
+      },
+      "branch": {
+        "value": "INNOVA",
+        "confidence": 0.99
+      },
+      "income": {
+        "value": "2,000.00",
+        "confidence": 0.99
+      },
+      "commission_percentage": {
+        "value": "8%",
+        "confidence": 0.99
+      },
+      "source_commission": {
+        "value": "160.00",
+        "confidence": 0.99
+      },
+      "source_return_amount": {
+        "value": "1,840.00",
+        "confidence": 0.99
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "2,000.00",
+      "confidence": 0.99
+    },
+    "commission": {
+      "value": "160.00",
+      "confidence": 0.99
+    },
+    "return_amount": {
+      "value": "1,840.00",
+      "confidence": 0.99
+    }
+  }
+}
+Imagen: test-images/prueba5.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 51.84 segundos
+Tiempo reportado por Ollama: 51.83 segundos
+Contrato v2: REVISAR
+- details[0].source_return_amount: value null requiere confidence 0.
+- details[0].income.value debe ser cadena decimal con dos decimales.
+- details[0].source_commission.value debe ser cadena decimal con dos decimales.
+- details[1].source_return_amount: value null requiere confidence 0.
+- details[1].income.value debe ser cadena decimal con dos decimales.
+- details[1].source_commission.value debe ser cadena decimal con dos decimales.
+- source_totals.income.value debe ser cadena decimal con dos decimales.
+- source_totals.return_amount.value debe ser cadena decimal con dos decimales.
+- source_totals.commission.value debe ser cadena decimal con dos decimales.
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "LUUM",
+      "confidence": 0.99
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 0.99
+    },
+    "week": {
+      "value": 39,
+      "confidence": 0.99
+    },
+    "week_start_date": {
+      "value": "2026-09-28",
+      "confidence": 0.99
+    },
+    "week_end_date": {
+      "value": "2026-10-04",
+      "confidence": 0.99
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-9574699",
+        "confidence": 0.99
+      },
+      "branch": {
+        "value": "NEJAYOTE MOLINO",
+        "confidence": 0.99
+      },
+      "income": {
+        "value": "55.963.03",
+        "confidence": 0.99
+      },
+      "commission_percentage": {
+        "value": "6.00",
+        "confidence": 0.99
+      },
+      "source_commission": {
+        "value": "3.357.78",
+        "confidence": 0.99
+      },
+      "source_return_amount": {
+        "value": null,
+        "confidence": 0.99
+      }
+    },
+    {
+      "affiliation": {
+        "value": "AFIL.-9757895",
+        "confidence": 0.99
+      },
+      "branch": {
+        "value": "NEJAYOTE MOLINO",
+        "confidence": 0.99
+      },
+      "income": {
+        "value": "44.971.67",
+        "confidence": 0.99
+      },
+      "commission_percentage": {
+        "value": "6.00",
+        "confidence": 0.99
+      },
+      "source_commission": {
+        "value": "2.698.30",
+        "confidence": 0.99
+      },
+      "source_return_amount": {
+        "value": null,
+        "confidence": 0.99
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "100.934.70",
+      "confidence": 0.99
+    },
+    "commission": {
+      "value": "6.056.08",
+      "confidence": 0.99
+    },
+    "return_amount": {
+      "value": "94.878.62",
+      "confidence": 0.99
+    }
+  }
+}
+
+Imagen: test-images/prueba5.jpeg
+Modelo: qwen2.5vl:3b
+Tiempo total cliente: 90.35 segundos
+Tiempo reportado por Ollama: 90.34 segundos
+Contrato v2: REVISAR
+- details[0].source_commission.value debe ser cadena decimal con dos decimales.
+- details[0].income.value debe ser cadena decimal con dos decimales.
+- details[0].source_return_amount: value null requiere confidence 0.
+- details[1].source_commission.value debe ser cadena decimal con dos decimales.
+- details[1].income.value debe ser cadena decimal con dos decimales.
+- details[1].source_return_amount: value null requiere confidence 0.
+- source_totals.commission.value debe ser cadena decimal con dos decimales.
+- source_totals.income.value debe ser cadena decimal con dos decimales.
+- source_totals.return_amount.value debe ser cadena decimal con dos decimales.
+Respuesta:
+{
+  "record": {
+    "company_name": {
+      "value": "LUUM",
+      "confidence": 0.99
+    },
+    "year": {
+      "value": 2026,
+      "confidence": 0.99
+    },
+    "week": {
+      "value": 39,
+      "confidence": 0.99
+    },
+    "week_start_date": {
+      "value": "2026-09-28",
+      "confidence": 0.99
+    },
+    "week_end_date": {
+      "value": "2026-10-04",
+      "confidence": 0.99
+    }
+  },
+  "details": [
+    {
+      "affiliation": {
+        "value": "AFIL.-9574699",
+        "confidence": 0.99
+      },
+      "branch": {
+        "value": "NEJAYOTE MOLINO",
+        "confidence": 0.99
+      },
+      "income": {
+        "value": "55.963.03",
+        "confidence": 0.99
+      },
+      "commission_percentage": {
+        "value": "6.00",
+        "confidence": 0.99
+      },
+      "source_commission": {
+        "value": "3.357.78",
+        "confidence": 0.99
+      },
+      "source_return_amount": {
+        "value": null,
+        "confidence": 0.99
+      }
+    },
+    {
+      "affiliation": {
+        "value": "AFIL.-9757895",
+        "confidence": 0.99
+      },
+      "branch": {
+        "value": "NEJAYOTE MOLINO",
+        "confidence": 0.99
+      },
+      "income": {
+        "value": "44.971.67",
+        "confidence": 0.99
+      },
+      "commission_percentage": {
+        "value": "6.00",
+        "confidence": 0.99
+      },
+      "source_commission": {
+        "value": "2.698.30",
+        "confidence": 0.99
+      },
+      "source_return_amount": {
+        "value": null,
+        "confidence": 0.99
+      }
+    }
+  ],
+  "source_totals": {
+    "income": {
+      "value": "100.934.70",
+      "confidence": 0.99
+    },
+    "commission": {
+      "value": "6.056.08",
+      "confidence": 0.99
+    },
+    "return_amount": {
+      "value": "94.878.62",
+      "confidence": 0.99
+    }
+  }
+}
