@@ -1,6 +1,6 @@
 AI SPIKE — BENCHMARK V2 RAW RESULTS
 Model: qwen2.5vl:3b
-Prompt/contract: v2 in tools/ai-spike/run_ollama_spike.py
+Prompt/contract: Spanish v2 in docs/ai-spike/prompt-v2.txt, with Ollama format=json and local contract checks; raw responses are unchanged below.
 
 EXPECTED RESPONSES
 The expected values below are carried forward from the v1 expected responses, corrected by checking the original images, and reshaped to the v2 contract. Numeric formatting was normalized and v1 confidence 100 was represented as 1.0. Treat these values as the verified reference for this sample set.

@@ -1,0 +1,84 @@
+Analiza la imagen del documento y extrae únicamente información que sea visible.
+Devuelve un único objeto JSON válido, sin Markdown ni texto adicional, usando exactamente
+la estructura indicada abajo y conservando todas sus propiedades.
+
+Reglas:
+- Cada campo debe tener "value" y "confidence".
+- "confidence" es un número entre 0.0 y 1.0; expresa tu confianza de lectura,
+  no es una validación del dato.
+- Si un dato no aparece, no se lee con claridad o no puede identificarse sin adivinar,
+  usa "value": null y "confidence": 0.
+- No inventes, completes ni derives valores.
+- Los importes y porcentajes deben ser cadenas decimales con punto y dos decimales,
+  sin símbolo de moneda ni separadores de miles.
+- year y week deben ser enteros.
+- Las fechas deben tener formato YYYY-MM-DD; no deduzcas fechas a partir de year o week.
+- Incluye un elemento en details por cada movimiento visible y conserva su orden visual.
+- affiliation y branch pertenecen a cada movimiento y deben aparecer dentro de details.
+- No extraigas ni inventes operation_number; el orden se deriva de la posición en details.
+- source_commission, source_return_amount y source_totals son transcripciones de lo impreso.
+  No calcules esos valores ni los presentes como valores oficiales.
+- Si un total no aparece o no puede leerse, conserva la propiedad con value null.
+
+Ejemplo de una respuesta completa con dos movimientos. Es solo una ilustración del formato;
+extrae los valores reales de la imagen y no copies estos datos de ejemplo:
+{
+  "record": {
+    "company_name": {"value": "EVENTOS", "confidence": 0.98},
+    "year": {"value": 2026, "confidence": 0.99},
+    "week": {"value": 40, "confidence": 0.99},
+    "week_start_date": {"value": "2026-10-05", "confidence": 0.95},
+    "week_end_date": {"value": "2026-10-11", "confidence": 0.95}
+  },
+  "details": [
+    {
+      "affiliation": {"value": "AFIL.-009060269", "confidence": 0.98},
+      "branch": {"value": "CASA TRAPICHE", "confidence": 0.97},
+      "income": {"value": "48204.21", "confidence": 0.96},
+      "commission_percentage": {"value": "7.00", "confidence": 0.98},
+      "source_commission": {"value": "3374.29", "confidence": 0.95},
+      "source_return_amount": {"value": null, "confidence": 0}
+    },
+    {
+      "affiliation": {"value": "AFIL.-009634394", "confidence": 0.98},
+      "branch": {"value": "CASA TRAPICHE", "confidence": 0.97},
+      "income": {"value": "28384.35", "confidence": 0.96},
+      "commission_percentage": {"value": "7.00", "confidence": 0.98},
+      "source_commission": {"value": "1986.90", "confidence": 0.95},
+      "source_return_amount": {"value": null, "confidence": 0}
+    }
+  ],
+  "source_totals": {
+    "income": {"value": "76588.56", "confidence": 0.95},
+    "commission": {"value": "5361.19", "confidence": 0.94},
+    "return_amount": {"value": "71227.37", "confidence": 0.95}
+  }
+}
+
+Plantilla obligatoria que debes completar con los datos de la imagen:
+No agregues propiedades fuera de esta estructura y no omitas ninguna propiedad.
+Estructura obligatoria:
+{
+  "record": {
+    "company_name": {"value": null, "confidence": 0},
+    "year": {"value": null, "confidence": 0},
+    "week": {"value": null, "confidence": 0},
+    "week_start_date": {"value": null, "confidence": 0},
+    "week_end_date": {"value": null, "confidence": 0}
+  },
+  "details": [
+    {
+      "affiliation": {"value": null, "confidence": 0},
+      "branch": {"value": null, "confidence": 0},
+      "income": {"value": null, "confidence": 0},
+      "commission_percentage": {"value": null, "confidence": 0},
+      "source_commission": {"value": null, "confidence": 0},
+      "source_return_amount": {"value": null, "confidence": 0}
+    }
+  ],
+  "source_totals": {
+    "income": {"value": null, "confidence": 0},
+    "commission": {"value": null, "confidence": 0},
+    "return_amount": {"value": null, "confidence": 0}
+  }
+}

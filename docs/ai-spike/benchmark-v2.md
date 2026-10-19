@@ -14,9 +14,9 @@ Second extraction-contract round for roadmap phase 8.8. Five images were each pr
 | Samples | 5 document images |
 | Repetitions | 2 per image (10 runs) |
 | Maximum acceptable processing time | 5 minutes per image |
-| Prompt/contract | v2 in `tools/ai-spike/run_ollama_spike.py` |
+| Prompt/contract | Spanish [`prompt-v2.txt`](prompt-v2.txt); Ollama `format: "json"` plus local contract checks |
 
-Full expected responses and raw model outputs are recorded in [`benchmark-v2-raw.txt`](benchmark-v2-raw.txt). Expected responses were reshaped from the v1 references and corrected against the original images, including the dates in sample 1 and sample 3 income/return amounts. Formatting-only normalization in the expected JSON converts values to the v2 canonical decimal strings.
+Full expected responses and raw model outputs are recorded in [`benchmark-v2-raw.txt`](benchmark-v2-raw.txt). Expected responses were reshaped from the v1 references and corrected against the original images, including the dates in sample 1 and sample 3 income/return amounts. Formatting-only normalization in the expected JSON converts values to the v2 canonical decimal strings. This round used prompt v2; the executable runner now uses prompt v3.
 
 ## Latency
 
@@ -75,8 +75,8 @@ Do not silently normalize ambiguous numeric strings in the application. A string
 ## Follow-up actions
 
 1. Capture host RAM and CPU use during cold and warm runs; note whether the model was already loaded.
-2. Prepare a prompt v2.1 focused on locale-specific number formatting, exact date transcription, and `null`/confidence consistency; do not change the extraction schema during this prompt experiment.
-3. Repeat the five images twice with the revised prompt, preserving raw outputs and timings.
+2. Test prompt v3 on the same five images twice with unchanged configuration, preserving raw outputs and timings.
+3. Compare v3 with v2 on formatting, date transcription, null/confidence consistency, and semantic accuracy.
 4. Decide whether to proceed with this model, optimize further, or compare another vision model after checking contract adherence, semantic accuracy, latency and resource usage together.
 
 The proposed v2 extraction shape differs from the current application/domain model in where `affiliation` and `branch` live and in omitting AI-extracted `operation_number`. Resolve that alignment separately before implementing phase 8.9.
