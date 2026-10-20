@@ -24,8 +24,6 @@ class RecordFactory extends Factory
         return [
             'company_id' => Company::factory(),
             'source' => RecordSource::MANUAL,
-            'affiliation' => fake()->word(),
-            'branch' => fake()->word(),
             'status' => RecordStatus::NEEDS_REVIEW,
             'week' => $week,
             'year' => $year,

@@ -51,6 +51,8 @@ class BusinessValidator
 
             $calculated[] = [
                 'operation_number' => $detail['operation_number'],
+                'affiliation' => $detail['affiliation'],
+                'branch' => $detail['branch'],
                 'income' => $this->fromCents($incomeCents),
                 'commission_percentage' => $percentageProvided ? $this->fromHundredths($percentageHundredths) : null,
                 'commission' => $this->fromCents($commissionCents),
@@ -69,9 +71,31 @@ class BusinessValidator
      */
     public function validatePersistedManualRecord(Record $record): array
     {
+        if ($record->company_id === null) {
+            throw ValidationException::withMessages([
+                'company_id' => ['A company is required before the record can be confirmed.'],
+            ]);
+        }
+
+        if ($record->details->isEmpty()) {
+            throw ValidationException::withMessages([
+                'details' => ['At least one complete movement is required before the record can be confirmed.'],
+            ]);
+        }
+
         $details = $record->details->map(static function ($detail): array {
+            foreach (['operation_number', 'affiliation', 'branch', 'income', 'commission', 'return_amount'] as $field) {
+                if ($detail->{$field} === null || $detail->{$field} === '') {
+                    throw ValidationException::withMessages([
+                        "details.{$detail->order}.{$field}" => ['This field is required before the record can be confirmed.'],
+                    ]);
+                }
+            }
+
             $input = [
                 'operation_number' => $detail->operation_number,
+                'affiliation' => $detail->affiliation,
+                'branch' => $detail->branch,
                 'income' => $detail->income,
             ];
 
@@ -87,8 +111,8 @@ class BusinessValidator
         $calculated = $this->validateAndCalculateManualDetails([
             'year' => $record->year,
             'week' => $record->week,
-            'week_start_date' => $record->week_start_date->toDateString(),
-            'week_end_date' => $record->week_end_date->toDateString(),
+            'week_start_date' => $record->week_start_date?->toDateString(),
+            'week_end_date' => $record->week_end_date?->toDateString(),
             'details' => $details,
         ]);
 
@@ -110,6 +134,14 @@ class BusinessValidator
      */
     private function validateBusinessPeriod(array $record): void
     {
+        foreach (['year', 'week', 'week_start_date', 'week_end_date'] as $field) {
+            if (! isset($record[$field]) || $record[$field] === '') {
+                throw ValidationException::withMessages([
+                    $field => ['This field is required before the record can be confirmed.'],
+                ]);
+            }
+        }
+
         $start = CarbonImmutable::parse($record['week_start_date'])->startOfDay();
         $end = CarbonImmutable::parse($record['week_end_date'])->startOfDay();
 

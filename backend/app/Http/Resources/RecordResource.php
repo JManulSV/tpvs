@@ -24,8 +24,6 @@ class RecordResource extends JsonResource
             'week' => $this->week,
             'week_start_date' => $this->week_start_date?->toDateString(),
             'week_end_date' => $this->week_end_date?->toDateString(),
-            'affiliation' => $this->affiliation,
-            'branch' => $this->branch,
             'image' => $this->whenLoaded('image', static fn (?Image $image): ?array => $image === null ? null : [
                 'id' => $image->getKey(),
                 'original_file_name' => $image->original_file_name,
@@ -33,9 +31,9 @@ class RecordResource extends JsonResource
                 'file_size' => (int) $image->file_size,
                 'created_at' => $image->created_at?->toISOString(),
             ]),
-            'income_total' => $this->when(isset($this->income_total), fn (): string => (string) $this->income_total),
-            'commission_total' => $this->when(isset($this->commission_total), fn (): string => (string) $this->commission_total),
-            'return_total' => $this->when(isset($this->return_total), fn (): string => (string) $this->return_total),
+            'income_total' => $this->when(array_key_exists('income_total', $this->resource->getAttributes()), fn (): ?string => $this->income_total === null ? null : (string) $this->income_total),
+            'commission_total' => $this->when(array_key_exists('commission_total', $this->resource->getAttributes()), fn (): ?string => $this->commission_total === null ? null : (string) $this->commission_total),
+            'return_total' => $this->when(array_key_exists('return_total', $this->resource->getAttributes()), fn (): ?string => $this->return_total === null ? null : (string) $this->return_total),
             'details' => RecordDetailResource::collection($this->whenLoaded('details')),
         ];
     }

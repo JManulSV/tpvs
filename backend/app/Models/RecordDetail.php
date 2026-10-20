@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Model;
 
 class RecordDetail extends Model
 {
@@ -14,6 +14,8 @@ class RecordDetail extends Model
     protected $fillable = [
         'record_id',
         'operation_number',
+        'affiliation',
+        'branch',
         'income',
         'commission_percentage',
         'commission',

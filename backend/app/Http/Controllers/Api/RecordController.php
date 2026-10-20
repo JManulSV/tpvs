@@ -36,8 +36,6 @@ class RecordController extends Controller
                 'week' => $validated['week'],
                 'week_start_date' => CarbonImmutable::parse($validated['week_start_date'])->toDateString(),
                 'week_end_date' => CarbonImmutable::parse($validated['week_end_date'])->toDateString(),
-                'affiliation' => $validated['affiliation'],
-                'branch' => $validated['branch'],
             ]);
 
             $record->details()->createMany($details);
@@ -91,10 +89,10 @@ class RecordController extends Controller
                 $query->where(static function ($query) use ($term): void {
                     $query->whereHas('company', static fn ($companyQuery) => $companyQuery
                         ->whereRaw('LOWER(name) LIKE ?', [$term]))
-                        ->orWhereRaw('LOWER(affiliation) LIKE ?', [$term])
-                        ->orWhereRaw('LOWER(branch) LIKE ?', [$term])
                         ->orWhereHas('details', static fn ($detailsQuery) => $detailsQuery
-                            ->whereRaw('LOWER(operation_number) LIKE ?', [$term]));
+                            ->whereRaw('LOWER(operation_number) LIKE ?', [$term])
+                            ->orWhereRaw('LOWER(affiliation) LIKE ?', [$term])
+                            ->orWhereRaw('LOWER(branch) LIKE ?', [$term]));
                 });
             })
             ->orderByDesc('updated_at')
@@ -130,8 +128,6 @@ class RecordController extends Controller
                 'week' => $validated['week'],
                 'week_start_date' => CarbonImmutable::parse($validated['week_start_date'])->toDateString(),
                 'week_end_date' => CarbonImmutable::parse($validated['week_end_date'])->toDateString(),
-                'affiliation' => $validated['affiliation'],
-                'branch' => $validated['branch'],
             ]);
 
             $record->details()->delete();
