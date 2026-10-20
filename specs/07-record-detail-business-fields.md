@@ -1,6 +1,6 @@
 # SPEC 07 — Campos de negocio por movimiento
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 04, SPEC 05, SPEC 06
 > **Date:** 2026-10-20
 > **Objective:** Realinear el agregado de Record para guardar afiliación y sucursal por movimiento y permitir datos provisionales de imagen sin debilitar la captura manual.
@@ -95,17 +95,17 @@ La respuesta de cada `RecordDetail` expone afiliación y sucursal. El recurso ra
 
 ## Acceptance criteria
 
-- [ ] Las migraciones base almacenan afiliación/sucursal por movimiento y no las exponen en `records`.
-- [ ] El esquema base acepta valores nulos de campos IMAGE provisionales sin eliminar checks válidos, como límites de semana, dinero no negativo cuando presente y orden positivo.
-- [ ] Una captura MANUAL sigue requiriendo empresa, periodo, al menos un movimiento, número de operación, afiliación, sucursal e importes/comisión válidos.
-- [ ] La creación manual sigue confirmando en la misma transacción y sus cálculos financieros mantienen precisión decimal y redondeo actuales.
-- [ ] Cada `details[]` manual requiere afiliación y sucursal; el API rechaza esos campos en el nivel raíz y no mantiene compatibilidad dual.
-- [ ] La respuesta `RecordDetail` expone afiliación y sucursal y `RecordResource` ya no las expone en el nivel raíz.
-- [ ] La búsqueda parcial de registros encuentra afiliación y sucursal almacenadas en cualquier movimiento del agregado.
-- [ ] Un registro IMAGE puede persistir temporalmente sin compañía, periodo, movimiento completo o número de operación; el flujo manual no puede hacerlo.
-- [ ] El frontend manual actualizado captura ambos campos por movimiento y crea/consulta agregados válidos a través del BFF.
-- [ ] Las pruebas backend/frontend relevantes, lint, TypeScript, build y checks PHP pasan; las guías describen el nuevo contrato.
-- [ ] Las bases locales/pruebas se pueden reconstruir con el esquema base actualizado; no se incluye una migración de copia de datos.
+- [x] Las migraciones base almacenan afiliación/sucursal por movimiento y no las exponen en `records`.
+- [x] El esquema base acepta valores nulos de campos IMAGE provisionales sin eliminar checks válidos, como límites de semana, dinero no negativo cuando presente y orden positivo.
+- [x] Una captura MANUAL sigue requiriendo empresa, periodo, al menos un movimiento, número de operación, afiliación, sucursal e importes/comisión válidos.
+- [x] La creación manual sigue confirmando en la misma transacción y sus cálculos financieros mantienen precisión decimal y redondeo actuales.
+- [x] Cada `details[]` manual requiere afiliación y sucursal; el API rechaza esos campos en el nivel raíz y no mantiene compatibilidad dual.
+- [x] La respuesta `RecordDetail` expone afiliación y sucursal y `RecordResource` ya no las expone en el nivel raíz.
+- [x] La búsqueda parcial de registros encuentra afiliación y sucursal almacenadas en cualquier movimiento del agregado.
+- [x] Un registro IMAGE puede persistir temporalmente sin compañía, periodo, movimiento completo o número de operación; el flujo manual no puede hacerlo.
+- [x] El frontend manual actualizado captura ambos campos por movimiento y crea/consulta agregados válidos a través del BFF.
+- [x] Las pruebas backend/frontend relevantes, lint, TypeScript, build y checks PHP pasan; las guías describen el nuevo contrato.
+- [x] Las bases locales/pruebas se pueden reconstruir con el esquema base actualizado; no se incluye una migración de copia de datos.
 
 ## Decisions
 
