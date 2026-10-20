@@ -49,9 +49,9 @@ export type RecordListItem = {
   week: number | null;
   week_start_date: string | null;
   week_end_date: string | null;
-  income_total: string | null;
-  commission_total: string | null;
-  return_total: string | null;
+  income_total?: string | null;
+  commission_total?: string | null;
+  return_total?: string | null;
   details: RecordDetail[];
 };
 

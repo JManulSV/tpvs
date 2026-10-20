@@ -18,7 +18,7 @@ const statusLabels: Record<RecordStatus, string> = {
   CANCELED: "Cancelado",
 };
 
-function money(value: string | null) {
+function money(value: string | null | undefined) {
   if (value === null) return "—";
   return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(value));
 }

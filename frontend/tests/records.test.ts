@@ -68,6 +68,13 @@ describe("manual record schemas", () => {
       week_end_date: "2025-09-25",
     }).success).toBe(true);
   });
+
+  it("requires affiliation and branch on every manual movement", () => {
+    expect(manualRecordFormSchema.safeParse({
+      ...validRecord,
+      details: [{ ...validRecord.details[0], affiliation: "", branch: "" }],
+    }).success).toBe(false);
+  });
 });
 
 describe("records service", () => {
