@@ -1,5 +1,7 @@
 # AI Spike — Benchmark v3
 
+> Historical result. The SPEC 06 v4 controlled model comparison and current SPEC 08 candidate decision are documented in [benchmark-v4.md](benchmark-v4.md). This v1–v3 evidence is retained unchanged.
+
 ## Status and decision
 
 The five representative images were each processed twice with the English v3 prompt and `qwen2.5vl:3b`. All ten runs finished below the agreed five-minute limit, but **0/10 responses passed local contract validation**. The structured-output setting did not reliably enforce the requested date and decimal formats, and the model sometimes produced extra movement rows.

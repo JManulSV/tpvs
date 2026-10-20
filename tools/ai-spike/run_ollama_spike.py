@@ -353,7 +353,11 @@ def normalize_and_validate_values(data: Any) -> tuple[Any, list[str], int]:
         elif name not in DECIMAL_FIELDS and name not in {"year", "week"} and value is not None:
             if not isinstance(value, str):
                 issues.append(f"{path}.value tiene tipo inesperado.")
+        confidence = field["confidence"]
         if field["value"] is None:
+            issues.append(f"{path}: valor faltante; requiere revisión.")
+            if confidence < 0.5:
+                issues.append(f"{path}: confianza baja ({confidence}); requiere revisión.")
             return
         if name in DECIMAL_FIELDS:
             if not isinstance(field["value"], str) or not DECIMAL_PATTERN.fullmatch(field["value"]):
@@ -366,7 +370,6 @@ def normalize_and_validate_values(data: Any) -> tuple[Any, list[str], int]:
         elif not isinstance(field["value"], str):
             issues.append(f"{path}.value debe ser texto o null.")
 
-        confidence = field["confidence"]
         if confidence < 0.5:
             issues.append(f"{path}: confianza baja ({confidence}); requiere revisión.")
 

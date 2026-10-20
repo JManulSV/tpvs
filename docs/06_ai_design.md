@@ -57,7 +57,7 @@ MCP is not required for this MVP because the system is performing information ex
 
 ## 4. Output Contract
 
-The AI returns one JSON object using the following extraction shape for the phase 8.8 spike. `record` contains general document fields, each item in `details` contains movement-specific fields in visual order, and `source_totals` contains totals transcribed from the document when present. The application data model and manual-capture contract may require separate alignment before production AI integration.
+The AI returns one JSON object using the following extraction shape for the experimental spike and the SPEC 08 candidate. `record` contains general document fields, each item in `details` contains movement-specific fields in visual order, and `source_totals` contains totals transcribed from the document when present. Production pipeline and persistence behavior are specified separately in SPEC 08.
 
 ```json
 {
@@ -93,7 +93,7 @@ All properties shown in the contract are required, including when a value is not
 - `company_name`, `affiliation`, and `branch` use strings or `null`.
 - `year` and `week` use integers or `null`. A business week is not interpreted as an ISO week.
 - `week_start_date` and `week_end_date` use `YYYY-MM-DD` strings or `null`. Do not derive dates from the year/week; only transcribe dates supported by the image.
-- Monetary amounts and `commission_percentage` use decimal strings with a period as the decimal separator and exactly two fractional digits (for example, `"10000.00"`, `"2.00"`) or `null`. Do not include currency symbols or thousands separators.
+- The model transcribes monetary amounts and `commission_percentage` faithfully as strings, retaining visible currency symbols, grouping/decimal separators, and percent signs. The experimental normalizer accepts only unambiguous patterns and converts accepted values to decimal strings with a period and exactly two fractional digits (for example, `"$1,234.56"` -> `"1234.56"`, `"1.234,56"` -> `"1234.56"`, `"5%"` -> `"5.00"`). Ambiguous forms such as `"1,200"`, `"1.200"`, and malformed values such as `"55.963.03"` remain unconvertible issues; they are not guessed.
 - `details` is an array with at least one movement. Array order is the visual order in the document; the backend assigns the persisted `order` value.
 - `affiliation` and `branch` are movement-level fields and belong inside each `details` item.
 - `operation_number` is omitted from AI extraction for this spike. Movement order comes from each item's array position.
@@ -118,6 +118,7 @@ Each field contains:
 - `confidence`
 
 Confidence is between `0.0` and `1.0`.
+A `null` value requires confidence `0`.
 
 Initial threshold:
 - `0.70`
@@ -447,7 +448,9 @@ Laravel Worker
   -> Ollama on secondary PC
 ```
 
-Before deciding on final hardware or model choice, test approximately 5 to 10 real or anonymized images.
+The SPEC 06 controlled comparison tested three models on five representative images, with two serial runs per image. The recommended initial candidate for SPEC 08 is `qwen2.5vl:3b`, selected by the specified priority order because it had the highest field-level agreement (138/154). Its ten outputs failed the structural contract due to null values with non-zero confidence, and its movement counts were correct in four of ten runs. It remains a candidate for human-reviewed extraction, not a claim of production accuracy. See [`ai-spike/benchmark-v4.md`](ai-spike/benchmark-v4.md) for metrics and alternatives.
+
+The benchmark does not establish a minimum semantic accuracy gate or block SPEC 07/SPEC 08.
 
 Measure:
 - processing time;
@@ -460,21 +463,7 @@ Measure:
 
 The MVP uses a single prompt for the current document format.
 
-The prompt must instruct the model to:
-- describe what the image contains;
-- specify which fields to extract;
-- handle multiple movements;
-- not invent information;
-- use null when a value is not visible or clear;
-- provide confidence per field;
-- extract source values when they appear;
-- not calculate financial values that are not explicitly present;
-- not decide if the record is valid;
-- return only the expected JSON;
-- normalize dates as `YYYY-MM-DD`;
-- preserve the visual order of the movements.
-
-The final prompt will be built during implementation and refined with real-image testing.
+The experimental prompt v4 is versioned in [`ai-spike/prompt-v4.txt`](ai-spike/prompt-v4.txt). It instructs the model to transcribe visible values, preserve movement order, separate movements from totals, use `null` with confidence `0` for missing or unreadable data, and return only the expected JSON. Dates are requested in ISO form without deriving them from the period. Monetary values and percentages are transcribed faithfully; deterministic numeric normalization happens after extraction. Preserve raw output and report issues instead of guessing or hiding questionable values.
 
 ## 20. Final Principle
 

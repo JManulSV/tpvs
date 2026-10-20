@@ -16,7 +16,7 @@ Second extraction-contract round for roadmap phase 8.8. Five images were each pr
 | Maximum acceptable processing time | 5 minutes per image |
 | Prompt/contract | Spanish [`prompt-v2.txt`](prompt-v2.txt); Ollama `format: "json"` plus local contract checks |
 
-Full expected responses and raw model outputs are recorded in [`benchmark-v2-raw.txt`](benchmark-v2-raw.txt). Expected responses were reshaped from the v1 references and corrected against the original images, including the dates in sample 1 and sample 3 income/return amounts. Formatting-only normalization in the expected JSON converts values to the v2 canonical decimal strings. This round used prompt v2; the executable runner now uses prompt v3.
+Full expected responses and raw model outputs are recorded in [`benchmark-v2-raw.txt`](benchmark-v2-raw.txt). Expected responses were reshaped from the v1 references and corrected against the original images, including the dates in sample 1 and sample 3 income/return amounts. Formatting-only normalization in the expected JSON converts values to the v2 canonical decimal strings. This round used prompt v2. The later v3 round is historical; SPEC 06's controlled comparison with prompt v4 and the current SPEC 08 candidate decision are documented in [`benchmark-v4.md`](benchmark-v4.md).
 
 ## Latency
 

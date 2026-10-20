@@ -24,6 +24,8 @@ This file is a short implementation-oriented summary of the AI Design phase.
 - Keep all expected JSON properties.
 - Use `null` and `confidence = 0` when a field is unreadable.
 - Preserve the visual order of movements.
+- The SPEC 06 benchmark recommends `qwen2.5vl:3b` for SPEC 08 based on the highest field-level agreement; its structural failures require explicit error classification and human review.
+- Normalize only unambiguous numeric formats; preserve the raw extraction and report unconvertible values.
 - Do not auto-confirm AI output.
 - Do not calculate official business truth in the AI layer.
 

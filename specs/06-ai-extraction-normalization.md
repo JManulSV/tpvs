@@ -1,6 +1,6 @@
 # SPEC 06 — Contrato y normalización de extracción AI
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 05
 > **Date:** 2026-10-20
 > **Objective:** Ajustar el contrato experimental de extracción y normalizar formatos numéricos inequívocos sin convertir la calidad semántica del modelo en un bloqueo para la integración.
@@ -75,22 +75,22 @@ El contrato conserva los campos actuales en `docs/06_ai_design.md`: raíz `recor
 
 ## Acceptance criteria
 
-- [ ] El runner exige JSON parseable con raíz, claves y wrappers obligatorios; respuesta rota o incompleta se reporta como error estructural.
-- [ ] Un `null` con confianza 0 se acepta como faltante y no incrementa el contador numérico.
-- [ ] `5%`, `$1,234.56` y `1.234,56` se normalizan a valores decimales canónicos sin alterar la respuesta cruda.
-- [ ] `1,200`, `1.200` y `55.963.03` no se interpretan por heurística; se informan como numéricos no convertibles.
-- [ ] Fechas no ISO o imposibles se informan como faltantes con issue y no se reinterpretan.
-- [ ] Cuatro valores numéricos no convertibles dejan el resultado como utilizable para revisión; cinco lo clasifican como no utilizable.
-- [ ] Confianza fuera de rango, wrapper incompleto o propiedad requerida ausente se clasifica como error estructural con independencia del contador.
-- [ ] La comparación ejecuta exactamente 30 inferencias: tres modelos por cinco imágenes por dos vueltas.
-- [ ] Las inferencias se realizan una por una, sin concurrencia, usando prompt, esquema, parámetros, normalizador y runtime iguales para los tres candidatos.
-- [ ] La vuelta 1 ejecuta los modelos en orden `gemma3:4b`, `qwen2.5vl:3b`, `minicpm-v:8b`; la vuelta 2 invierte el orden a `minicpm-v:8b`, `qwen2.5vl:3b`, `gemma3:4b`.
-- [ ] Cada grupo de modelo procesa las imágenes en orden `prueba1.jpeg` a `prueba5.jpeg`.
-- [ ] El resumen compara campos visibles correctos, cantidad/orden de movimientos, validez estructural tras normalización y latencia, en ese orden de prioridad.
-- [ ] La decisión de modelo candidato para SPEC 08 queda documentada aun si ningún modelo es perfecto; no existe umbral de exactitud que bloquee la integración.
-- [ ] Solo se versiona el resumen comparativo; las imágenes y respuestas crudas nuevas no se agregan al repositorio.
-- [ ] La medición no bloquea el inicio de SPEC 07 ni la integración de SPEC 08 una vez elegido y documentado el candidato.
-- [ ] Los resultados crudos existentes de las versiones v1–v3 no se sobrescriben.
+- [x] El runner exige JSON parseable con raíz, claves y wrappers obligatorios; respuesta rota o incompleta se reporta como error estructural.
+- [x] Un `null` con confianza 0 se acepta como faltante y no incrementa el contador numérico.
+- [x] `5%`, `$1,234.56` y `1.234,56` se normalizan a valores decimales canónicos sin alterar la respuesta cruda.
+- [x] `1,200`, `1.200` y `55.963.03` no se interpretan por heurística; se informan como numéricos no convertibles.
+- [x] Fechas no ISO o imposibles se informan como faltantes con issue y no se reinterpretan.
+- [x] Cuatro valores numéricos no convertibles dejan el resultado como utilizable para revisión; cinco lo clasifican como no utilizable.
+- [x] Confianza fuera de rango, wrapper incompleto o propiedad requerida ausente se clasifica como error estructural con independencia del contador.
+- [x] La comparación ejecuta exactamente 30 inferencias: tres modelos por cinco imágenes por dos vueltas.
+- [x] Las inferencias se realizan una por una, sin concurrencia, usando prompt, esquema, parámetros, normalizador y runtime iguales para los tres candidatos.
+- [x] La vuelta 1 ejecuta los modelos en orden `gemma3:4b`, `qwen2.5vl:3b`, `minicpm-v:8b`; la vuelta 2 invierte el orden a `minicpm-v:8b`, `qwen2.5vl:3b`, `gemma3:4b`.
+- [x] Cada grupo de modelo procesa las imágenes en orden `prueba1.jpeg` a `prueba5.jpeg`.
+- [x] El resumen compara campos visibles correctos, cantidad/orden de movimientos, validez estructural tras normalización y latencia, en ese orden de prioridad.
+- [x] La decisión de modelo candidato para SPEC 08 queda documentada aun si ningún modelo es perfecto; no existe umbral de exactitud que bloquee la integración.
+- [x] Solo se versiona el resumen comparativo; las imágenes y respuestas crudas nuevas no se agregan al repositorio.
+- [x] La medición no bloquea el inicio de SPEC 07 ni la integración de SPEC 08 una vez elegido y documentado el candidato.
+- [x] Los resultados crudos existentes de las versiones v1–v3 no se sobrescriben.
 
 ## Decisions
 

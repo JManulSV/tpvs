@@ -20,6 +20,8 @@ The documentation describes both the current repository implementation and the t
 - `docs/ai-spike/benchmark-v1.md` - Initial Ollama vision-model spike results; v2 runner is `tools/ai-spike/run_ollama_spike.py`.
 - `docs/ai-spike/benchmark-v2.md` - Second-round Ollama measurements, contract adherence, and follow-up assessment.
 - `docs/ai-spike/benchmark-v3.md` - English prompt/schema diagnostics, controlled failures, and remaining 8.8 work.
+- `docs/ai-spike/benchmark-v4.md` - SPEC 06 controlled comparison of three vision models, per-image metrics, and recommended SPEC 08 candidate.
+- `docs/ai-spike/prompt-v4.txt` - Versioned experimental extraction prompt used for the SPEC 06 comparison.
 - Temporary local Ollama AI-spike Compose profile usage is documented in `docs/backend/10_configuration_operations.md`.
 - `docs/frontend/README.md` - Next.js frontend status, architecture, conventions, and feature guides.
 - `docs/backend/README.md` - Laravel backend status, structure, conventions, API, operations, security, and AI development rules.
