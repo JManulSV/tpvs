@@ -11,8 +11,8 @@ use App\Models\Image;
 use App\Models\Record;
 use App\Models\RecordDetail;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class DatabaseSchemaTest extends TestCase
@@ -25,8 +25,8 @@ class DatabaseSchemaTest extends TestCase
         $company = Company::factory()->create();
         $record = Record::factory()->for($company)->create();
         $details = RecordDetail::factory()->for($record)->count(2)->sequence(
-            ['order' => 1],
-            ['order' => 2],
+            ['order' => 1, 'affiliation' => 'AFF-FIRST', 'branch' => 'Guadalajara'],
+            ['order' => 2, 'affiliation' => 'AFF-SECOND', 'branch' => 'Zapopan'],
         )->create();
         $image = Image::factory()->for($record)->create();
         $processing = AiProcessing::factory()->for($image)->create();
@@ -42,6 +42,8 @@ class DatabaseSchemaTest extends TestCase
         $this->assertTrue($record->company->is($company));
         $this->assertCount(2, $record->details);
         $this->assertSame([1, 2], $record->details->pluck('order')->all());
+        $this->assertSame(['AFF-FIRST', 'AFF-SECOND'], $record->details->pluck('affiliation')->all());
+        $this->assertSame(['Guadalajara', 'Zapopan'], $record->details->pluck('branch')->all());
         $this->assertTrue($record->image->is($image));
         $this->assertTrue($record->image->aiProcessings->first()->is($processing));
         $this->assertTrue($record->delivery->is($delivery));
