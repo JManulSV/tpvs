@@ -415,18 +415,33 @@ def main() -> int:
     try:
         with urllib.request.urlopen(request, timeout=args.timeout) as response:
             result = json.load(response)
+    except json.JSONDecodeError as error:
+        elapsed_seconds = time.perf_counter() - started_at
+        print(f"Respuesta HTTP de Ollama no es JSON válido: {error}", file=sys.stderr)
+        print(f"Tiempo de solicitud: {elapsed_seconds:.2f} segundos")
+        return 1
     except urllib.error.HTTPError as error:
+        elapsed_seconds = time.perf_counter() - started_at
         details = error.read().decode("utf-8", errors="replace")
         print(f"Ollama respondió HTTP {error.code}: {details}", file=sys.stderr)
+        print(f"Tiempo de solicitud: {elapsed_seconds:.2f} segundos")
         return 1
     except (urllib.error.URLError, TimeoutError) as error:
+        elapsed_seconds = time.perf_counter() - started_at
         print(f"No se pudo completar la petición a Ollama: {error}", file=sys.stderr)
+        print(f"Tiempo de solicitud: {elapsed_seconds:.2f} segundos")
         return 1
     elapsed_seconds = time.perf_counter() - started_at
 
+    if not isinstance(result, dict) or not isinstance(result.get("response"), str):
+        print("Respuesta HTTP de Ollama sin campo response de texto.", file=sys.stderr)
+        print(f"Tiempo de solicitud: {elapsed_seconds:.2f} segundos")
+        return 1
+
     print(f"Imagen: {args.image}")
     print(f"Modelo: {args.model}")
-    print(f"Tiempo total cliente: {elapsed_seconds:.2f} segundos")
+    print(f"Versión del prompt: {PROMPT_VERSION}")
+    print(f"Tiempo de solicitud: {elapsed_seconds:.2f} segundos")
     if "total_duration" in result:
         print(f"Tiempo reportado por Ollama: {result['total_duration'] / 1e9:.2f} segundos")
 
@@ -434,28 +449,39 @@ def main() -> int:
     try:
         extraction = json.loads(response_text)
     except json.JSONDecodeError as error:
+        print("Validez estructural: ERROR (JSON no parseable)")
+        print("Valores numéricos no convertibles: 0")
         print(f"Respuesta del modelo no es JSON parseable: {error}")
+        print("Respuesta cruda del modelo:")
         print(response_text)
         return 2
 
     structure_errors = structural_issues(extraction)
     if structure_errors:
-        print(f"Estructura {PROMPT_VERSION}: INVÁLIDA")
+        print("Validez estructural: ERROR")
         print("Valores numéricos no convertibles: 0")
+        print("Issues:")
         for issue in structure_errors:
             print(f"- {issue}")
-        print("Respuesta cruda:")
+        print("Respuesta cruda del modelo:")
+        print(response_text)
+        print("JSON parseado:")
         print(json.dumps(extraction, ensure_ascii=False, indent=2))
         return 2
 
     normalized, value_issues, unconvertible_count = normalize_and_validate_values(extraction)
     usable = unconvertible_count < 5
-    print(f"Estructura {PROMPT_VERSION}: VÁLIDA")
+    print("Validez estructural: VÁLIDA")
     print(f"Valores numéricos no convertibles: {unconvertible_count}")
     print(f"Extracción: {'UTILIZABLE PARA REVISIÓN' if usable else 'NO UTILIZABLE'}")
+    print("Issues:")
+    if not value_issues:
+        print("- Ninguno")
     for issue in value_issues:
         print(f"- {issue}")
-    print("Respuesta cruda:")
+    print("Respuesta cruda del modelo:")
+    print(response_text)
+    print("JSON crudo parseado:")
     print(json.dumps(extraction, ensure_ascii=False, indent=2))
     print("Respuesta normalizada:")
     print(json.dumps(normalized, ensure_ascii=False, indent=2))
