@@ -163,7 +163,7 @@ All endpoints use the authenticated Sanctum session. Laravel remains authoritati
 | `page` | Integer greater than or equal to 1. Invalid values return `422`. | `1` |
 | `per_page` | Integer from 1 to 100. Invalid values return `422`. | `15` |
 
-When a `week` filter is supplied, `year` is required so the business period is unambiguous. The API does not validate `week` as an ISO week. Results are ordered by `updated_at` descending and use Laravel's standard paginated response (`data`, `links`, `meta`). List resources include record identity, company, source, status, period, affiliation, branch, calculated income/commission/return totals, and the ordered movement summary needed by search and display. Financial totals are calculated from `RecordDetail`; they are not stored as Record source-of-truth columns.
+When a `week` filter is supplied, `year` is required so the business period is unambiguous. The API does not validate `week` as an ISO week. Results are ordered by `updated_at` descending and use Laravel's standard paginated response (`data`, `links`, `meta`). List resources include record identity, nullable company and period, source, status, calculated income/commission/return totals, and the ordered movement summary needed by search and display. Affiliation and branch are returned on movement details, never on the Record root. Financial totals are calculated from `RecordDetail`; they are not stored as Record source-of-truth columns. Search matches affiliation and branch on any movement in the aggregate.
 
 ### Manual Record Create and Replace Payload
 
@@ -176,16 +176,18 @@ When a `week` filter is supplied, `year` is required so the business period is u
   "week": 38,
   "week_start_date": "2026-09-14",
   "week_end_date": "2026-09-20",
-  "affiliation": "AFF-123",
-  "branch": "Guadalajara",
   "details": [
     {
       "operation_number": "10231",
+      "affiliation": "AFF-123",
+      "branch": "Guadalajara",
       "income": "10000.00",
       "commission_percentage": "2.00"
     },
     {
       "operation_number": "10232",
+      "affiliation": "AFF-456",
+      "branch": "Zapopan",
       "income": "5000.00",
       "commission": "100.00"
     }
@@ -197,13 +199,13 @@ For replacement, add the required top-level field `"reason": "Corrección de cap
 
 For percentage input, Laravel calculates `commission` using decimal arithmetic and `ROUND_HALF_UP` to two decimal places. For fixed commission input, Laravel stores the supplied amount and sets `commission_percentage` to `null`. Laravel always calculates `return_amount = income - commission`; the client must not submit a return amount. Zero-valued income, commission, and return are permitted by the current schema, provided all rules above pass.
 
-`year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id`, `affiliation`, and `branch` are required. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=status`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro manual confirmado`.
+`year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id` and all period fields are required. Each detail requires `operation_number`, `affiliation`, `branch`, `income`, and exactly one commission input. The API rejects `affiliation` or `branch` at the Record root; there is no legacy dual-payload support. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=status`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro manual confirmado`.
 
 On replacement, Laravel accepts only a `MANUAL` record in `NEEDS_REVIEW`. It validates the complete new aggregate before atomically updating the Record and replacing its details. It creates one generic `History` event with `field_name=manual_record_updated`, null `previous_value` and `new_value`, the authenticated `user_id`, and the supplied reason. The aggregate update and History event share one database transaction.
 
 ### Record Resource and Detail
 
-`GET /api/records/{id}` returns `200` with `{ "data": { ...record } }`, including `id`, `company`, `source`, `status`, `year`, `week`, `week_start_date`, `week_end_date`, `affiliation`, `branch`, ordered `details`, and calculated aggregate totals. Each detail contains `id`, `operation_number`, `income`, `commission_percentage`, `commission`, `return_amount`, and `order`. A missing record returns `404`. No private file paths are exposed.
+`GET /api/records/{id}` returns `200` with `{ "data": { ...record } }`, including `id`, nullable `company`, `source`, `status`, nullable `year`, `week`, `week_start_date`, and `week_end_date`, ordered `details`, and calculated aggregate totals. The Record root does not expose `affiliation` or `branch`. Each detail contains `id`, nullable `operation_number`, `affiliation`, `branch`, `income`, `commission_percentage`, `commission`, `return_amount`, and `order`; IMAGE extraction may leave detail values null until review. MANUAL creation and confirmation validation remain strict and reject incomplete business data. A missing record returns `404`. No private file paths are exposed.
 
 The list resource uses the same record fields and may omit detail fields not needed by the list, but it includes the company, state, period, source, and calculated totals. Response types must be kept consistent between list and detail where a field has the same meaning.
 
