@@ -13,36 +13,34 @@ from pathlib import Path
 from typing import Any
 
 
-PROMPT_VERSION = "v3"
+PROMPT_VERSION = "v4"
 PROMPT = r"""You are a document transcription system. Inspect the supplied image and extract only
-information that is visibly printed in it. Return the extracted fields in the JSON object
-constrained by the supplied JSON Schema. Do not return Markdown, comments, or surrounding text.
+information that is visibly printed in it. Return one JSON object matching the supplied JSON
+Schema. Do not return Markdown, comments, or surrounding text.
 
 Follow these rules exactly:
 1. Transcribe; do not infer, calculate, repair, or complete missing document data.
-2. Include every property required by the schema. If a field is absent, unreadable, ambiguous,
-   or would require guessing, set value to null and confidence to 0.
+2. Include every property required by the schema. If a field is absent or unreadable, set value to
+   null and confidence to 0. A null value must always have confidence 0.
 3. Confidence is your reading confidence from 0 to 1, not business validation. Do not use 1.0
    automatically. Use a value that reflects how clearly the characters are visible.
 4. Keep year and week as JSON integers. Do not infer dates from the week number, and do not
    reinterpret the business week as an ISO week. Copy complete visible dates as YYYY-MM-DD.
-5. Return money and commission percentages as strings with exactly two decimal places, a dot as
-   the decimal separator, and no grouping separators, currency symbol, or percent sign.
-   Examples: printed "$1,234.56" -> "1234.56"; printed "1.234,56" -> "1234.56";
-   printed "8%" -> "8.00"; printed "6.5%" -> "6.50". These are formatting conversions only.
-6. If separators are malformed or the intended numeric value is ambiguous, do not guess: return
-   null with confidence 0 for that field. In particular, do not reinterpret strings such as
-   "55.963.03" unless the image makes the intended decimal unambiguous.
-7. The record object contains document-level company and period fields only. Affiliation and
+5. For monetary amounts and commission percentages, transcribe the printed characters faithfully
+   as a string, including any visible currency symbol, grouping or decimal separators, and percent
+   sign. Do not reformat, calculate, or guess what an ambiguous separator means. The application
+   will normalize only unambiguous numeric formats. If the characters themselves cannot be read,
+   use null with confidence 0.
+6. The record object contains document-level company and period fields only. Affiliation and
    branch belong to each individual movement in details and must never be moved to record.
-8. Include exactly one details item for each visible movement, in visual reading order. Do not
+7. Include exactly one details item for each visible movement, in visual reading order. Do not
    merge rows or create movements from totals. Array position represents movement order; do not
    extract operation_number.
-9. source_commission, source_return_amount, and source_totals are transcriptions of printed
+8. source_commission, source_return_amount, and source_totals are transcriptions of printed
    source amounts only. Never calculate them. If the document does not print a per-movement
    return amount, use null even if it can be calculated from income and commission.
-10. source_totals must contain income, commission, and return_amount. Use null for totals not
-    visibly printed or not readable.
+9. source_totals must contain income, commission, and return_amount. Use null for totals not
+   visibly printed or not readable. Keep totals separate from movement rows.
 
 Now inspect the supplied image and transcribe its actual contents. The JSON Schema is the output
 contract. Do not use any values from this instruction text as evidence about the image."""
