@@ -3,12 +3,14 @@
 
 import argparse
 import base64
+import copy
 import json
 import re
 import sys
 import time
 import urllib.error
 import urllib.request
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +49,13 @@ contract. Do not use any values from this instruction text as evidence about the
 
 FIELD_NAMES = ("value", "confidence")
 DECIMAL_PATTERN = re.compile(r"^-?\d+\.\d{2}$")
+CANONICAL_NUMBER_PATTERN = re.compile(r"^-?\d+(?:\.\d{1,2})?$")
+NUMERIC_TEXT_PATTERN = re.compile(r"^-?[\d.,]+$")
+NUMERIC_CANDIDATE_PATTERN = re.compile(r"^[\d.,\s$€£¥₹%+-]+$")
+US_GROUPED_NUMBER_PATTERN = re.compile(r"^-?\d{1,3}(?:,\d{3})+\.\d{1,2}$")
+EU_GROUPED_NUMBER_PATTERN = re.compile(r"^-?\d{1,3}(?:\.\d{3})+,\d{1,2}$")
+PERCENT_PATTERN = re.compile(r"^(-?\d+(?:\.\d{1,2})?)%$")
+CURRENCY_SYMBOL_PATTERN = re.compile(r"^[\$€£¥₹]\s*")
 ROOT_FIELDS = {"record", "details", "source_totals"}
 RECORD_FIELDS = {
     "company_name", "year", "week", "week_start_date", "week_end_date"
@@ -60,6 +69,7 @@ DECIMAL_FIELDS = {
     "income", "commission_percentage", "source_commission",
     "source_return_amount", "commission", "return_amount",
 }
+PERCENT_FIELDS = {"commission_percentage"}
 DATE_FIELDS = {"week_start_date", "week_end_date"}
 
 
@@ -75,12 +85,7 @@ def field_schema(value_schema: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-DECIMAL_VALUE_SCHEMA = {
-    "anyOf": [
-        {"type": "string", "pattern": r"^-?\d+\.\d{2}$"},
-        {"type": "null"},
-    ]
-}
+DECIMAL_VALUE_SCHEMA = {"anyOf": [{"type": "string"}, {"type": "null"}]}
 STRING_VALUE_SCHEMA = {"anyOf": [{"type": "string"}, {"type": "null"}]}
 INTEGER_VALUE_SCHEMA = {
     "anyOf": [{"type": "integer"}, {"type": "null"}]
@@ -224,6 +229,114 @@ def validate_fields(obj: dict[str, Any], expected: set[str], path: str) -> list[
         elif not isinstance(value, str):
             issues.append(f"{field_path}.value debe ser texto o null.")
     return issues
+
+
+def canonical_decimal(value: Decimal) -> str:
+    return f"{value:.2f}"
+
+
+def normalize_numeric_text(value: str, is_percentage: bool) -> str | None:
+    """Normalize only explicit numeric formats; ambiguous separators stay invalid."""
+    text = value.strip()
+    if is_percentage:
+        match = PERCENT_PATTERN.fullmatch(text)
+        if match:
+            return canonical_decimal(Decimal(match.group(1)))
+        if CANONICAL_NUMBER_PATTERN.fullmatch(text):
+            return canonical_decimal(Decimal(text))
+        return None
+
+    # A currency symbol is optional, but stripping it must leave a complete valid pattern.
+    text = CURRENCY_SYMBOL_PATTERN.sub("", text, count=1).strip()
+
+    if CANONICAL_NUMBER_PATTERN.fullmatch(text):
+        numeric_text = text
+    elif US_GROUPED_NUMBER_PATTERN.fullmatch(text):
+        numeric_text = text.replace(",", "")
+    elif EU_GROUPED_NUMBER_PATTERN.fullmatch(text):
+        numeric_text = text.replace(".", "").replace(",", ".")
+    else:
+        return None
+    return canonical_decimal(Decimal(numeric_text))
+
+
+def normalize_numeric_values(data: Any) -> tuple[Any, list[str], int]:
+    """Return a normalized copy, field issues, and count of unconvertible numeric strings."""
+    normalized = copy.deepcopy(data)
+    issues: list[str] = []
+    unconvertible_count = 0
+
+    if not isinstance(normalized, dict):
+        return normalized, issues, unconvertible_count
+
+    record = normalized.get("record")
+    if isinstance(record, dict):
+        for field_name in {"year", "week"}:
+            field = record.get(field_name)
+            if not isinstance(field, dict) or set(field) != set(FIELD_NAMES):
+                continue
+            value = field["value"]
+            if value is None or (isinstance(value, int) and not isinstance(value, bool)):
+                continue
+            if isinstance(value, str) and re.fullmatch(r"-?\d+", value.strip()):
+                field["value"] = int(value.strip())
+            elif isinstance(value, str) and NUMERIC_TEXT_PATTERN.fullmatch(value.strip()):
+                field["value"] = None
+                field["confidence"] = 0
+                unconvertible_count += 1
+                issues.append(
+                    f"record.{field_name}: valor numérico no convertible {value!r}; "
+                    "se conserva en la respuesta cruda."
+                )
+            elif isinstance(value, str):
+                issues.append(f"record.{field_name}.value tiene tipo inesperado.")
+            else:
+                issues.append(f"record.{field_name}.value tiene tipo inesperado.")
+
+    containers: list[tuple[str, Any, set[str]]] = [
+        ("source_totals", normalized.get("source_totals"), TOTAL_FIELDS),
+    ]
+    details = normalized.get("details")
+    if isinstance(details, list):
+        containers.extend(
+            (f"details[{index}]", detail, DECIMAL_FIELDS)
+            for index, detail in enumerate(details)
+        )
+
+    for container_path, container, field_names in containers:
+        if not isinstance(container, dict):
+            continue
+        for field_name in field_names:
+            field = container.get(field_name)
+            if not isinstance(field, dict) or set(field) != set(FIELD_NAMES):
+                continue
+            value = field["value"]
+            if value is None:
+                continue
+            if not isinstance(value, str):
+                issues.append(f"{container_path}.{field_name}.value tiene tipo inesperado.")
+                continue
+
+            canonical = normalize_numeric_text(
+                value, field_name in PERCENT_FIELDS
+            )
+            if canonical is None:
+                field["value"] = None
+                field["confidence"] = 0
+                if NUMERIC_CANDIDATE_PATTERN.fullmatch(value):
+                    unconvertible_count += 1
+                    issues.append(
+                        f"{container_path}.{field_name}: valor numérico no convertible "
+                        f"{value!r}; se conserva en la respuesta cruda."
+                    )
+                else:
+                    issues.append(
+                        f"{container_path}.{field_name}.value tiene tipo o formato inesperado."
+                    )
+            else:
+                field["value"] = canonical
+
+    return normalized, issues, unconvertible_count
 
 
 def main() -> int:
