@@ -2,7 +2,7 @@
 
 ## 0. Implementation Status
 
-This document defines the approved MVP data model. The TPVS domain schema and Eloquent relationships were implemented and verified on 2026-10-08 (roadmap phase 8.3).
+This document defines the approved MVP data model. The TPVS domain schema and Eloquent relationships were initially implemented on 2026-10-08 (roadmap phase 8.3); SPEC 07 updates the base Record and RecordDetail schema before production deployment.
 
 Currently present in Laravel migrations:
 
@@ -11,7 +11,7 @@ Currently present in Laravel migrations:
 - `sessions`
 - Laravel cache and jobs tables
 
-The TPVS entities below have migrations, Eloquent models, relationships, constraints, and aggregate/constraint tests. Business API behavior is implemented in later roadmap phases and must not be inferred from the presence of database tables.
+The TPVS entities below have migrations, Eloquent models, relationships, constraints, and aggregate/constraint tests. Local databases must be rebuilt after the SPEC 07 base schema change; development data is not carried forward. Business API behavior must not be inferred from the presence of database tables.
 
 ## 1. Entity Overview
 
@@ -55,7 +55,7 @@ Catalog of companies.
 | updated_at | datetime | Yes | Audit timestamp |
 
 Relationship:
-- `Company 1:N Record`
+- `Company 0:N Record`; a provisional IMAGE Record may not yet match a catalog company.
 
 Important rule:
 - Company names are fixed after creation in the MVP.
@@ -78,7 +78,7 @@ Represents one received document/image and the business record attached to it.
 | updated_at | datetime | Yes | Audit timestamp |
 
 Relationships:
-- `Company 1:N Record`
+- `Company 0:N Record` while IMAGE data is provisional; MANUAL creation and confirmation require a company.
 - `Record 0:1 Image`
 - `Record 1:N RecordDetail`
 - `Record 1:N History`

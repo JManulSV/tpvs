@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implemented for phase 8.6 (2026-10-15).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and browser acceptance are implemented. Image capture and AI review remain planned for later phases.
+**Implemented for phase 8.6 and SPEC 07 (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. Image capture and AI review remain planned for later phases.
 
 ## Goal and Scope
 
@@ -16,7 +16,7 @@ Support record consultation and manual capture. Phase 8.6 includes a general lis
 /records/[recordId]
 ```
 
-The list supports case-insensitive substring search by company, operation number, affiliation, and branch; filters include company, business year, month, week, status, and source. Pagination uses `page` and `per_page` (default 15, maximum 100), sorted by `updated_at` descending. Month filtering uses the month containing `week_end_date`. The detail/review screen presents period, company, movement details, backend-calculated amounts, and current backend status. The phase 8.6 manual flow does not implement image viewing or upload.
+The list supports case-insensitive substring search by company, operation number, affiliation, and branch (searching every movement); filters include company, business year, month, week, status, and source. Provisional IMAGE records may lack company, period, movements, or movement values; the list and detail screens render these as unavailable. Pagination uses `page` and `per_page` (default 15, maximum 100), sorted by `updated_at` descending. Month filtering uses the month containing `week_end_date`. The detail/review screen presents period, company, each movement's affiliation/branch, backend-calculated amounts, and current backend status. The manual flow does not implement image viewing or upload.
 
 ## Capture and Review Flows
 
