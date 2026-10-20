@@ -5,11 +5,13 @@ import argparse
 import base64
 import copy
 import json
+import math
 import re
 import sys
 import time
 import urllib.error
 import urllib.request
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -88,7 +90,11 @@ def field_schema(value_schema: dict[str, Any]) -> dict[str, Any]:
 DECIMAL_VALUE_SCHEMA = {"anyOf": [{"type": "string"}, {"type": "null"}]}
 STRING_VALUE_SCHEMA = {"anyOf": [{"type": "string"}, {"type": "null"}]}
 INTEGER_VALUE_SCHEMA = {
-    "anyOf": [{"type": "integer"}, {"type": "null"}]
+    "anyOf": [
+        {"type": "integer"},
+        {"type": "string"},
+        {"type": "null"},
+    ]
 }
 DATE_VALUE_SCHEMA = {
     "anyOf": [
@@ -152,7 +158,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def contract_issues(data: Any) -> list[str]:
+def structural_issues(data: Any) -> list[str]:
     issues: list[str] = []
     if not isinstance(data, dict):
         return ["La raíz de la respuesta no es un objeto JSON."]
@@ -211,23 +217,11 @@ def validate_fields(obj: dict[str, Any], expected: set[str], path: str) -> list[
         confidence = field["confidence"]
         if not isinstance(confidence, (int, float)) or isinstance(confidence, bool):
             issues.append(f"{field_path}.confidence debe ser numérico.")
-        elif not 0 <= confidence <= 1:
+        elif not math.isfinite(confidence) or not 0 <= confidence <= 1:
             issues.append(f"{field_path}.confidence debe estar entre 0 y 1.")
 
-        if value is None:
-            if confidence != 0:
-                issues.append(f"{field_path}: value null requiere confidence 0.")
-        elif name in DECIMAL_FIELDS:
-            if not isinstance(value, str) or not DECIMAL_PATTERN.fullmatch(value):
-                issues.append(f"{field_path}.value debe ser cadena decimal con dos decimales.")
-        elif name in {"year", "week"}:
-            if not isinstance(value, int) or isinstance(value, bool):
-                issues.append(f"{field_path}.value debe ser entero o null.")
-        elif name in DATE_FIELDS:
-            if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
-                issues.append(f"{field_path}.value debe usar YYYY-MM-DD o null.")
-        elif not isinstance(value, str):
-            issues.append(f"{field_path}.value debe ser texto o null.")
+        if value is None and confidence != 0:
+            issues.append(f"{field_path}: value null requiere confidence 0.")
     return issues
 
 
@@ -339,6 +333,63 @@ def normalize_numeric_values(data: Any) -> tuple[Any, list[str], int]:
     return normalized, issues, unconvertible_count
 
 
+def normalize_and_validate_values(data: Any) -> tuple[Any, list[str], int]:
+    normalized, issues, unconvertible_count = normalize_numeric_values(data)
+
+    def inspect_field(field: dict[str, Any], name: str, path: str) -> None:
+        value = field["value"]
+        if name in DATE_FIELDS and value is not None:
+            if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                field["value"] = None
+                field["confidence"] = 0
+                issues.append(f"{path}.value debe ser una fecha ISO YYYY-MM-DD; se deja como null.")
+            else:
+                try:
+                    date.fromisoformat(value)
+                except ValueError:
+                    field["value"] = None
+                    field["confidence"] = 0
+                    issues.append(f"{path}.value no es una fecha real; se deja como null.")
+        elif name not in DECIMAL_FIELDS and name not in {"year", "week"} and value is not None:
+            if not isinstance(value, str):
+                issues.append(f"{path}.value tiene tipo inesperado.")
+        if field["value"] is None:
+            return
+        if name in DECIMAL_FIELDS:
+            if not isinstance(field["value"], str) or not DECIMAL_PATTERN.fullmatch(field["value"]):
+                issues.append(f"{path}.value no tiene formato decimal canónico.")
+        elif name in {"year", "week"}:
+            if not isinstance(field["value"], int) or isinstance(field["value"], bool):
+                issues.append(f"{path}.value debe ser entero o null.")
+        elif name in DATE_FIELDS:
+            pass
+        elif not isinstance(field["value"], str):
+            issues.append(f"{path}.value debe ser texto o null.")
+
+        confidence = field["confidence"]
+        if confidence < 0.5:
+            issues.append(f"{path}: confianza baja ({confidence}); requiere revisión.")
+
+    if not isinstance(normalized, dict):
+        return normalized, issues, unconvertible_count
+    for container_name, names in (("record", RECORD_FIELDS), ("source_totals", TOTAL_FIELDS)):
+        container = normalized.get(container_name)
+        if isinstance(container, dict):
+            for name in names & set(container):
+                field = container[name]
+                if isinstance(field, dict) and set(field) == set(FIELD_NAMES):
+                    inspect_field(field, name, f"{container_name}.{name}")
+    details = normalized.get("details")
+    if isinstance(details, list):
+        for index, detail in enumerate(details):
+            if isinstance(detail, dict):
+                for name in DETAIL_FIELDS & set(detail):
+                    field = detail[name]
+                    if isinstance(field, dict) and set(field) == set(FIELD_NAMES):
+                        inspect_field(field, name, f"details[{index}].{name}")
+    return normalized, issues, unconvertible_count
+
+
 def main() -> int:
     args = parse_args()
     if not args.image.is_file():
@@ -385,15 +436,30 @@ def main() -> int:
     except json.JSONDecodeError as error:
         print(f"Respuesta del modelo no es JSON parseable: {error}")
         print(response_text)
-        return 1
+        return 2
 
-    issues = contract_issues(extraction)
-    print(f"Contrato {PROMPT_VERSION}: {'VÁLIDO' if not issues else 'REVISAR'}")
-    for issue in issues:
+    structure_errors = structural_issues(extraction)
+    if structure_errors:
+        print(f"Estructura {PROMPT_VERSION}: INVÁLIDA")
+        print("Valores numéricos no convertibles: 0")
+        for issue in structure_errors:
+            print(f"- {issue}")
+        print("Respuesta cruda:")
+        print(json.dumps(extraction, ensure_ascii=False, indent=2))
+        return 2
+
+    normalized, value_issues, unconvertible_count = normalize_and_validate_values(extraction)
+    usable = unconvertible_count < 5
+    print(f"Estructura {PROMPT_VERSION}: VÁLIDA")
+    print(f"Valores numéricos no convertibles: {unconvertible_count}")
+    print(f"Extracción: {'UTILIZABLE PARA REVISIÓN' if usable else 'NO UTILIZABLE'}")
+    for issue in value_issues:
         print(f"- {issue}")
-    print("Respuesta:")
+    print("Respuesta cruda:")
     print(json.dumps(extraction, ensure_ascii=False, indent=2))
-    return 0 if not issues else 1
+    print("Respuesta normalizada:")
+    print(json.dumps(normalized, ensure_ascii=False, indent=2))
+    return 0 if usable else 3
 
 
 if __name__ == "__main__":
