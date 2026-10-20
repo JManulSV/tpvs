@@ -11,6 +11,8 @@ const percentageSchema = z
 
 const recordDetailFormSchema = z.object({
   operation_number: z.string().trim().min(1, "El número de operación es obligatorio.").max(255),
+  affiliation: z.string().trim().min(1, "La afiliación es obligatoria.").max(255),
+  branch: z.string().trim().min(1, "La sucursal es obligatoria.").max(255),
   income: decimalAmountSchema,
   commission_percentage: percentageSchema.optional(),
   commission: decimalAmountSchema.optional(),
@@ -46,8 +48,6 @@ const manualRecordFormBaseSchema = z.object({
   week: z.number().int().min(1).max(53),
   week_start_date: z.string().date("Ingresa una fecha de inicio válida."),
   week_end_date: z.string().date("Ingresa una fecha de fin válida."),
-  affiliation: z.string().trim().min(1, "La afiliación es obligatoria.").max(255),
-  branch: z.string().trim().min(1, "La sucursal es obligatoria.").max(255),
   details: z.array(recordDetailFormSchema).min(1, "Agrega al menos un movimiento."),
 });
 

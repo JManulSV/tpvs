@@ -25,11 +25,11 @@ const validRecord = {
   week: 38,
   week_start_date: "2026-09-14",
   week_end_date: "2026-09-20",
-  affiliation: "AFF-123",
-  branch: "Guadalajara",
   details: [
     {
       operation_number: "OP-100",
+      affiliation: "AFF-123",
+      branch: "Guadalajara",
       income: "100.00",
       commission_percentage: "5.00",
     },
@@ -55,7 +55,7 @@ describe("manual record schemas", () => {
     }).success).toBe(false);
     expect(manualRecordFormSchema.safeParse({
       ...validRecord,
-      details: [{ operation_number: "OP-100", income: "10.00", commission: "10.01" }],
+      details: [{ operation_number: "OP-100", affiliation: "AFF-123", branch: "Guadalajara", income: "10.00", commission: "10.01" }],
     }).success).toBe(false);
   });
 
@@ -67,6 +67,13 @@ describe("manual record schemas", () => {
       week_start_date: "2025-09-17",
       week_end_date: "2025-09-25",
     }).success).toBe(true);
+  });
+
+  it("requires affiliation and branch on every manual movement", () => {
+    expect(manualRecordFormSchema.safeParse({
+      ...validRecord,
+      details: [{ ...validRecord.details[0], affiliation: "", branch: "" }],
+    }).success).toBe(false);
   });
 });
 

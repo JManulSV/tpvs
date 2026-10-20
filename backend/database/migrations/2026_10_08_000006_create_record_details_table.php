@@ -15,11 +15,13 @@ return new class extends Migration
         Schema::create('record_details', function (Blueprint $table) {
             $table->id();
             $table->foreignId('record_id')->constrained()->cascadeOnDelete();
-            $table->string('operation_number');
-            $table->decimal('income', 12, 2);
+            $table->string('operation_number')->nullable();
+            $table->string('affiliation')->nullable();
+            $table->string('branch')->nullable();
+            $table->decimal('income', 12, 2)->nullable();
             $table->decimal('commission_percentage', 5, 2)->nullable();
-            $table->decimal('commission', 12, 2);
-            $table->decimal('return_amount', 12, 2);
+            $table->decimal('commission', 12, 2)->nullable();
+            $table->decimal('return_amount', 12, 2)->nullable();
             $table->unsignedInteger('order');
             $table->timestamps();
 

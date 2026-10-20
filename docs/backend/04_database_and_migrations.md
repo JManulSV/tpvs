@@ -21,6 +21,8 @@ The approved TPVS data model is defined in `docs/03_data_model.md`. The Companie
 - Define foreign keys and indexes explicitly.
 - Use database constraints for invariants that must hold regardless of application code.
 - Keep migrations reversible where practical.
+- For this pre-production schema change, base migrations may be updated and local/test databases are rebuilt; do not introduce data-copy migrations or destructive rollback handling for data that is explicitly disposable.
+- Updating the existing base migrations is specific to SPEC 07 before production deployment; once deployed, future schema changes use new migrations as usual.
 
 ## Persistence Rules
 
@@ -38,4 +40,4 @@ Use transactions for record creation with details, state transitions with histor
 
 ## Verification
 
-Schema changes require tests for foreign keys, uniqueness, nullable behavior, precision, check constraints, and the related workflow behavior.
+Schema changes require tests for foreign keys, uniqueness, nullable behavior, precision, check constraints, and the related workflow behavior. Changes to base migrations require verifying a fresh schema build and the related workflow behavior.

@@ -20,16 +20,20 @@ export type RecordCompany = {
 
 export type RecordDetail = {
   id: number;
-  operation_number: string;
-  income: string;
+  operation_number: string | null;
+  affiliation: string | null;
+  branch: string | null;
+  income: string | null;
   commission_percentage: string | null;
-  commission: string;
-  return_amount: string;
+  commission: string | null;
+  return_amount: string | null;
   order: number;
 };
 
 export type RecordDetailInput = {
   operation_number: string;
+  affiliation: string;
+  branch: string;
   income: string;
 } & (
   | { commission_percentage: string; commission?: never }
@@ -38,18 +42,16 @@ export type RecordDetailInput = {
 
 export type RecordListItem = {
   id: number;
-  company: RecordCompany;
+  company: RecordCompany | null;
   source: RecordSource;
   status: RecordStatus;
-  year: number;
-  week: number;
-  week_start_date: string;
-  week_end_date: string;
-  affiliation: string;
-  branch: string;
-  income_total: string | null;
-  commission_total: string | null;
-  return_total: string | null;
+  year: number | null;
+  week: number | null;
+  week_start_date: string | null;
+  week_end_date: string | null;
+  income_total?: string | null;
+  commission_total?: string | null;
+  return_total?: string | null;
   details: RecordDetail[];
 };
 
@@ -101,8 +103,6 @@ export type ManualRecordInput = {
   week: number;
   week_start_date: string;
   week_end_date: string;
-  affiliation: string;
-  branch: string;
   details: RecordDetailInput[];
 };
 

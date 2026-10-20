@@ -24,8 +24,6 @@ class RecordResource extends JsonResource
             'week' => $this->week,
             'week_start_date' => $this->week_start_date?->toDateString(),
             'week_end_date' => $this->week_end_date?->toDateString(),
-            'affiliation' => $this->affiliation,
-            'branch' => $this->branch,
             'image' => $this->whenLoaded('image', static fn (?Image $image): ?array => $image === null ? null : [
                 'id' => $image->getKey(),
                 'original_file_name' => $image->original_file_name,

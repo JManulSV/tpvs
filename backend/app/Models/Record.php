@@ -5,10 +5,10 @@ namespace App\Models;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Model;
 
 class Record extends Model
 {
@@ -17,8 +17,6 @@ class Record extends Model
     protected $fillable = [
         'company_id',
         'source',
-        'affiliation',
-        'branch',
         'status',
         'week',
         'year',

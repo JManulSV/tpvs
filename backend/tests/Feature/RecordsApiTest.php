@@ -40,7 +40,9 @@ class RecordsApiTest extends TestCase
                 ->assertJsonPath('data.0.company.id', $record->company_id)
                 ->assertJsonPath('data.0.source', RecordSource::MANUAL->value)
                 ->assertJsonPath('data.0.status', RecordStatus::NEEDS_REVIEW->value)
-                ->assertJsonPath('data.0.details.0.operation_number', 'OP-12345');
+                ->assertJsonPath('data.0.details.0.operation_number', 'OP-12345')
+                ->assertJsonPath('data.0.details.0.affiliation', 'AFF-12345')
+                ->assertJsonPath('data.0.details.0.branch', 'Guadalajara');
 
             $this->actingAs($user, 'web')
                 ->getJson('/api/records/'.$record->id)
@@ -58,13 +60,20 @@ class RecordsApiTest extends TestCase
     public function test_list_supports_case_insensitive_search_across_record_fields(): void
     {
         $company = Company::factory()->create(['name' => 'Northwind Supply']);
-        $record = $this->createRecordWithDetails($company, [
+        $record = $this->createRecordWithDetails($company, [], [
             'affiliation' => 'AFF-928',
             'branch' => 'Guadalajara Centro',
-        ], ['operation_number' => 'OP-74531']);
+            'operation_number' => 'OP-74531',
+        ]);
+        RecordDetail::factory()->for($record)->create([
+            'operation_number' => 'OP-SECOND',
+            'affiliation' => 'AFF-SECOND',
+            'branch' => 'Tonalá',
+            'order' => 2,
+        ]);
         $other = $this->createRecordWithDetails(Company::factory()->create(['name' => 'Contoso']));
 
-        foreach ([' NORTHWIND ', 'op-745', 'aff-928', 'GUADALAJARA'] as $search) {
+        foreach ([' NORTHWIND ', 'op-745', 'aff-second', 'TONALÁ'] as $search) {
             $this->actingAs(User::factory()->create(), 'web')
                 ->getJson('/api/records?search='.urlencode($search))
                 ->assertOk()
@@ -168,11 +177,15 @@ class RecordsApiTest extends TestCase
             ->postJson('/api/records', $this->validManualRecordPayload($company->id, [
                 [
                     'operation_number' => 'OP-HALF-UP',
+                    'affiliation' => 'AFF-FIRST',
+                    'branch' => 'Guadalajara',
                     'income' => '0.10',
                     'commission_percentage' => '5.00',
                 ],
                 [
                     'operation_number' => 'OP-FIXED',
+                    'affiliation' => 'AFF-SECOND',
+                    'branch' => 'Zapopan',
                     'income' => '100.00',
                     'commission' => '7.25',
                 ],
@@ -181,11 +194,17 @@ class RecordsApiTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('data.source', RecordSource::MANUAL->value)
             ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value)
+            ->assertJsonMissingPath('data.affiliation')
+            ->assertJsonMissingPath('data.branch')
             ->assertJsonPath('data.details.0.order', 1)
+            ->assertJsonPath('data.details.0.affiliation', 'AFF-FIRST')
+            ->assertJsonPath('data.details.0.branch', 'Guadalajara')
             ->assertJsonPath('data.details.0.commission_percentage', '5.00')
             ->assertJsonPath('data.details.0.commission', '0.01')
             ->assertJsonPath('data.details.0.return_amount', '0.09')
             ->assertJsonPath('data.details.1.commission_percentage', null)
+            ->assertJsonPath('data.details.1.affiliation', 'AFF-SECOND')
+            ->assertJsonPath('data.details.1.branch', 'Zapopan')
             ->assertJsonPath('data.details.1.commission', '7.25')
             ->assertJsonPath('data.details.1.return_amount', '92.75')
             ->assertJsonPath('data.income_total', '100.10')
@@ -200,6 +219,18 @@ class RecordsApiTest extends TestCase
             'status' => RecordStatus::CONFIRMED->value,
         ]);
         $this->assertDatabaseCount('record_details', 2);
+        $this->assertDatabaseHas('record_details', [
+            'record_id' => $recordId,
+            'order' => 1,
+            'affiliation' => 'AFF-FIRST',
+            'branch' => 'Guadalajara',
+        ]);
+        $this->assertDatabaseHas('record_details', [
+            'record_id' => $recordId,
+            'order' => 2,
+            'affiliation' => 'AFF-SECOND',
+            'branch' => 'Zapopan',
+        ]);
         $this->assertDatabaseCount('histories', 1);
         $this->assertDatabaseHas('histories', [
             'record_id' => $recordId,
@@ -236,7 +267,7 @@ class RecordsApiTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors([
                 'company_id', 'year', 'week', 'week_start_date', 'week_end_date',
-                'affiliation', 'branch', 'details',
+                'details',
             ]);
 
         $this->actingAs($editor, 'web')
@@ -248,6 +279,32 @@ class RecordsApiTest extends TestCase
             ->assertJsonValidationErrors(['company_id', 'details']);
 
         $this->assertDatabaseCount('records', 0);
+    }
+
+    public function test_manual_payload_requires_affiliation_and_branch_on_each_detail_and_rejects_root_fields(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $payload = $this->validManualRecordPayload(Company::factory()->create()->id);
+
+        $missingMovementFields = $payload;
+        unset($missingMovementFields['details'][0]['affiliation'], $missingMovementFields['details'][0]['branch']);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $missingMovementFields)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['details.0.affiliation', 'details.0.branch']);
+
+        $legacyRootFields = $payload;
+        $legacyRootFields['affiliation'] = 'AFF-ROOT';
+        $legacyRootFields['branch'] = 'Root branch';
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $legacyRootFields)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['affiliation', 'branch']);
+
+        $this->assertDatabaseCount('records', 0);
+        $this->assertDatabaseCount('record_details', 0);
     }
 
     public function test_manual_creation_accepts_business_week_numbers_and_non_monday_date_ranges(): void
@@ -298,6 +355,8 @@ class RecordsApiTest extends TestCase
             $invalidPayload = $payload;
             $invalidPayload['details'] = [array_merge([
                 'operation_number' => 'OP-INVALID',
+                'affiliation' => 'AFF-INVALID',
+                'branch' => 'Guadalajara',
             ], $invalidDetail)];
 
             $this->actingAs($editor, 'web')
@@ -326,8 +385,11 @@ class RecordsApiTest extends TestCase
                 'commission' => '5.00',
             ],
         ]);
-        $payload['branch'] = 'Nueva sucursal';
-        $payload['reason'] = 'Se corrigieron importes y sucursal';
+        $payload['details'][0]['affiliation'] = 'AFF-NEW-2';
+        $payload['details'][0]['branch'] = 'Zapopan';
+        $payload['details'][1]['affiliation'] = 'AFF-NEW-1';
+        $payload['details'][1]['branch'] = 'Tlaquepaque';
+        $payload['reason'] = 'Se corrigieron importes y afiliación/sucursal';
 
         $response = $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$record->id, $payload);
@@ -336,12 +398,17 @@ class RecordsApiTest extends TestCase
             ->assertJsonPath('data.id', $record->id)
             ->assertJsonPath('data.company.id', $newCompany->id)
             ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
-            ->assertJsonPath('data.branch', 'Nueva sucursal')
+            ->assertJsonMissingPath('data.affiliation')
+            ->assertJsonMissingPath('data.branch')
             ->assertJsonCount(2, 'data.details')
             ->assertJsonPath('data.details.0.operation_number', 'OP-NEW-2')
+            ->assertJsonPath('data.details.0.affiliation', 'AFF-NEW-2')
+            ->assertJsonPath('data.details.0.branch', 'Zapopan')
             ->assertJsonPath('data.details.0.order', 1)
             ->assertJsonPath('data.details.0.commission', '20.00')
             ->assertJsonPath('data.details.1.operation_number', 'OP-NEW-1')
+            ->assertJsonPath('data.details.1.affiliation', 'AFF-NEW-1')
+            ->assertJsonPath('data.details.1.branch', 'Tlaquepaque')
             ->assertJsonPath('data.details.1.order', 2)
             ->assertJsonPath('data.details.1.return_amount', '45.00');
 
@@ -353,7 +420,7 @@ class RecordsApiTest extends TestCase
             'field_name' => 'manual_record_updated',
             'previous_value' => null,
             'new_value' => null,
-            'reason' => 'Se corrigieron importes y sucursal',
+            'reason' => 'Se corrigieron importes y afiliación/sucursal',
         ]);
     }
 
@@ -383,7 +450,7 @@ class RecordsApiTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors([
                 'company_id', 'year', 'week', 'week_start_date', 'week_end_date',
-                'affiliation', 'branch', 'details', 'reason',
+                'details', 'reason',
             ]);
 
         $payload = $this->validManualRecordPayload($record->company_id);
@@ -403,6 +470,24 @@ class RecordsApiTest extends TestCase
             'record_id' => $record->id,
             'income' => '100.00',
         ]);
+    }
+
+    public function test_record_replacement_rejects_affiliation_and_branch_at_the_root(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+        $payload = $this->validManualRecordPayload($record->company_id);
+        $payload['reason'] = 'Legacy payload fields must be rejected';
+        $payload['affiliation'] = 'AFF-ROOT';
+        $payload['branch'] = 'Root branch';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['affiliation', 'branch']);
+
+        $this->assertDatabaseCount('histories', 0);
+        $this->assertDatabaseCount('record_details', 1);
     }
 
     public function test_only_manual_records_needing_review_can_be_replaced(): void
@@ -434,7 +519,8 @@ class RecordsApiTest extends TestCase
             'income' => '500.00',
             'commission' => '50.00',
         ]]);
-        $payload['branch'] = 'Should roll back';
+        $payload['details'][0]['affiliation'] = 'AFF-ROLLBACK';
+        $payload['details'][0]['branch'] = 'Should roll back';
         $payload['reason'] = 'Test rollback';
 
         Event::listen('eloquent.creating: '.History::class, static function (): void {
@@ -449,14 +535,12 @@ class RecordsApiTest extends TestCase
             Event::forget('eloquent.creating: '.History::class);
         }
 
-        $this->assertDatabaseHas('records', [
-            'id' => $record->id,
-            'branch' => $record->branch,
-        ]);
         $this->assertDatabaseCount('record_details', 1);
         $this->assertDatabaseHas('record_details', [
             'record_id' => $record->id,
             'operation_number' => 'OP-12345',
+            'affiliation' => 'AFF-12345',
+            'branch' => 'Guadalajara',
         ]);
         $this->assertDatabaseCount('histories', 0);
     }
@@ -567,6 +651,29 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('histories', 0);
     }
 
+    public function test_confirmation_rejects_provisional_image_record_with_missing_business_fields(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = Record::factory()->create([
+            'company_id' => null,
+            'source' => RecordSource::IMAGE,
+            'status' => RecordStatus::NEEDS_REVIEW,
+            'year' => null,
+            'week' => null,
+            'week_start_date' => null,
+            'week_end_date' => null,
+        ]);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/confirm', [])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'RECORD_CONFIRMATION_BLOCKED')
+            ->assertJsonPath('details.reason', 'BUSINESS_VALIDATION_FAILED');
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
     public function test_confirmation_does_not_accept_client_control_of_state_or_reason(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
@@ -628,6 +735,8 @@ class RecordsApiTest extends TestCase
             'commission' => '5.00',
             'return_amount' => '95.00',
             'order' => 1,
+            'affiliation' => 'AFF-12345',
+            'branch' => 'Guadalajara',
         ], $detailAttributes));
 
         return $record;
@@ -639,19 +748,22 @@ class RecordsApiTest extends TestCase
      */
     private function validManualRecordPayload(int $companyId, ?array $details = null): array
     {
+        $details ??= [[
+            'operation_number' => 'OP-NEW',
+            'income' => '100.00',
+            'commission_percentage' => '5.00',
+        ]];
+
         return [
             'company_id' => $companyId,
             'year' => 2026,
             'week' => 38,
             'week_start_date' => '2026-09-14',
             'week_end_date' => '2026-09-20',
-            'affiliation' => 'AFF-123',
-            'branch' => 'Guadalajara',
-            'details' => $details ?? [[
-                'operation_number' => 'OP-NEW',
-                'income' => '100.00',
-                'commission_percentage' => '5.00',
-            ]],
+            'details' => array_map(static fn (array $detail, int $index): array => array_merge([
+                'affiliation' => 'AFF-'.($index + 123),
+                'branch' => 'Guadalajara',
+            ], $detail), $details, array_keys($details)),
         ];
     }
 }

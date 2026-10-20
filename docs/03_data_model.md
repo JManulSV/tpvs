@@ -2,7 +2,7 @@
 
 ## 0. Implementation Status
 
-This document defines the approved MVP data model. The TPVS domain schema and Eloquent relationships were implemented and verified on 2026-10-08 (roadmap phase 8.3).
+This document defines the approved MVP data model. The TPVS domain schema and Eloquent relationships were initially implemented on 2026-10-08 (roadmap phase 8.3); SPEC 07 updates the base Record and RecordDetail schema before production deployment.
 
 Currently present in Laravel migrations:
 
@@ -11,7 +11,7 @@ Currently present in Laravel migrations:
 - `sessions`
 - Laravel cache and jobs tables
 
-The TPVS entities below have migrations, Eloquent models, relationships, constraints, and aggregate/constraint tests. Business API behavior is implemented in later roadmap phases and must not be inferred from the presence of database tables.
+The TPVS entities below have migrations, Eloquent models, relationships, constraints, and aggregate/constraint tests. Local databases must be rebuilt after the SPEC 07 base schema change; development data is not carried forward. Business API behavior must not be inferred from the presence of database tables.
 
 ## 1. Entity Overview
 
@@ -55,7 +55,7 @@ Catalog of companies.
 | updated_at | datetime | Yes | Audit timestamp |
 
 Relationship:
-- `Company 1:N Record`
+- `Company 0:N Record`; a provisional IMAGE Record may not yet match a catalog company.
 
 Important rule:
 - Company names are fixed after creation in the MVP.
@@ -67,20 +67,18 @@ Represents one received document/image and the business record attached to it.
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | id | UUID / bigint | Yes | Primary key |
-| company_id | FK | Yes | References `Company` |
+| company_id | FK nullable | No for provisional IMAGE | References `Company`; required for MANUAL creation and confirmation |
 | source | enum | Yes | `IMAGE` or `MANUAL` |
-| affiliation | string | Yes/No | Required when captured or extracted |
-| branch | string | Yes/No | Required when captured or extracted |
 | status | enum | Yes | `PENDING`, `PROCESSING`, `NEEDS_REVIEW`, `ERROR`, `CONFIRMED`, `CANCELED` |
-| week | integer | Yes | Week identifier within the year |
-| year | integer | Yes | Calendar year for the record period |
-| week_start_date | date | Yes | Start date for the business period |
-| week_end_date | date | Yes | End date for the business period; determines the month used by month-based reports |
+| week | integer nullable | No for provisional IMAGE | Week identifier within the year; required for MANUAL creation and confirmation |
+| year | integer nullable | No for provisional IMAGE | Calendar year for the record period; required for MANUAL creation and confirmation |
+| week_start_date | date nullable | No for provisional IMAGE | Start date for the business period; required for MANUAL creation and confirmation |
+| week_end_date | date nullable | No for provisional IMAGE | End date for the business period; determines the month used by month-based reports; required for MANUAL creation and confirmation |
 | created_at | datetime | Yes | Audit timestamp |
 | updated_at | datetime | Yes | Audit timestamp |
 
 Relationships:
-- `Company 1:N Record`
+- `Company 0:N Record` while IMAGE data is provisional; MANUAL creation and confirmation require a company.
 - `Record 0:1 Image`
 - `Record 1:N RecordDetail`
 - `Record 1:N History`
@@ -90,7 +88,7 @@ Important rule:
 - An image-based record has one image.
 - A manual record does not require an image.
 - A manual record must have an image before a Word delivery document can be generated.
-- A record can contain many movement details.
+- A record can contain zero or many movement details while IMAGE extraction is provisional; MANUAL creation and confirmation require at least one complete detail.
 - Totals are not stored as source-of-truth fields.
 - The record period is defined by `week` plus `year`.
 
@@ -105,12 +103,14 @@ Represents each movement inside a record.
 | --- | --- | --- | --- |
 | id | UUID / bigint | Yes | Primary key |
 | record_id | FK | Yes | References `Record` |
-| operation_number | string | Yes | Movement identifier |
-| income | decimal(12,2) | Yes | Gross amount |
+| operation_number | string nullable | No for provisional IMAGE | Movement identifier; required for MANUAL creation and confirmation |
+| affiliation | string nullable | No for provisional IMAGE | Movement affiliation; required for MANUAL creation and confirmation |
+| branch | string nullable | No for provisional IMAGE | Movement branch; required for MANUAL creation and confirmation |
+| income | decimal(12,2) nullable | No for provisional IMAGE | Gross amount; required for MANUAL creation and confirmation |
 | commission_percentage | decimal(5,2) nullable | No | Percentage points, for example `5.00` for 5 percent |
-| commission | decimal(12,2) | Yes | Commission amount |
-| return_amount | decimal(12,2) | Yes | Return amount |
-| order | integer | Yes | Display/order sequence |
+| commission | decimal(12,2) nullable | No for provisional IMAGE | Commission amount; required for MANUAL creation and confirmation |
+| return_amount | decimal(12,2) nullable | No for provisional IMAGE | Return amount; required for MANUAL creation and confirmation |
+| order | integer | Yes | Positive display/order sequence |
 | created_at | datetime | Yes | Audit timestamp |
 | updated_at | datetime | Yes | Audit timestamp |
 
@@ -120,6 +120,8 @@ Relationships:
 
 Important rule:
 - Do not persist derived totals like `total`, `calculated_return`, or `calculated_commission` as the source of truth.
+- `RecordDetail` owns affiliation and branch; they are not stored on `Record`.
+- Database nullability permits incomplete IMAGE data in `PENDING`, `PROCESSING`, `NEEDS_REVIEW`, or `ERROR`. Application validation still requires complete company, period, and movement fields for MANUAL creation and confirmation.
 
 ## 6. Image
 

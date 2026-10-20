@@ -14,15 +14,13 @@ return new class extends Migration
     {
         Schema::create('records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->foreignId('company_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('source', 20);
-            $table->string('affiliation')->nullable();
-            $table->string('branch')->nullable();
             $table->string('status', 20)->default('PENDING');
-            $table->unsignedSmallInteger('week');
-            $table->unsignedSmallInteger('year');
-            $table->date('week_start_date');
-            $table->date('week_end_date');
+            $table->unsignedSmallInteger('week')->nullable();
+            $table->unsignedSmallInteger('year')->nullable();
+            $table->date('week_start_date')->nullable();
+            $table->date('week_end_date')->nullable();
             $table->timestamps();
 
             $table->index('status');

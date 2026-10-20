@@ -30,11 +30,11 @@ class UpdateRecordRequest extends FormRequest
             'week' => ['required', 'integer', 'between:1,53'],
             'week_start_date' => ['required', 'date'],
             'week_end_date' => ['required', 'date'],
-            'affiliation' => ['required', 'string', 'max:255'],
-            'branch' => ['required', 'string', 'max:255'],
             'details' => ['required', 'array', 'min:1'],
             'details.*' => ['required', 'array'],
             'details.*.operation_number' => ['required', 'string', 'max:255'],
+            'details.*.affiliation' => ['required', 'string', 'max:255'],
+            'details.*.branch' => ['required', 'string', 'max:255'],
             'details.*.income' => ['required', 'string', 'regex:/^\d{1,10}(?:\.\d{1,2})?$/'],
             'details.*.commission_percentage' => [
                 'sometimes', 'nullable', 'string', 'regex:/^\d{1,3}(?:\.\d{1,2})?$/', 'numeric', 'between:0,100',
@@ -45,6 +45,8 @@ class UpdateRecordRequest extends FormRequest
             'reason' => ['required', 'string', 'max:2000'],
             'source' => ['prohibited'],
             'status' => ['prohibited'],
+            'affiliation' => ['missing'],
+            'branch' => ['missing'],
             'details.*.order' => ['prohibited'],
             'details.*.return_amount' => ['prohibited'],
         ];
