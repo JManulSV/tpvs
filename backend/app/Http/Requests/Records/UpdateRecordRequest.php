@@ -45,8 +45,8 @@ class UpdateRecordRequest extends FormRequest
             'reason' => ['required', 'string', 'max:2000'],
             'source' => ['prohibited'],
             'status' => ['prohibited'],
-            'affiliation' => ['prohibited'],
-            'branch' => ['prohibited'],
+            'affiliation' => ['missing'],
+            'branch' => ['missing'],
             'details.*.order' => ['prohibited'],
             'details.*.return_amount' => ['prohibited'],
         ];
