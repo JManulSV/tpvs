@@ -128,11 +128,11 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
                   <tr className="border-t hover:bg-muted/30" key={record.id}>
                     <th className="px-4 py-3 font-medium" scope="row">
                       <Link className="underline-offset-4 hover:underline focus-visible:outline-2" href={`/records/${record.id}`}>
-                        {record.company.name}
+                        {record.company?.name ?? "Sin empresa"}
                       </Link>
                     </th>
-                    <td className="px-4 py-3">Semana {record.week} · {record.year}<br /><span className="text-muted-foreground">{record.week_start_date} – {record.week_end_date}</span></td>
-                    <td className="px-4 py-3">{record.affiliation}<br /><span className="text-muted-foreground">{record.branch}</span></td>
+                    <td className="px-4 py-3">{record.week ? `Semana ${record.week}` : "Sin semana"}{record.year ? ` · ${record.year}` : ""}<br /><span className="text-muted-foreground">{record.week_start_date ?? "—"} – {record.week_end_date ?? "—"}</span></td>
+                    <td className="px-4 py-3">{record.details.length ? record.details.map((detail) => <span className="block" key={detail.id}>{detail.affiliation ?? "—"}<br /><span className="text-muted-foreground">{detail.branch ?? "—"}</span></span>) : "—"}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{money(record.return_total)}</td>
                     <td className="px-4 py-3">{statusLabels[record.status]}</td>
                     <td className="px-4 py-3">{record.source === "MANUAL" ? "Manual" : "Imagen"}</td>

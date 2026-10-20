@@ -66,32 +66,32 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
           <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href="/records">← Registros</Link>
-          <h1 className="text-2xl font-semibold tracking-tight" id="record-detail-heading">{record.company.name}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" id="record-detail-heading">{record.company?.name ?? "Registro sin empresa"}</h1>
           <p className="text-sm text-muted-foreground">
-            Registro #{record.id} · {record.source === "MANUAL" ? "Captura manual" : "Origen imagen"} · Semana {record.week}, {record.year}
+            Registro #{record.id} · {record.source === "MANUAL" ? "Captura manual" : "Origen imagen"} · Semana {record.week ?? "—"}, {record.year ?? "—"}
           </p>
         </div>
         <span className="rounded-full border px-3 py-1 text-sm font-medium" role="status">{statusLabels[record.status]}</span>
       </header>
 
       <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Info label="Empresa" value={record.company.name} />
-        <Info label="Año / semana del negocio" value={`${record.year} / ${record.week}`} />
-        <Info label="Inicio y fin" value={`${record.week_start_date} – ${record.week_end_date}`} />
-        <Info label="Afiliación" value={record.affiliation} />
-        <Info label="Sucursal" value={record.branch} />
+        <Info label="Empresa" value={record.company?.name ?? "—"} />
+        <Info label="Año / semana del negocio" value={`${record.year ?? "—"} / ${record.week ?? "—"}`} />
+        <Info label="Inicio y fin" value={`${record.week_start_date ?? "—"} – ${record.week_end_date ?? "—"}`} />
         <Info label="Origen" value={record.source === "MANUAL" ? "Manual" : "Imagen"} />
       </div>
 
       <section aria-labelledby="record-movements-heading" className="space-y-3">
         <h2 className="text-lg font-semibold" id="record-movements-heading">Movimientos</h2>
         <div className="overflow-x-auto rounded-md border">
-          <table className="w-full min-w-[44rem] border-collapse text-left text-sm">
+          <table className="w-full min-w-[64rem] border-collapse text-left text-sm">
             <caption className="sr-only">Movimientos y cantidades calculadas por el servidor</caption>
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-4 py-3 font-medium" scope="col">#</th>
                 <th className="px-4 py-3 font-medium" scope="col">Operación</th>
+                <th className="px-4 py-3 font-medium" scope="col">Afiliación</th>
+                <th className="px-4 py-3 font-medium" scope="col">Sucursal</th>
                 <th className="px-4 py-3 text-right font-medium" scope="col">Ingreso</th>
                 <th className="px-4 py-3 text-right font-medium" scope="col">Comisión</th>
                 <th className="px-4 py-3 text-right font-medium" scope="col">Retorno</th>
@@ -101,7 +101,9 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
               {record.details.map((detail) => (
                 <tr className="border-t" key={detail.id}>
                   <td className="px-4 py-3 tabular-nums">{detail.order}</td>
-                  <th className="px-4 py-3 font-medium" scope="row">{detail.operation_number}</th>
+                  <th className="px-4 py-3 font-medium" scope="row">{detail.operation_number ?? "—"}</th>
+                  <td className="px-4 py-3">{detail.affiliation ?? "—"}</td>
+                  <td className="px-4 py-3">{detail.branch ?? "—"}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{money(detail.income)}</td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {money(detail.commission)}{detail.commission_percentage !== null && <span className="block text-xs text-muted-foreground">{detail.commission_percentage}%</span>}
@@ -112,7 +114,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
             </tbody>
             <tfoot className="border-t bg-muted/30 font-semibold">
               <tr>
-                <th className="px-4 py-3" colSpan={2} scope="row">Totales calculados por el servidor</th>
+                <th className="px-4 py-3" colSpan={4} scope="row">Totales calculados por el servidor</th>
                 <td className="px-4 py-3 text-right tabular-nums">{money(record.income_total)}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{money(record.commission_total)}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{money(record.return_total)}</td>
