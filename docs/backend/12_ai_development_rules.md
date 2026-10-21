@@ -39,4 +39,6 @@ Out of scope:
 - Add or update tests with behavior changes.
 - Keep planned behavior separate from implemented behavior.
 - Never allow AI extraction to confirm a financial record.
+- For SPEC 08, retain one reusable AIProcessing row per Image; expose normalized extraction/issues only, and keep raw provider response backend-private.
+- Keep automatic provider retries bounded to three total calls for transient failures in the initial cycle; manual Editor retry is one call per dispatch.
 - Update documentation status only after code and tests are verified.

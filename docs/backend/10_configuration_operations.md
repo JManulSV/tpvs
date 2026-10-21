@@ -110,6 +110,19 @@ For host-based Laravel development, copy `backend/.env.example` to `backend/.env
 
 `QUEUE_CONNECTION=sync` is suitable only for the current foundation. Operational AI processing requires an asynchronous worker and persistent failed-job handling.
 
+### Asynchronous AI Extraction (SPEC 08 — Planned)
+
+The production integration is configured in Laravel/worker environment only; never pass the Ollama host to Next.js or expose it to browsers. The regular Compose stack does not start Ollama. The existing opt-in `ai-spike` profile remains a local experiment and is not automatically wired into the application provider.
+
+| Variable | Purpose | Initial value / rule |
+| --- | --- | --- |
+| `AI_OLLAMA_URL` | Ollama host reachable from Laravel and its queue worker. | Required when AI processing is enabled; backend/worker only. |
+| `AI_OLLAMA_MODEL` | Vision model sent to Ollama. | `qwen2.5vl:3b`, the candidate selected by SPEC 06; override by environment. |
+| `AI_OLLAMA_TIMEOUT` | Provider HTTP request timeout in seconds. | `300` maximum initial value. |
+| `DB_QUEUE_RETRY_AFTER` | Database queue visibility timeout in seconds. | `360`, greater than the worker timeout. |
+
+Run the queue worker with a timeout of `330` seconds so the order is provider HTTP timeout < worker timeout < queue `retry_after`. The image-processing job owns the three-call transient retry policy for its initial cycle; Compose must not globally cap jobs at one attempt. Manual retry dispatches are single-call. Keep PostgreSQL and private image storage backups coordinated, and monitor failed jobs plus persisted AIProcessing errors. These values document the planned SPEC 08 runtime and become operational requirements when the integration is implemented.
+
 ### Private Record Image Storage (Phase 8.7)
 
 The implemented image configuration uses the `record_images` local private disk rooted at `storage/app/private/record-images`. It is separate from the public disk and does not depend on `FILESYSTEM_DISK`; do not run `storage:link` for the image root.

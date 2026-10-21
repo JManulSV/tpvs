@@ -379,11 +379,11 @@ Record 1 -> 1 Image -> 1 AIProcessing
 - `completed_at`
 - timestamps
 
-The original AI result is preserved.
+The production behavior for SPEC 08 uses one logical AIProcessing row per Image. It retains the latest raw provider response privately in PostgreSQL, along with the normalized extraction, issues, provider/model, status, timestamps, and sanitized error diagnostic. The raw response is never exposed by API resources or public logs. A new manual retry replaces the prior logical result/error; call-by-call history is deferred (and is not represented by multiple AIProcessing rows).
 
 ## 16. Retry
 
-In the MVP there is only one logical processing attempt per image.
+In SPEC 08 there is one logical processing row per image. The initial queued cycle permits at most three provider calls total for transient connection, timeout, and HTTP 5xx failures. Structural extraction failures and non-transient HTTP 4xx are not retried automatically.
 
 If a technical error occurs:
 
@@ -394,9 +394,9 @@ ERROR
   -> PROCESSING
 ```
 
-The same `AIProcessing` record is reused.
+The same `AIProcessing` record is reused. A manual retry is accepted only when the IMAGE Record and its AIProcessing row are in `ERROR`; each manual dispatch makes exactly one provider call, and may be requested again after another failure. Starting that retry clears the previous result so it cannot be mistaken for the current run.
 
-No multiple AI proposals are created for the same logical attempt.
+No multiple AIProcessing rows or historical proposals are created for the same image. Only the latest raw/normalized result or error is retained.
 
 If the AI finished correctly but the result only needs review:
 - the AI is not called again;
@@ -421,6 +421,10 @@ Next.js
 ```
 
 The job coordinates the process, but it does not contain all business logic.
+
+For the SPEC 08 production pipeline, Record creation, private Image association, and AIProcessing `PENDING` creation are one database transaction. Dispatch happens after commit. The worker marks both processing state machines as `PROCESSING` when it claims the job, then ends with `NEEDS_REVIEW` / `COMPLETED` for a usable extraction or `ERROR` / `ERROR` for terminal failure. Dispatch failure after commit is also persisted as an error. The initial HTTP response is `202 Accepted`; provider outcomes are asynchronous.
+
+Queue timeouts are coordinated as provider request up to 300 seconds, worker 330 seconds, and database queue `retry_after` 360 seconds. AI results are never confirmed automatically. This flow creates no History events; audit history is a later workflow concern.
 
 Architectural flow:
 

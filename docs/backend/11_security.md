@@ -32,6 +32,8 @@ Coordinate filesystem and database changes explicitly: write a new random-key fi
 
 Laravel is the only component allowed to call Ollama. External responses must be treated as untrusted input, validated against the extraction contract, and preserved for diagnosis without allowing them to bypass business validation.
 
+For the planned SPEC 08 endpoint, only an authenticated `EDITOR` with valid stateful-request CSRF may create an IMAGE record or request a retry. Validate uploaded bytes using the private Record Image rules. Do not accept client-supplied extracted or financial values. Keep `AI_OLLAMA_URL` and provider configuration in server/worker environment, never in browser-facing configuration or API responses. Store the latest raw response only in backend persistence with restricted operational access; do not include it, image bytes, private storage keys, raw provider errors, or stack traces in API resources or public logs. Sanitize asynchronous error diagnostics and expose stable codes/reasons only. AI proposals remain untrusted and can only lead to `NEEDS_REVIEW`, never confirmation.
+
 ## Auditability
 
 Meaningful changes to records and delivery preparation require user, reason, before value, after value, and timestamp information as defined by the global data model.
