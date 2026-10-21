@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\RecordController;
+use App\Http\Controllers\Api\RecordFromImageController;
 use App\Http\Controllers\Api\RecordImageController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::get('/records', [RecordController::class, 'index']);
     Route::post('/records', [RecordController::class, 'store']);
+    Route::post('/records/from-image', [RecordFromImageController::class, 'store'])->middleware('editor');
     Route::get('/records/{record}', [RecordController::class, 'show']);
     Route::put('/records/{record}', [RecordController::class, 'update']);
     Route::post('/records/{record}/confirm', [RecordController::class, 'confirm']);
