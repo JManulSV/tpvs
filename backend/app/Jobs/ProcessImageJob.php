@@ -187,7 +187,7 @@ class ProcessImageJob implements ShouldQueue
             $processing->forceFill([
                 'result' => [
                     ...$previous,
-                    'prompt_version' => $exception->promptVersion ?? ($previous['prompt_version'] ?? 'v4'),
+                    'prompt_version' => $exception->promptVersion ?? ($previous['prompt_version'] ?? 'v5'),
                     'raw_response' => $exception->rawResponse ?? ($previous['raw_response'] ?? null),
                     'issues' => [[
                         'path' => '$',
@@ -214,7 +214,7 @@ class ProcessImageJob implements ShouldQueue
             }
 
             $result = $processing->result ?? [];
-            $result['prompt_version'] = $promptVersion ?? ($result['prompt_version'] ?? 'v4');
+            $result['prompt_version'] = $promptVersion ?? ($result['prompt_version'] ?? 'v5');
             if ($rawResponse !== null) {
                 $result['raw_response'] = $rawResponse;
             }

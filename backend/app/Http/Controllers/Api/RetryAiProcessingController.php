@@ -82,7 +82,7 @@ class RetryAiProcessingController extends Controller
                 'error_message' => 'AI_JOB_DISPATCH_FAILED',
                 'completed_at' => now(),
                 'result' => [
-                    'prompt_version' => 'v4',
+                    'prompt_version' => 'v5',
                     'normalized_extraction' => null,
                     'issues' => [[
                         'path' => '$',

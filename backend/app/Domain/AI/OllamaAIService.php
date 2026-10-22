@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 
 class OllamaAIService implements AIService
 {
-    private const PROMPT_VERSION = 'v4';
+    private const PROMPT_VERSION = 'v5';
 
     public function extract(string $imagePath): AiExtractionResult
     {
@@ -128,7 +128,7 @@ class OllamaAIService implements AIService
 
     private function prompt(): string
     {
-        $prompt = file_get_contents(resource_path('ai/prompt-v4.txt'));
+        $prompt = file_get_contents(resource_path('ai/prompt-v5.txt'));
 
         if (! is_string($prompt) || $prompt === '') {
             throw new AiProviderException(
@@ -182,9 +182,8 @@ class OllamaAIService implements AIService
                             'income' => $field(['string', 'null']),
                             'commission_percentage' => $field(['string', 'null']),
                             'source_commission' => $field(['string', 'null']),
-                            'source_return_amount' => $field(['string', 'null']),
                         ],
-                        'required' => ['affiliation', 'branch', 'income', 'commission_percentage', 'source_commission', 'source_return_amount'],
+                        'required' => ['affiliation', 'branch', 'income', 'commission_percentage', 'source_commission'],
                         'additionalProperties' => false,
                     ],
                 ],
