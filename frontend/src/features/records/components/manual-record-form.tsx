@@ -137,10 +137,12 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
     <section aria-labelledby="manual-record-heading" className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight" id="manual-record-heading">
-          {isEdit ? "Editar registro manual" : "Nuevo registro manual"}
+          {isEdit ? "Editar registro" : "Nuevo registro manual"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Los importes oficiales los calcula el servidor. Si la captura es válida, quedará confirmada al guardarla.
+          {isEdit
+            ? "Corrige los datos y guarda con un motivo. Los importes oficiales los calcula el servidor y el estado no cambia."
+            : "Los importes oficiales los calcula el servidor. Si la captura es válida, quedará confirmada al guardarla."}
         </p>
       </header>
 
