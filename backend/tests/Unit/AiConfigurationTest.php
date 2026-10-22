@@ -14,6 +14,7 @@ class AiConfigurationTest extends TestCase
         $this->assertSame('', config('ai.ollama.url'));
         $this->assertSame('qwen2.5vl:3b', config('ai.ollama.model'));
         $this->assertSame(300, config('ai.ollama.timeout'));
+        $this->assertSame(360, config('queue.connections.database.retry_after'));
     }
 
     public function test_ai_service_is_bound_to_the_ollama_implementation(): void

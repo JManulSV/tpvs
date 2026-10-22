@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Jobs\ProcessImageJob;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class ProcessImageJobPolicyTest extends TestCase
 {
@@ -20,5 +20,10 @@ class ProcessImageJobPolicyTest extends TestCase
         $job = new ProcessImageJob(10, manualRetry: true);
 
         $this->assertSame(1, $job->tries);
+    }
+
+    public function test_database_queue_visibility_timeout_exceeds_job_timeout(): void
+    {
+        $this->assertGreaterThan(330, config('queue.connections.database.retry_after'));
     }
 }

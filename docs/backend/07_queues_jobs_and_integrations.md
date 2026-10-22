@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Laravel queue configuration exists, but the TPVS AI processing jobs and provider integration are not implemented. `QUEUE_CONNECTION=sync` is acceptable only for the current foundation.
+The SPEC 08 Laravel AI processing job and Ollama provider are implemented and covered by backend tests. Runtime processing uses the asynchronous database queue; `QUEUE_CONNECTION=sync` must not be used for image extraction.
 
 ## Queue Rules
 
@@ -31,7 +31,7 @@ ProcessImageJob
 
 AI output never confirms a record.
 
-## SPEC 08 Queue Policy (Planned)
+## SPEC 08 Queue Policy
 
 - `ProcessImageJob` is dispatched after the Record/Image/AIProcessing database transaction commits. Dispatch failure after commit is recorded durably as `Record.ERROR` and `AIProcessing.ERROR`.
 - The job claims and locks its aggregate before provider work. Duplicate or stale jobs must not call Ollama if the processing row is already completed, errored for a manual cycle, or otherwise no longer eligible.
@@ -39,3 +39,5 @@ AI output never confirms a record.
 - A manual retry is explicitly marked and makes one provider call only; it has no automatic retries. It is allowed only from `ERROR` and reuses the same AIProcessing row.
 - A usable extraction stores the normalized proposal and issues and transitions to `Record.NEEDS_REVIEW` / `AIProcessing.COMPLETED`. A terminal failure transitions both models to `ERROR`. No AI job transitions a Record to `CONFIRMED`, and this workflow writes no `History` rows.
 - Coordinate timeouts as HTTP client <= 300 seconds, worker timeout 330 seconds, and database queue `retry_after` 360 seconds. The worker's global `--tries` must not contradict the job's retry policy.
+
+The database connection defaults `DB_QUEUE_RETRY_AFTER` to `360`. The regular Compose worker uses `--timeout=330` and leaves retries to the job's `$tries` policy (three attempts for the initial cycle and one for manual retry). The local Composer development command uses the same 330-second worker timeout.

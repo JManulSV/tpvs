@@ -66,7 +66,7 @@ TPVS uses a modular monolith for the MVP:
 | File storage | Private local filesystem | Original supplier images and application-managed files |
 | AI host | Ollama with a vision model | Local image interpretation over the office LAN |
 
-The current `docker-compose.yml` starts the frontend, backend, and PostgreSQL. Redis, Ollama, and the complete queue-based AI pipeline are architectural requirements for later MVP phases and are not configured in Compose yet.
+The current `docker-compose.yml` starts the frontend, backend, PostgreSQL, and the database queue worker used by the asynchronous AI pipeline. Ollama is not included in the normal Compose stack; Laravel and its worker connect to the separately configured AI host.
 
 ## Prerequisites
 
@@ -88,14 +88,14 @@ Install these when running services directly on the host:
 
 ### AI Development
 
-AI processing is planned around Ollama and a local vision model. When that phase is implemented, the AI host will need:
+AI extraction uses Ollama and the selected local vision model. The AI host needs:
 
 - Ollama installed and running.
 - A vision model capable of processing the supplier document format.
 - LAN connectivity from the Laravel worker to the Ollama host.
 - Sufficient CPU, RAM, and optionally GPU resources for the selected model.
 
-Before implementing the production AI pipeline, test approximately 5 to 10 real or anonymized representative images and record processing time, resource usage, extraction accuracy, JSON validity, and repeatability.
+The selected `qwen2.5vl:3b` candidate and measured benchmark are documented in `docs/ai-spike/benchmark-v4.md`; extracted values always require Editor review.
 
 ## Quick Start with Docker
 
@@ -216,10 +216,14 @@ Relevant current variables include:
 | `DB_DATABASE` | Database name | `tpvs` |
 | `DB_USERNAME` | Database user | `tpvs` |
 | `DB_PASSWORD` | Database password | `tpvs` |
-| `QUEUE_CONNECTION` | Laravel queue driver | `sync` in `.env.example` |
+| `QUEUE_CONNECTION` | Laravel queue driver | `database` |
+| `AI_OLLAMA_URL` | Ollama host reachable by backend and worker | Configure in root `.env` |
+| `AI_OLLAMA_MODEL` | Ollama vision model | `qwen2.5vl:3b` |
+| `AI_OLLAMA_TIMEOUT` | Provider HTTP timeout (seconds) | `300` |
+| `DB_QUEUE_RETRY_AFTER` | Database queue visibility timeout (seconds) | `360` |
 | `FILESYSTEM_DISK` | Application file storage | `local` |
 
-The planned production-like setup should use an asynchronous queue connection and a dedicated queue worker. Do not rely on `sync` for AI processing once the AI pipeline is enabled.
+Use the asynchronous database queue and dedicated worker (`--timeout=330`); the queue visibility timeout is `360` seconds. Do not use the `sync` driver for image extraction. Configure `AI_OLLAMA_URL` in the root `.env` for backend and worker. Ollama is never exposed to the browser.
 
 ## Frontend Local Setup
 

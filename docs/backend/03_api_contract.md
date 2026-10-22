@@ -267,14 +267,14 @@ The Record resource includes an `image` object or `null`:
 
 The metadata contains no `file_path`, storage key, physical path, or public URL. It is included in Record detail and Record responses where the relation is loaded; a Record without an image reports `image: null`.
 
-## Asynchronous AI Image Extraction — SPEC 08 (Planned)
+## Asynchronous AI Image Extraction — SPEC 08 (Implemented; PostgreSQL acceptance pending)
 
-The following contract is planned and must not be treated as implemented until the Laravel routes, resources, jobs, and feature tests exist.
+The following routes implement the SPEC 08 asynchronous pipeline. They require Laravel's authenticated Sanctum session. Stateful browser mutations also require valid CSRF.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
 | `POST` | `/api/records/from-image` | Accept a private image upload, create a provisional IMAGE Record/Image/AIProcessing aggregate, enqueue extraction after commit, and return `202 Accepted`. | Authenticated `EDITOR`; stateful SPA requests require CSRF. |
-| `POST` | `/api/records/{record}/ai-processing/retry` | Retry an IMAGE Record whose AIProcessing status is `ERROR`, reusing its single AIProcessing row for exactly one provider call. | Authenticated `EDITOR`; stateful SPA requests require CSRF. |
+| `POST` | `/api/records/{record}/ai-processing/retry` | Retry an IMAGE Record whose Record and AIProcessing statuses are `ERROR`, reusing its single AIProcessing row for exactly one provider call. | Authenticated `EDITOR`; stateful SPA requests require CSRF. |
 | `GET` | `/api/records/{id}` | Include the safe `ai_processing` result for an IMAGE record. | Authenticated `EDITOR` or `VIEWER`. |
 
 The creation request accepts only `multipart/form-data` with the `image` field. It does not accept company, status, period, detail, or financial values. Upload type, content validation, size, private disk, and safe metadata follow the Record Image contract above. A successful request creates the Record in `PENDING`, Image association, and AIProcessing in `PENDING` atomically and returns `202` with the provisional Record resource. Queue dispatch occurs only after commit. If persistence fails, the newly staged file is removed where possible; if dispatch fails after commit, both processing models are moved to `ERROR` with a safe diagnostic code.
@@ -286,3 +286,5 @@ An extraction that is structurally usable completes as `AIProcessing.COMPLETED` 
 Only an IMAGE Record with an active Image and AIProcessing `ERROR` is eligible for manual retry. Other states return `409` with a stable business code. Automatic retries are limited to transient connection, timeout, and HTTP 5xx failures: at most three provider calls in the initial cycle. A manual retry performs one call per request; Editors may request another after a subsequent `ERROR`. Duplicate jobs must not repeat a completed extraction or overwrite a usable result.
 
 Authentication and authorization errors remain `401` and `403`; invalid CSRF remains `419`; missing Record is `404`; invalid upload is `422`; disallowed retry is `409`. Asynchronous provider errors are persisted and do not change the original `202` response.
+
+The `202` response uses the Record resource envelope (`data`) and initially returns `PENDING` states. The API resource never includes the provider response body, private storage key, or internal error detail.

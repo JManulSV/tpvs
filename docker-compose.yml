@@ -37,6 +37,11 @@ services:
       DB_USERNAME: ${DB_USERNAME:-tpvs}
       DB_PASSWORD: ${DB_PASSWORD:-tpvs}
       QUEUE_CONNECTION: database
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      AI_OLLAMA_URL: ${AI_OLLAMA_URL:-}
+      AI_OLLAMA_MODEL: ${AI_OLLAMA_MODEL:-qwen2.5vl:3b}
+      AI_OLLAMA_TIMEOUT: ${AI_OLLAMA_TIMEOUT:-300}
+      DB_QUEUE_RETRY_AFTER: ${DB_QUEUE_RETRY_AFTER:-360}
       RUN_MIGRATIONS: "true"
     volumes:
       - ./backend:/var/www/html
@@ -77,12 +82,17 @@ services:
       DB_USERNAME: ${DB_USERNAME:-tpvs}
       DB_PASSWORD: ${DB_PASSWORD:-tpvs}
       QUEUE_CONNECTION: database
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      AI_OLLAMA_URL: ${AI_OLLAMA_URL:-}
+      AI_OLLAMA_MODEL: ${AI_OLLAMA_MODEL:-qwen2.5vl:3b}
+      AI_OLLAMA_TIMEOUT: ${AI_OLLAMA_TIMEOUT:-300}
+      DB_QUEUE_RETRY_AFTER: ${DB_QUEUE_RETRY_AFTER:-360}
       RUN_MIGRATIONS: "false"
     volumes:
       - ./backend:/var/www/html
       - tpvs-backend-vendor:/var/www/html/vendor
       - tpvs-backend-storage:/var/www/html/storage
-    command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--tries=1", "--timeout=90"]
+    command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--timeout=330"]
     depends_on:
       tpvs-backend:
         condition: service_healthy
