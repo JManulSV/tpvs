@@ -217,7 +217,9 @@ class RecordController extends Controller
                 'field_name' => 'status',
                 'previous_value' => RecordStatus::NEEDS_REVIEW->value,
                 'new_value' => RecordStatus::CONFIRMED->value,
-                'reason' => 'Registro manual confirmado',
+                'reason' => $record->source === RecordSource::IMAGE
+                    ? 'Registro de imagen confirmado'
+                    : 'Registro manual confirmado',
             ]);
 
             return $record;
