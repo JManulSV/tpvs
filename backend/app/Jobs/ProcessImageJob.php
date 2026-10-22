@@ -105,6 +105,10 @@ class ProcessImageJob implements ShouldQueue
                 return null;
             }
 
+            if ($this->manualRetry && ($status !== AiProcessingStatus::PENDING || $record->status !== RecordStatus::PENDING)) {
+                return null;
+            }
+
             if (! in_array($status, [AiProcessingStatus::PENDING, AiProcessingStatus::PROCESSING], true)
                 || ! in_array($record->status, [RecordStatus::PENDING, RecordStatus::PROCESSING], true)) {
                 return null;

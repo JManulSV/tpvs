@@ -83,7 +83,7 @@ class RecordFromImageController extends Controller
             });
         }
 
-        $record->load(['company', 'details', 'image.aiProcessing']);
+        $record->refresh()->load(['company', 'details', 'image.aiProcessing']);
         $record->loadSum('details as income_total', 'income');
         $record->loadSum('details as commission_total', 'commission');
         $record->loadSum('details as return_total', 'return_amount');

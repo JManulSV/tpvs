@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
 use App\Enums\UserRole;
+use App\Models\AiProcessing;
 use App\Models\Company;
 use App\Models\History;
+use App\Models\Image;
 use App\Models\Record;
 use App\Models\RecordDetail;
 use App\Models\User;
@@ -611,7 +613,7 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('histories', 0);
     }
 
-    public function test_confirmation_rejects_invalid_state_but_accepts_image_source_needing_review(): void
+    public function test_confirmation_rejects_invalid_state_and_incomplete_image_source(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $confirmed = $this->createRecordWithDetails(null, ['status' => RecordStatus::CONFIRMED]);
@@ -625,11 +627,11 @@ class RecordsApiTest extends TestCase
 
         $this->actingAs($editor, 'web')
             ->postJson('/api/records/'.$imageRecord->id.'/confirm', [])
-            ->assertOk()
-            ->assertJsonPath('data.source', RecordSource::IMAGE->value)
-            ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value);
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'RECORD_CONFIRMATION_BLOCKED')
+            ->assertJsonPath('details.reason', 'BUSINESS_VALIDATION_FAILED');
 
-        $this->assertDatabaseCount('histories', 1);
+        $this->assertDatabaseCount('histories', 0);
     }
 
     public function test_confirmation_revalidates_stored_financial_calculations(): void
@@ -663,6 +665,27 @@ class RecordsApiTest extends TestCase
             'week_start_date' => null,
             'week_end_date' => null,
         ]);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/confirm', [])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'RECORD_CONFIRMATION_BLOCKED')
+            ->assertJsonPath('details.reason', 'BUSINESS_VALIDATION_FAILED');
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_confirmation_rejects_image_record_with_inconsistent_calculations_without_history(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, ['source' => RecordSource::IMAGE]);
+        $record->details()->firstOrFail()->update([
+            'commission' => '1.00',
+            'return_amount' => '99.00',
+        ]);
+        $image = Image::factory()->for($record)->create();
+        AiProcessing::factory()->for($image)->create();
 
         $this->actingAs($editor, 'web')
             ->postJson('/api/records/'.$record->id.'/confirm', [])
