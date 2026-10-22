@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
+import { getRecordActionPermissions } from "../record-actions";
 import { recordsService } from "../services/records.service";
 import { RecordsApiError, type AiProcessingStatus, type RecordStatus } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
@@ -73,9 +74,12 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
     );
   }
 
-  const canCorrect = canEdit && record.status === "NEEDS_REVIEW";
-  const canCancel = canEdit && (record.status === "NEEDS_REVIEW" || record.status === "ERROR");
-  const canRetry = canEdit && record.source === "IMAGE" && record.status === "ERROR";
+  const {
+    canCancel,
+    canConfirm,
+    canCorrect,
+    canRetryAiProcessing: canRetry,
+  } = getRecordActionPermissions(record, canEdit);
   const companyHint = record.company === null
     ? record.ai_processing?.normalized_extraction?.record.company_name?.value ?? null
     : null;
@@ -299,7 +303,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
       {successMessage && <p className="rounded-md border px-4 py-3 text-sm" role="status">{successMessage}</p>}
       {retryError && <p className="rounded-md border border-destructive/40 px-4 py-3 text-sm text-destructive" role="alert">{retryError}</p>}
 
-      {(canCorrect || canCancel || canRetry) && (
+      {(canCorrect || canConfirm || canCancel || canRetry) && (
         <div className="flex flex-wrap justify-end gap-3 rounded-md border p-4">
           {canRetry && (
             <Button disabled={retryAiProcessing.isPending} onClick={() => void handleRetry()} type="button" variant="outline">
@@ -308,7 +312,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
           )}
           {canCorrect && <Button onClick={() => setIsEditing(true)} type="button" variant="outline">Editar registro</Button>}
           {canCancel && <Button onClick={openCancelDialog} type="button" variant="destructive">Cancelar registro</Button>}
-          {canCorrect && <Button onClick={openConfirmDialog} type="button">Confirmar registro</Button>}
+          {canConfirm && <Button onClick={openConfirmDialog} type="button">Confirmar registro</Button>}
         </div>
       )}
 
