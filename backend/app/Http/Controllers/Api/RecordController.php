@@ -6,6 +6,7 @@ use App\Domain\Records\BusinessValidator;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Records\CancelRecordRequest;
 use App\Http\Requests\Records\ConfirmRecordRequest;
 use App\Http\Requests\Records\IndexRecordsRequest;
 use App\Http\Requests\Records\StoreRecordRequest;
@@ -210,6 +211,51 @@ class RecordController extends Controller
                 'previous_value' => RecordStatus::NEEDS_REVIEW->value,
                 'new_value' => RecordStatus::CONFIRMED->value,
                 'reason' => 'Registro manual confirmado',
+            ]);
+
+            return $record;
+        });
+
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+
+        $result->load(['company', 'details', 'image.aiProcessing']);
+        $result->loadSum('details as income_total', 'income');
+        $result->loadSum('details as commission_total', 'commission');
+        $result->loadSum('details as return_total', 'return_amount');
+
+        return new RecordResource($result);
+    }
+
+    public function cancel(
+        CancelRecordRequest $request,
+        Record $record,
+    ): RecordResource|JsonResponse {
+        $result = DB::transaction(function () use ($request, $record): Record|JsonResponse {
+            $record = Record::query()
+                ->whereKey($record->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! in_array($record->status, [RecordStatus::NEEDS_REVIEW, RecordStatus::ERROR], true)) {
+                return response()->json([
+                    'message' => 'The record cannot be canceled in its current state.',
+                    'code' => 'RECORD_CANCELLATION_BLOCKED',
+                    'details' => ['reason' => 'INVALID_STATE'],
+                ], 409);
+            }
+
+            $previousStatus = $record->status->value;
+            $record->status = RecordStatus::CANCELED;
+            $record->save();
+
+            $record->histories()->create([
+                'user_id' => $request->user()->id,
+                'field_name' => 'status',
+                'previous_value' => $previousStatus,
+                'new_value' => RecordStatus::CANCELED->value,
+                'reason' => $request->validated('reason'),
             ]);
 
             return $record;

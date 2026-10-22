@@ -42,4 +42,9 @@ class RecordPolicy
     {
         return $user->role === UserRole::EDITOR;
     }
+
+    public function cancel(User $user, Record $record): bool
+    {
+        return $user->role === UserRole::EDITOR;
+    }
 }
