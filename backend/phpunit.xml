@@ -21,6 +21,8 @@
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="APP_KEY" value="base64:MAkRbTPzng0K+CAN8QI7qVGfJfAQMemd9pl8s3oxUJ0=" force="true"/>
+        <env name="AI_OLLAMA_URL" value="" force="true"/>
+        <server name="AI_OLLAMA_URL" value=""/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>

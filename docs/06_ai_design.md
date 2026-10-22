@@ -22,7 +22,6 @@ The AI is responsible for:
 - extracting `income`;
 - extracting `commission_percentage` when visible;
 - extracting `source_commission` as shown in the document;
-- extracting `source_return_amount` as shown in the document;
 - extracting source totals when visible;
 - indicating missing or doubtful information;
 - preserving the visual order of the movements;
@@ -74,8 +73,7 @@ The AI returns one JSON object using the following extraction shape for the expe
       "branch": { "value": "Guadalajara", "confidence": 0.96 },
       "income": { "value": "10000.00", "confidence": 0.98 },
       "commission_percentage": { "value": "2.00", "confidence": 0.88 },
-      "source_commission": { "value": "200.00", "confidence": 0.96 },
-      "source_return_amount": { "value": "9800.00", "confidence": 0.96 }
+      "source_commission": { "value": "200.00", "confidence": 0.96 }
     }
   ],
   "source_totals": {
@@ -97,9 +95,10 @@ All properties shown in the contract are required, including when a value is not
 - `details` is an array with at least one movement. Array order is the visual order in the document; the backend assigns the persisted `order` value.
 - `affiliation` and `branch` are movement-level fields and belong inside each `details` item.
 - `operation_number` is omitted from AI extraction for this spike. Movement order comes from each item's array position.
+- `details` does not include a per-movement return amount. The official return for each movement is calculated by the backend as `income - commission`; only the printed total return is transcribed in `source_totals.return_amount`.
 - `source_totals` always contains `income`, `commission`, and `return_amount`. If a total is not shown or cannot be read, its value is `null`.
 
-The `source_commission`, `source_return_amount`, and `source_totals` values are evidence transcribed from the document only. They are not official values and must not be calculated or treated as the values stored in `RecordDetail`.
+The `source_commission` and `source_totals` values are evidence transcribed from the document only. They are not official values and must not be calculated or treated as the values stored in `RecordDetail`.
 
 ## 5. Required JSON Shape and Missing Values
 
@@ -467,7 +466,9 @@ Measure:
 
 The MVP uses a single prompt for the current document format.
 
-The experimental prompt v4 is versioned in [`ai-spike/prompt-v4.txt`](ai-spike/prompt-v4.txt). It instructs the model to transcribe visible values, preserve movement order, separate movements from totals, use `null` with confidence `0` for missing or unreadable data, and return only the expected JSON. Dates are requested in ISO form without deriving them from the period. Monetary values and percentages are transcribed faithfully; deterministic numeric normalization happens after extraction. Preserve raw output and report issues instead of guessing or hiding questionable values.
+The current production prompt is v5, versioned in [`../backend/resources/ai/prompt-v5.txt`](../backend/resources/ai/prompt-v5.txt). It instructs the model to transcribe visible values, preserve movement order, separate movements from totals, use `null` with confidence `0` for missing or unreadable data, and return only the expected JSON. Dates are requested in ISO form without deriving them from the period. Monetary values and percentages are transcribed faithfully; deterministic numeric normalization happens after extraction. Per-movement returns are never extracted; the backend derives them. Preserve raw output and report issues instead of guessing or hiding questionable values.
+
+The experimental prompt v4 remains versioned in [`ai-spike/prompt-v4.txt`](ai-spike/prompt-v4.txt) as benchmark history.
 
 ## 20. Final Principle
 
