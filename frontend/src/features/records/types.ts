@@ -13,9 +13,73 @@ export const recordStatuses = [
 ] as const;
 export type RecordStatus = (typeof recordStatuses)[number];
 
+export const aiProcessingStatuses = [
+  "PENDING",
+  "PROCESSING",
+  "NEEDS_REVIEW",
+  "ERROR",
+  "COMPLETED",
+] as const;
+export type AiProcessingStatus = (typeof aiProcessingStatuses)[number];
+
 export type RecordCompany = {
   id: number;
   name: string;
+};
+
+export type RecordImage = {
+  id: number;
+  original_file_name: string;
+  mime_type: string;
+  file_size: number;
+  created_at: string | null;
+};
+
+export type AiProcessingIssue = {
+  path: string;
+  code: string;
+  severity: "review" | "error";
+  message: string;
+  value?: unknown;
+};
+
+export type NormalizedValue<T> = {
+  value: T | null;
+  confidence: number;
+};
+
+export type RecordNormalizedExtraction = {
+  record: {
+    company_name: NormalizedValue<string>;
+    year: NormalizedValue<number>;
+    week: NormalizedValue<number>;
+    week_start_date: NormalizedValue<string>;
+    week_end_date: NormalizedValue<string>;
+  };
+  details: Array<{
+    affiliation: NormalizedValue<string>;
+    branch: NormalizedValue<string>;
+    income: NormalizedValue<string>;
+    commission_percentage: NormalizedValue<string>;
+    source_commission: NormalizedValue<string>;
+    source_return_amount: NormalizedValue<string>;
+  }>;
+  source_totals: {
+    income: NormalizedValue<string>;
+    commission: NormalizedValue<string>;
+    return_amount: NormalizedValue<string>;
+  };
+};
+
+export type RecordAiProcessing = {
+  status: AiProcessingStatus;
+  provider: string;
+  model: string;
+  started_at: string | null;
+  completed_at: string | null;
+  normalized_extraction: RecordNormalizedExtraction | null;
+  issues: AiProcessingIssue[];
+  unconvertible_numeric_count: number;
 };
 
 export type RecordDetail = {
@@ -49,6 +113,8 @@ export type RecordListItem = {
   week: number | null;
   week_start_date: string | null;
   week_end_date: string | null;
+  image: RecordImage | null;
+  ai_processing: RecordAiProcessing | null;
   income_total?: string | null;
   commission_total?: string | null;
   return_total?: string | null;
@@ -107,6 +173,10 @@ export type ManualRecordInput = {
 };
 
 export type UpdateManualRecordInput = ManualRecordInput & {
+  reason: string;
+};
+
+export type CancelRecordInput = {
   reason: string;
 };
 
