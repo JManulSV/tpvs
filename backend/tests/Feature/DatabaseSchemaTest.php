@@ -37,7 +37,7 @@ class DatabaseSchemaTest extends TestCase
             'delivery_id' => $delivery->id,
         ]);
 
-        $record->load('company', 'details', 'image.aiProcessings', 'delivery.cashDenominations', 'histories');
+        $record->load('company', 'details', 'image.aiProcessing', 'delivery.cashDenominations', 'histories');
 
         $this->assertTrue($record->company->is($company));
         $this->assertCount(2, $record->details);
@@ -45,7 +45,7 @@ class DatabaseSchemaTest extends TestCase
         $this->assertSame(['AFF-FIRST', 'AFF-SECOND'], $record->details->pluck('affiliation')->all());
         $this->assertSame(['Guadalajara', 'Zapopan'], $record->details->pluck('branch')->all());
         $this->assertTrue($record->image->is($image));
-        $this->assertTrue($record->image->aiProcessings->first()->is($processing));
+        $this->assertTrue($record->image->aiProcessing->is($processing));
         $this->assertTrue($record->delivery->is($delivery));
         $this->assertTrue($record->delivery->cashDenominations->first()->is($denomination));
         $this->assertTrue($record->histories->first()->is($history));
@@ -62,6 +62,16 @@ class DatabaseSchemaTest extends TestCase
         $this->expectException(QueryException::class);
 
         Image::factory()->for($record)->create();
+    }
+
+    public function test_an_image_cannot_have_more_than_one_ai_processing_row(): void
+    {
+        $image = Image::factory()->create();
+        AiProcessing::factory()->for($image)->create();
+
+        $this->expectException(QueryException::class);
+
+        AiProcessing::factory()->for($image)->create();
     }
 
     public function test_a_record_cannot_have_more_than_one_delivery(): void

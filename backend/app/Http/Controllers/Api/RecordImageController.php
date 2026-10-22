@@ -66,7 +66,7 @@ class RecordImageController extends Controller
                 }
 
                 $image = $lockedRecord->image()->lockForUpdate()->first();
-                if ($image !== null && $image->aiProcessings()->exists()) {
+                if ($image !== null && $image->aiProcessing()->exists()) {
                     return $this->imageError(
                         'The image cannot be replaced after AI processing has started.',
                         'IMAGE_REPLACEMENT_BLOCKED',

@@ -28,7 +28,7 @@ The documentation describes both the current repository implementation and the t
 
 ## Implementation Status
 
-The current backend is a Laravel 12 foundation with authentication and the Companies catalog implemented; it is not the complete MVP backend.
+The current backend is a Laravel 12 application with authentication, Companies, Records, private images, and the SPEC 08 asynchronous AI extraction implementation; SPEC 08 is complete and verified against PostgreSQL, and it is not the complete MVP backend.
 
 Implemented now:
 
@@ -38,13 +38,14 @@ Implemented now:
 - `GET /up` Laravel framework health endpoint.
 - Laravel Sanctum authentication and role authorization.
 - Companies list, detail, and create API with normalized unique names.
+- Manual Records, private image handling, and asynchronous AI image extraction with Editor retry and human-review-only outcomes.
 - Basic Laravel test scaffolding and Docker runtime.
 
 Planned and not yet implemented:
 
-- Record, image, AI processing, history, delivery, and report modules.
+- History, delivery, and report modules, plus frontend AI upload/review.
 - The business API described in `04_technical_architecture.md`.
-- Queue-based AI processing, document generation, and production operations.
+- Document generation and production Ollama-host operations.
 
 When documentation conflicts with the code, current behavior in the repository is authoritative for implemented features. Product, business, and target architecture documents remain authoritative for planned behavior.
 

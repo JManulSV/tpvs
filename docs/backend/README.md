@@ -4,7 +4,7 @@ This directory documents how the TPVS backend is implemented and operated with L
 
 ## Current Status
 
-Status: Laravel foundation, authentication, Companies, manual Records, and private Record image handling are implemented; remaining business modules are planned.
+Status: Laravel foundation, authentication, Companies, manual Records, private Record images, and SPEC 08 backend implementation are present and verified against PostgreSQL. History, deliveries, reports, and frontend AI review remain planned.
 
 Implemented:
 
@@ -17,14 +17,15 @@ Implemented:
 - Company list, detail, and create endpoints with resource policy, request validation, normalized name uniqueness, and feature tests.
 - Manual Records list, create, detail, replacement, confirmation, validation, authorization, and feature tests.
 - Private Record image upload, safe replacement, authorized viewing, metadata serialization, and feature/unit tests (phase 8.7).
+- Asynchronous IMAGE Record creation, Ollama provider, extraction validation/persistence, bounded retries, safe AI resource, and confirmation gate (SPEC 08).
 - Basic Laravel test scaffolding.
 - Docker development runtime.
 
 Not implemented:
 
-- AI processing, history, deliveries, and reports.
-- Business API endpoints beyond health, authentication, Companies, manual Records, and Record images.
-- Asynchronous AI jobs, document generation, and production operations.
+- History, deliveries, and reports.
+- Business API endpoints beyond health, authentication, Companies, manual Records, Record images, and AI extraction/retry.
+- Frontend AI upload/review UI, document generation, and production AI-host operations.
 
 ## Authority Rules
 

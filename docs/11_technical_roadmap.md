@@ -207,6 +207,8 @@ Record measurements and sample outcomes. Decide whether to continue, optimize th
 
 ### 8.9 - AI Pipeline
 
+**Status: COMPLETE (2026-10-22).** The backend routes, private image aggregate, Ollama provider, extraction validator, financial proposal persistence, asynchronous job, bounded retries, safe resource, manual retry endpoint, and IMAGE confirmation gate are implemented. The UI remains in 8.15; human correction and audit history remain in 8.10/8.11.
+
 Implement:
 
 ```text
@@ -220,9 +222,9 @@ ProcessImageJob
   -> NEEDS_REVIEW or ERROR
 ```
 
-Persist every `AIProcessing` attempt. Technical failures move the record to `ERROR`; usable extraction results always require human review and never auto-confirm.
+Persist the latest result/error in one reusable `AIProcessing` row per image. Technical failures move the record to `ERROR`; usable extraction results always require human review and never auto-confirm. Initial transient failures may call the provider at most three times; each manual Editor retry makes one call.
 
-**Checkpoint:** Uploading an image starts processing and persists the provisional record data and outcome without confirming the record.
+**Checkpoint: COMPLETE (2026-10-22).** An authenticated Editor can upload an image and receive `202`; the worker persists a usable proposal in `NEEDS_REVIEW` or a diagnostic `ERROR`, without confirming the record. The complete backend suite passed against a temporary PostgreSQL database: 125 tests, 687 assertions. Compose configuration validation passed; the full runtime with a live Ollama host remains an operational exercise.
 
 **Commit:** `feat: implement AI extraction pipeline`
 

@@ -51,7 +51,7 @@ class RecordController extends Controller
             return $record;
         });
 
-        $record->load(['company', 'details', 'image']);
+        $record->load(['company', 'details', 'image.aiProcessing']);
         $record->loadSum('details as income_total', 'income');
         $record->loadSum('details as commission_total', 'commission');
         $record->loadSum('details as return_total', 'return_amount');
@@ -67,7 +67,7 @@ class RecordController extends Controller
         $search = $filters['search'] ?? null;
 
         $records = Record::query()
-            ->with(['company', 'details', 'image'])
+            ->with(['company', 'details', 'image.aiProcessing'])
             ->withSum('details as income_total', 'income')
             ->withSum('details as commission_total', 'commission')
             ->withSum('details as return_total', 'return_amount')
@@ -144,7 +144,7 @@ class RecordController extends Controller
             return $record;
         });
 
-        $record->load(['company', 'details', 'image']);
+        $record->load(['company', 'details', 'image.aiProcessing']);
         $record->loadSum('details as income_total', 'income');
         $record->loadSum('details as commission_total', 'commission');
         $record->loadSum('details as return_total', 'return_amount');
@@ -156,7 +156,7 @@ class RecordController extends Controller
     {
         Gate::authorize('view', $record);
 
-        $record->load(['company', 'details', 'image']);
+        $record->load(['company', 'details', 'image.aiProcessing']);
         $record->loadSum('details as income_total', 'income');
         $record->loadSum('details as commission_total', 'commission');
         $record->loadSum('details as return_total', 'return_amount');
@@ -180,6 +180,14 @@ class RecordController extends Controller
                     'message' => 'The record cannot be confirmed in its current state.',
                     'code' => 'RECORD_CONFIRMATION_BLOCKED',
                     'details' => ['reason' => 'INVALID_STATE'],
+                ], 409);
+            }
+
+            if ($record->source === RecordSource::IMAGE && ! $this->hasCompleteImageAggregate($record)) {
+                return response()->json([
+                    'message' => 'The image record cannot be confirmed until its business data is valid.',
+                    'code' => 'RECORD_CONFIRMATION_BLOCKED',
+                    'details' => ['reason' => 'BUSINESS_VALIDATION_FAILED'],
                 ], 409);
             }
 
@@ -211,11 +219,41 @@ class RecordController extends Controller
             return $result;
         }
 
-        $result->load(['company', 'details', 'image']);
+        $result->load(['company', 'details', 'image.aiProcessing']);
         $result->loadSum('details as income_total', 'income');
         $result->loadSum('details as commission_total', 'commission');
         $result->loadSum('details as return_total', 'return_amount');
 
         return new RecordResource($result);
+    }
+
+    private function hasCompleteImageAggregate(Record $record): bool
+    {
+        if ($record->company_id === null
+            || $record->year === null
+            || $record->week === null
+            || $record->week_start_date === null
+            || $record->week_end_date === null
+            || $record->image()->doesntExist()) {
+            return false;
+        }
+
+        $record->loadMissing('details');
+        if ($record->details->isEmpty()) {
+            return false;
+        }
+
+        foreach ($record->details as $detail) {
+            if ($detail->operation_number === null
+                || $detail->affiliation === null
+                || $detail->branch === null
+                || $detail->income === null
+                || $detail->commission === null
+                || $detail->return_amount === null) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -9,6 +9,58 @@ use Illuminate\Validation\ValidationException;
 class BusinessValidator
 {
     /**
+     * Calculate IMAGE proposal amounts with the same decimal rules used by manual records.
+     * Missing source values remain provisional nulls and must be resolved during review.
+     *
+     * @return array{commission: string|null, return_amount: string|null, issues: list<array{code: string, message: string}>}
+     */
+    public function calculateProvisionalImageAmounts(?string $income, ?string $percentage, ?string $sourceCommission): array
+    {
+        if ($income === null) {
+            return ['commission' => null, 'return_amount' => null, 'issues' => []];
+        }
+
+        $incomeCents = $this->toCents($income);
+        if ($percentage !== null) {
+            $percentageHundredths = $this->toHundredths($percentage);
+            $commissionCents = intdiv(($incomeCents * $percentageHundredths) + 5000, 10000);
+
+            if ($commissionCents > $incomeCents) {
+                return [
+                    'commission' => null,
+                    'return_amount' => null,
+                    'issues' => [['code' => 'CALCULATED_COMMISSION_OUT_OF_RANGE', 'message' => 'The calculated commission violates financial limits.']],
+                ];
+            }
+
+            return [
+                'commission' => $this->fromCents($commissionCents),
+                'return_amount' => $this->fromCents($incomeCents - $commissionCents),
+                'issues' => [],
+            ];
+        }
+
+        if ($sourceCommission === null) {
+            return ['commission' => null, 'return_amount' => null, 'issues' => []];
+        }
+
+        $commissionCents = $this->toCents($sourceCommission);
+        if ($commissionCents > $incomeCents) {
+            return [
+                'commission' => null,
+                'return_amount' => null,
+                'issues' => [['code' => 'FIXED_COMMISSION_EXCEEDS_INCOME', 'message' => 'The source commission exceeds income and cannot be used as a provisional fixed commission.']],
+            ];
+        }
+
+        return [
+            'commission' => $sourceCommission,
+            'return_amount' => $this->fromCents($incomeCents - $commissionCents),
+            'issues' => [],
+        ];
+    }
+
+    /**
      * Validate the manual aggregate's business invariants and derive detail money fields.
      *
      * @param  array<string, mixed>  $record
