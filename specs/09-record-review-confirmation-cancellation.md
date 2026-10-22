@@ -1,6 +1,6 @@
 # SPEC 09 — Revisión, corrección, confirmación y cancelación de registros
 
-> **Status:** Draft
+> **Status:** Approved
 > **Depends on:** SPEC 05, SPEC 07, SPEC 08
 > **Date:** 2026-10-22
 > **Objective:** Completar el flujo humano que revisa, corrige, confirma o cancela registros `IMAGE`/`MANUAL` en `NEEDS_REVIEW` y registros en `ERROR`, con validación backend y auditoría básica.
