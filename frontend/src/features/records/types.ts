@@ -62,7 +62,6 @@ export type RecordNormalizedExtraction = {
     income: NormalizedValue<string>;
     commission_percentage: NormalizedValue<string>;
     source_commission: NormalizedValue<string>;
-    source_return_amount: NormalizedValue<string>;
   }>;
   source_totals: {
     income: NormalizedValue<string>;

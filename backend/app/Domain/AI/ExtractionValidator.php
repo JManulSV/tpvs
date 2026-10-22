@@ -28,7 +28,6 @@ class ExtractionValidator
         'income' => ['string', 'null'],
         'commission_percentage' => ['string', 'null'],
         'source_commission' => ['string', 'null'],
-        'source_return_amount' => ['string', 'null'],
     ];
 
     /** @var array<string, list<string>> */
@@ -119,7 +118,7 @@ class ExtractionValidator
             foreach (self::DETAIL_FIELDS as $field => $types) {
                 $path = "details.{$index}.{$field}";
                 $value = $this->readField($detail[$field], $path, $types, $issues);
-                if (in_array($field, ['income', 'commission_percentage', 'source_commission', 'source_return_amount'], true)) {
+                if (in_array($field, ['income', 'commission_percentage', 'source_commission'], true)) {
                     $value = $this->normalizeNumber($value, $field === 'commission_percentage', $path, $issues, $unconvertibleCount);
                 }
                 $normalizedDetail[$field] = $this->field($value, $detail[$field]['confidence']);

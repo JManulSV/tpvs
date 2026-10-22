@@ -13,7 +13,7 @@ class ExtractionFinancialCalculator
 
     /**
      * Calculate official provisional financial values from normalized evidence.
-     * Source returns are never accepted as authoritative values.
+     * Per-movement returns are derived by the backend and never taken from the document.
      *
      * @param  array<string, mixed>  $detail
      */
@@ -23,7 +23,6 @@ class ExtractionFinancialCalculator
         $income = $this->money($this->value($detail, 'income'), "details.{$index}.income", $issues);
         $percentage = $this->percentage($this->value($detail, 'commission_percentage'), "details.{$index}.commission_percentage", $issues);
         $sourceCommission = $this->money($this->value($detail, 'source_commission'), "details.{$index}.source_commission", $issues);
-        $sourceReturn = $this->money($this->value($detail, 'source_return_amount'), "details.{$index}.source_return_amount", $issues);
 
         $calculated = $this->businessValidator->calculateProvisionalImageAmounts($income, $percentage, $sourceCommission);
         $commission = $calculated['commission'];
@@ -34,10 +33,6 @@ class ExtractionFinancialCalculator
 
         if ($commission !== null && $sourceCommission !== null && $commission !== $sourceCommission) {
             $issues[] = $this->issue("details.{$index}.source_commission", 'SOURCE_COMMISSION_MISMATCH', 'The printed commission differs from the backend-calculated commission.', $sourceCommission);
-        }
-
-        if ($returnAmount !== null && $sourceReturn !== null && $returnAmount !== $sourceReturn) {
-            $issues[] = $this->issue("details.{$index}.source_return_amount", 'SOURCE_RETURN_MISMATCH', 'The printed return differs from the backend-calculated return.', $sourceReturn);
         }
 
         return new ExtractedDetailFinancialValues($income, $percentage, $commission, $returnAmount, $issues);
