@@ -9,9 +9,10 @@ vi.mock("@/lib/api-client", () => ({
 }));
 
 import { apiClient } from "@/lib/api-client";
+import { getRecordActionPermissions } from "@/features/records/record-actions";
 import { manualRecordFormSchema, updateManualRecordFormSchema } from "@/features/records/schemas/record.schema";
 import { recordsService } from "@/features/records/services/records.service";
-import { RecordsApiError } from "@/features/records/types";
+import { RecordsApiError, type RecordSource, type RecordStatus } from "@/features/records/types";
 
 const apiClientMock = vi.mocked(apiClient);
 
@@ -41,6 +42,8 @@ describe("manual record schemas", () => {
     expect(manualRecordFormSchema.safeParse(validRecord).success).toBe(true);
     expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "Correction" }).success).toBe(true);
     expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "  " }).success).toBe(false);
+    expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "x".repeat(2000) }).success).toBe(true);
+    expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "x".repeat(2001) }).success).toBe(false);
   });
 
   it("rejects inverted date ranges and invalid financial inputs", () => {
@@ -140,5 +143,110 @@ describe("records service", () => {
     const confirmation = recordsService.confirm(9);
     await expect(confirmation).rejects.toBeInstanceOf(RecordsApiError);
     await expect(confirmation).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("uploads the image with multipart form data", async () => {
+    const file = new File(["image-bytes"], "capture.png", { type: "image/png" });
+    const record = { id: 11, status: "PENDING" };
+    apiClientMock.post.mockResolvedValueOnce({ data: { data: record } });
+
+    await expect(recordsService.createFromImage(file)).resolves.toEqual(record);
+
+    const [url, body] = apiClientMock.post.mock.calls[0];
+    expect(url).toBe("records/from-image");
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get("image")).toBe(file);
+  });
+
+  it("sends cancellation with a reason and retries AI processing", async () => {
+    const record = { id: 9, status: "CANCELED" };
+    apiClientMock.post.mockResolvedValueOnce({ data: { data: record } });
+    apiClientMock.post.mockResolvedValueOnce({ data: { data: { ...record, status: "PROCESSING" } } });
+
+    const cancelInput = { reason: "La imagen no es legible" };
+    await expect(recordsService.cancel(9, cancelInput)).resolves.toEqual(record);
+    expect(apiClientMock.post).toHaveBeenNthCalledWith(1, "records/9/cancel", cancelInput);
+
+    await expect(recordsService.retryAiProcessing(9)).resolves.toEqual({ ...record, status: "PROCESSING" });
+    expect(apiClientMock.post).toHaveBeenNthCalledWith(2, "records/9/ai-processing/retry", {});
+  });
+
+  it("uses the authorized BFF path for the record image", () => {
+    expect(recordsService.imageUrl(9)).toBe("/api/records/9/image");
+  });
+
+  it("maps forbidden actions to a permission error", async () => {
+    apiClientMock.post.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 403, data: { message: "Forbidden" } },
+    });
+
+    await expect(recordsService.cancel(9, { reason: "No aplica" })).rejects.toMatchObject({
+      status: 403,
+      message: "No tienes permiso para realizar esta acción.",
+    });
+  });
+});
+
+describe("record action permissions", () => {
+  function record(status: RecordStatus, source: RecordSource = "MANUAL") {
+    return { status, source };
+  }
+
+  it("lets an editor correct, confirm and cancel a record in review", () => {
+    expect(getRecordActionPermissions(record("NEEDS_REVIEW"), true)).toEqual({
+      canCorrect: true,
+      canConfirm: true,
+      canCancel: true,
+      canRetryAiProcessing: false,
+    });
+  });
+
+  it("lets an editor retry or cancel an IMAGE record in error", () => {
+    expect(getRecordActionPermissions(record("ERROR", "IMAGE"), true)).toEqual({
+      canCorrect: false,
+      canConfirm: false,
+      canCancel: true,
+      canRetryAiProcessing: true,
+    });
+  });
+
+  it("does not retry AI for a MANUAL record in error", () => {
+    expect(getRecordActionPermissions(record("ERROR", "MANUAL"), true)).toEqual({
+      canCorrect: false,
+      canConfirm: false,
+      canCancel: true,
+      canRetryAiProcessing: false,
+    });
+  });
+
+  it.each<RecordStatus>(["PENDING", "PROCESSING", "CONFIRMED", "CANCELED"])(
+    "offers no mutations for an editor when the record is %s",
+    (status) => {
+      expect(getRecordActionPermissions(record(status), true)).toEqual({
+        canCorrect: false,
+        canConfirm: false,
+        canCancel: false,
+        canRetryAiProcessing: false,
+      });
+    },
+  );
+
+  it("offers no mutations to a viewer in any state", () => {
+    for (const status of ["PENDING", "PROCESSING", "NEEDS_REVIEW", "ERROR", "CONFIRMED", "CANCELED"] as const) {
+      expect(getRecordActionPermissions(record(status), false)).toEqual({
+        canCorrect: false,
+        canConfirm: false,
+        canCancel: false,
+        canRetryAiProcessing: false,
+      });
+    }
+
+    expect(getRecordActionPermissions(null, true)).toEqual({
+      canCorrect: false,
+      canConfirm: false,
+      canCancel: false,
+      canRetryAiProcessing: false,
+    });
   });
 });

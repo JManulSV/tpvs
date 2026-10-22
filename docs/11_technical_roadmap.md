@@ -241,7 +241,11 @@ NEEDS_REVIEW
 
 **Checkpoint:** Complete image upload -> AI extraction -> review -> correction -> confirmation. A record is confirmed only by an authorized human after backend validation.
 
-**Commit:** `feat: implement record review and confirmation`
+**Status: COMPLETE (2026-10-22).** Image upload, processing progress, human review, correction with mandatory reason, confirmation, cancellation from `NEEDS_REVIEW`/`ERROR`, and manual retry are implemented. Backend feature suite: 133 tests, 778 assertions. Vitest, ESLint, TypeScript, production build, and changed-file Pint passed.
+
+Browser verification used Ollama with `qwen2.5vl:3b`: a real `prueba1.jpeg` upload returned `202`, polled through `PROCESSING`, and ended in `ERROR` with safe `INVALID_CONFIDENCE` diagnostics because the model returned confidence `0.5` for null values (the known output-contract limitation from SPEC 08). The same live Record then exercised manual retry once and cancellation to `CANCELED`, preserving image and AI evidence while the image endpoint returned `409`. A controlled IMAGE Record in `NEEDS_REVIEW` exercised the review, correction, confirmation, and `VIEWER` flows; a stale-state cancellation returned `409` and refreshed the screen. Verification also fixed three UI defects: `$NaN` totals for empty aggregates, missing company preselection in edit mode, and the review form remaining open after a successful correction.
+
+**Commit:** `feat: complete record review and cancellation checkpoint`
 
 ### 8.11 - History
 

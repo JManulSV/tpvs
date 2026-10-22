@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AiProcessingStatus;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
 use App\Enums\UserRole;
@@ -14,6 +15,7 @@ use App\Models\RecordDetail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RecordsApiTest extends TestCase
@@ -419,10 +421,71 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
             'user_id' => $editor->id,
-            'field_name' => 'manual_record_updated',
+            'field_name' => 'record_updated',
             'previous_value' => null,
             'new_value' => null,
             'reason' => 'Se corrigieron importes y afiliación/sucursal',
+        ]);
+    }
+
+    public function test_editor_can_replace_image_needs_review_record_preserving_image_and_ai_evidence(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, ['source' => RecordSource::IMAGE]);
+        $image = Image::factory()->for($record)->create();
+        $processing = AiProcessing::factory()->for($image)->create([
+            'status' => AiProcessingStatus::NEEDS_REVIEW,
+            'result' => [
+                'normalized_extraction' => [
+                    'record' => ['company_name' => 'Acme'],
+                    'details' => [],
+                ],
+                'issues' => [[
+                    'path' => 'details.0.branch',
+                    'code' => 'BRANCH_MISSING',
+                    'severity' => 'review',
+                    'message' => 'Branch could not be read.',
+                ]],
+                'unconvertible_numeric_count' => 1,
+            ],
+        ]);
+        $newCompany = Company::factory()->create();
+        $payload = $this->validManualRecordPayload($newCompany->id, [[
+            'operation_number' => 'OP-IMAGE-FIXED',
+            'income' => '200.00',
+            'commission_percentage' => '10.00',
+        ]]);
+        $payload['details'][0]['affiliation'] = 'AFF-IMAGE-FIXED';
+        $payload['details'][0]['branch'] = 'Zapopan';
+        $payload['reason'] = 'Se corrigió la sucursal mal leída';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertOk()
+            ->assertJsonPath('data.id', $record->id)
+            ->assertJsonPath('data.source', RecordSource::IMAGE->value)
+            ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
+            ->assertJsonPath('data.company.id', $newCompany->id)
+            ->assertJsonPath('data.image.id', $image->id)
+            ->assertJsonPath('data.ai_processing.status', AiProcessingStatus::NEEDS_REVIEW->value)
+            ->assertJsonPath('data.ai_processing.issues.0.code', 'BRANCH_MISSING')
+            ->assertJsonPath('data.details.0.operation_number', 'OP-IMAGE-FIXED')
+            ->assertJsonPath('data.income_total', '200.00')
+            ->assertJsonPath('data.commission_total', '20.00')
+            ->assertJsonPath('data.return_total', '180.00');
+
+        $this->assertDatabaseCount('images', 1);
+        $this->assertDatabaseCount('ai_processings', 1);
+        $this->assertSame($image->id, Image::query()->sole()->id);
+        $this->assertSame($processing->id, AiProcessing::query()->sole()->id);
+        $this->assertSame($processing->result, $processing->fresh()->result);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'record_updated',
+            'previous_value' => null,
+            'new_value' => null,
+            'reason' => 'Se corrigió la sucursal mal leída',
         ]);
     }
 
@@ -492,24 +555,31 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('record_details', 1);
     }
 
-    public function test_only_manual_records_needing_review_can_be_replaced(): void
+    public function test_only_records_needing_review_can_be_replaced(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
-        $confirmed = $this->createRecordWithDetails(null, ['status' => RecordStatus::CONFIRMED]);
-        $imageRecord = $this->createRecordWithDetails(null, ['source' => RecordSource::IMAGE]);
-        $payload = $this->validManualRecordPayload($confirmed->company_id);
-        $payload['reason'] = 'Attempted edit';
+        $statuses = [
+            RecordStatus::CONFIRMED,
+            RecordStatus::CANCELED,
+            RecordStatus::PENDING,
+            RecordStatus::PROCESSING,
+            RecordStatus::ERROR,
+        ];
 
-        foreach ([[$confirmed, 'INVALID_STATE'], [$imageRecord, 'INVALID_SOURCE']] as [$record, $reason]) {
+        foreach ($statuses as $status) {
+            $record = $this->createRecordWithDetails(null, ['status' => $status]);
+            $payload = $this->validManualRecordPayload($record->company_id);
+            $payload['reason'] = 'Attempted edit';
+
             $this->actingAs($editor, 'web')
                 ->putJson('/api/records/'.$record->id, $payload)
                 ->assertStatus(409)
                 ->assertJsonPath('code', 'RECORD_UPDATE_BLOCKED')
-                ->assertJsonPath('details.reason', $reason);
+                ->assertJsonPath('details.reason', 'INVALID_STATE');
         }
 
         $this->assertDatabaseCount('histories', 0);
-        $this->assertDatabaseCount('record_details', 2);
+        $this->assertDatabaseCount('record_details', 5);
     }
 
     public function test_failed_history_write_rolls_back_record_and_detail_replacement(): void
@@ -596,6 +666,50 @@ class RecordsApiTest extends TestCase
             'previous_value' => RecordStatus::NEEDS_REVIEW->value,
             'new_value' => RecordStatus::CONFIRMED->value,
             'reason' => 'Registro manual confirmado',
+        ]);
+    }
+
+    public function test_editor_can_confirm_image_record_with_unresolved_ai_issues(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, ['source' => RecordSource::IMAGE]);
+        $image = Image::factory()->for($record)->create();
+        $processing = AiProcessing::factory()->for($image)->create([
+            'status' => AiProcessingStatus::NEEDS_REVIEW,
+            'result' => [
+                'normalized_extraction' => [
+                    'record' => ['company_name' => 'Acme'],
+                    'details' => [],
+                ],
+                'issues' => [[
+                    'path' => 'record.company_name',
+                    'code' => 'COMPANY_NAME_UNVERIFIED',
+                    'severity' => 'review',
+                    'message' => 'Company name should be reviewed.',
+                ]],
+                'unconvertible_numeric_count' => 0,
+            ],
+        ]);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/confirm', [])
+            ->assertOk()
+            ->assertJsonPath('data.id', $record->id)
+            ->assertJsonPath('data.source', RecordSource::IMAGE->value)
+            ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value)
+            ->assertJsonPath('data.ai_processing.status', AiProcessingStatus::NEEDS_REVIEW->value)
+            ->assertJsonPath('data.ai_processing.issues.0.code', 'COMPANY_NAME_UNVERIFIED');
+
+        $this->assertDatabaseCount('images', 1);
+        $this->assertDatabaseCount('ai_processings', 1);
+        $this->assertSame($processing->result, $processing->fresh()->result);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'status',
+            'previous_value' => RecordStatus::NEEDS_REVIEW->value,
+            'new_value' => RecordStatus::CONFIRMED->value,
+            'reason' => 'Registro de imagen confirmado',
         ]);
     }
 
@@ -726,6 +840,182 @@ class RecordsApiTest extends TestCase
         try {
             $this->actingAs($editor, 'web')
                 ->postJson('/api/records/'.$record->id.'/confirm', [])
+                ->assertStatus(500);
+        } finally {
+            Event::forget('eloquent.creating: '.History::class);
+        }
+
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'status' => RecordStatus::NEEDS_REVIEW->value,
+        ]);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_record_cancellation_requires_authentication_and_editor_role(): void
+    {
+        $record = $this->createRecordWithDetails();
+
+        $this->postJson('/api/records/'.$record->id.'/cancel', [
+            'reason' => 'Duplicated record',
+        ])->assertUnauthorized();
+
+        $this->actingAs(User::factory()->create(['role' => UserRole::VIEWER]), 'web')
+            ->postJson('/api/records/'.$record->id.'/cancel', [
+                'reason' => 'Duplicated record',
+            ])
+            ->assertForbidden();
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_editor_can_cancel_needs_review_record_and_preserves_image_and_ai_evidence(): void
+    {
+        Storage::fake('record_images');
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, ['source' => RecordSource::IMAGE]);
+        Storage::disk('record_images')->put('reviewed.png', 'image-bytes');
+        $image = Image::factory()->for($record)->create(['file_path' => 'reviewed.png']);
+        $processing = AiProcessing::factory()->for($image)->create([
+            'status' => AiProcessingStatus::NEEDS_REVIEW,
+            'result' => [
+                'normalized_extraction' => ['record' => ['company_name' => 'Acme']],
+                'issues' => [[
+                    'path' => 'record.company_name',
+                    'code' => 'COMPANY_NAME_UNVERIFIED',
+                    'severity' => 'review',
+                    'message' => 'Company name should be reviewed.',
+                ]],
+                'unconvertible_numeric_count' => 0,
+            ],
+        ]);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/cancel', [
+                'reason' => '  Cancelado por duplicado  ',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.id', $record->id)
+            ->assertJsonPath('data.source', RecordSource::IMAGE->value)
+            ->assertJsonPath('data.status', RecordStatus::CANCELED->value)
+            ->assertJsonPath('data.image.id', $image->id)
+            ->assertJsonPath('data.ai_processing.status', AiProcessingStatus::NEEDS_REVIEW->value);
+
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'status' => RecordStatus::CANCELED->value,
+        ]);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'status',
+            'previous_value' => RecordStatus::NEEDS_REVIEW->value,
+            'new_value' => RecordStatus::CANCELED->value,
+            'reason' => 'Cancelado por duplicado',
+        ]);
+        $this->assertDatabaseCount('images', 1);
+        $this->assertDatabaseCount('ai_processings', 1);
+        $this->assertSame($processing->result, $processing->fresh()->result);
+        Storage::disk('record_images')->assertExists('reviewed.png');
+
+        $this->actingAs($editor, 'web')
+            ->getJson('/api/records/'.$record->id.'/image')
+            ->assertConflict()
+            ->assertJsonPath('code', 'IMAGE_ACCESS_BLOCKED')
+            ->assertJsonPath('details.reason', 'RECORD_CANCELED');
+    }
+
+    public function test_editor_can_cancel_error_record_and_previous_status_is_recorded(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, ['status' => RecordStatus::ERROR]);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/cancel', [
+                'reason' => 'AI failed definitively',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', RecordStatus::CANCELED->value);
+
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'field_name' => 'status',
+            'previous_value' => RecordStatus::ERROR->value,
+            'new_value' => RecordStatus::CANCELED->value,
+            'reason' => 'AI failed definitively',
+        ]);
+    }
+
+    public function test_cancellation_rejects_other_states_without_writes(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $statuses = [
+            RecordStatus::CONFIRMED,
+            RecordStatus::PENDING,
+            RecordStatus::PROCESSING,
+            RecordStatus::CANCELED,
+        ];
+
+        foreach ($statuses as $status) {
+            $record = $this->createRecordWithDetails(null, ['status' => $status]);
+
+            $this->actingAs($editor, 'web')
+                ->postJson('/api/records/'.$record->id.'/cancel', [
+                    'reason' => 'Attempted cancellation',
+                ])
+                ->assertStatus(409)
+                ->assertJsonPath('code', 'RECORD_CANCELLATION_BLOCKED')
+                ->assertJsonPath('details.reason', 'INVALID_STATE');
+
+            $this->assertSame($status, $record->fresh()->status);
+        }
+
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_cancellation_requires_reason_and_rejects_client_control_fields(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/cancel', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['reason']);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/cancel', ['reason' => '   '])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['reason']);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/cancel', [
+                'reason' => 'Valid reason',
+                'source' => RecordSource::MANUAL->value,
+                'status' => RecordStatus::CONFIRMED->value,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['source', 'status']);
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_failed_cancellation_history_write_rolls_back_status(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+
+        Event::listen('eloquent.creating: '.History::class, static function (): void {
+            throw new \RuntimeException('Simulated history persistence failure.');
+        });
+
+        try {
+            $this->actingAs($editor, 'web')
+                ->postJson('/api/records/'.$record->id.'/cancel', [
+                    'reason' => 'Test rollback',
+                ])
                 ->assertStatus(500);
         } finally {
             Event::forget('eloquent.creating: '.History::class);

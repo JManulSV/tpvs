@@ -6,6 +6,7 @@ use App\Domain\Records\BusinessValidator;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Records\CancelRecordRequest;
 use App\Http\Requests\Records\ConfirmRecordRequest;
 use App\Http\Requests\Records\IndexRecordsRequest;
 use App\Http\Requests\Records\StoreRecordRequest;
@@ -108,20 +109,23 @@ class RecordController extends Controller
         Record $record,
         BusinessValidator $businessValidator,
     ): RecordResource|JsonResponse {
-        if ($record->source !== RecordSource::MANUAL || $record->status !== RecordStatus::NEEDS_REVIEW) {
-            return response()->json([
-                'message' => 'The record cannot be updated in its current state.',
-                'code' => 'RECORD_UPDATE_BLOCKED',
-                'details' => [
-                    'reason' => $record->source !== RecordSource::MANUAL ? 'INVALID_SOURCE' : 'INVALID_STATE',
-                ],
-            ], 409);
-        }
+        $result = DB::transaction(function () use ($request, $record, $businessValidator): Record|JsonResponse {
+            $record = Record::query()
+                ->whereKey($record->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $validated = $request->validated();
-        $details = $businessValidator->validateAndCalculateManualDetails($validated);
+            if ($record->status !== RecordStatus::NEEDS_REVIEW) {
+                return response()->json([
+                    'message' => 'The record cannot be updated in its current state.',
+                    'code' => 'RECORD_UPDATE_BLOCKED',
+                    'details' => ['reason' => 'INVALID_STATE'],
+                ], 409);
+            }
 
-        $record = DB::transaction(function () use ($request, $record, $validated, $details): Record {
+            $validated = $request->validated();
+            $details = $businessValidator->validateAndCalculateManualDetails($validated);
+
             $record->update([
                 'company_id' => $validated['company_id'],
                 'year' => $validated['year'],
@@ -135,7 +139,7 @@ class RecordController extends Controller
 
             $record->histories()->create([
                 'user_id' => $request->user()->id,
-                'field_name' => 'manual_record_updated',
+                'field_name' => 'record_updated',
                 'previous_value' => null,
                 'new_value' => null,
                 'reason' => $validated['reason'],
@@ -144,12 +148,16 @@ class RecordController extends Controller
             return $record;
         });
 
-        $record->load(['company', 'details', 'image.aiProcessing']);
-        $record->loadSum('details as income_total', 'income');
-        $record->loadSum('details as commission_total', 'commission');
-        $record->loadSum('details as return_total', 'return_amount');
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
 
-        return new RecordResource($record);
+        $result->load(['company', 'details', 'image.aiProcessing']);
+        $result->loadSum('details as income_total', 'income');
+        $result->loadSum('details as commission_total', 'commission');
+        $result->loadSum('details as return_total', 'return_amount');
+
+        return new RecordResource($result);
     }
 
     public function show(Record $record): RecordResource
@@ -209,7 +217,54 @@ class RecordController extends Controller
                 'field_name' => 'status',
                 'previous_value' => RecordStatus::NEEDS_REVIEW->value,
                 'new_value' => RecordStatus::CONFIRMED->value,
-                'reason' => 'Registro manual confirmado',
+                'reason' => $record->source === RecordSource::IMAGE
+                    ? 'Registro de imagen confirmado'
+                    : 'Registro manual confirmado',
+            ]);
+
+            return $record;
+        });
+
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+
+        $result->load(['company', 'details', 'image.aiProcessing']);
+        $result->loadSum('details as income_total', 'income');
+        $result->loadSum('details as commission_total', 'commission');
+        $result->loadSum('details as return_total', 'return_amount');
+
+        return new RecordResource($result);
+    }
+
+    public function cancel(
+        CancelRecordRequest $request,
+        Record $record,
+    ): RecordResource|JsonResponse {
+        $result = DB::transaction(function () use ($request, $record): Record|JsonResponse {
+            $record = Record::query()
+                ->whereKey($record->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! in_array($record->status, [RecordStatus::NEEDS_REVIEW, RecordStatus::ERROR], true)) {
+                return response()->json([
+                    'message' => 'The record cannot be canceled in its current state.',
+                    'code' => 'RECORD_CANCELLATION_BLOCKED',
+                    'details' => ['reason' => 'INVALID_STATE'],
+                ], 409);
+            }
+
+            $previousStatus = $record->status->value;
+            $record->status = RecordStatus::CANCELED;
+            $record->save();
+
+            $record->histories()->create([
+                'user_id' => $request->user()->id,
+                'field_name' => 'status',
+                'previous_value' => $previousStatus,
+                'new_value' => RecordStatus::CANCELED->value,
+                'reason' => $request->validated('reason'),
             ]);
 
             return $record;

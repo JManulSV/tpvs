@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm, type FieldPath, type FieldErrors } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
@@ -19,6 +19,7 @@ type ManualRecordFormProps = {
 } | {
   mode: "edit";
   record: RecordDetailView;
+  onEditComplete: () => void;
 };
 
 function initialValues(record?: RecordDetailView): ManualRecordFormValues {
@@ -60,6 +61,13 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
     defaultValues: initialValues(isEdit ? props.record : undefined),
   });
   const details = useFieldArray({ control: form.control, name: "details" });
+  const recordCompanyId = isEdit ? props.record.company?.id ?? null : null;
+
+  useEffect(() => {
+    if (recordCompanyId !== null && companiesQuery.isSuccess) {
+      form.setValue("company_id", recordCompanyId, { shouldValidate: true });
+    }
+  }, [companiesQuery.isSuccess, form, recordCompanyId]);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [editReason, setEditReason] = useState("");
@@ -95,11 +103,11 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
 
     try {
       if (props.mode === "edit") {
-        const updated = await updateMutation.mutateAsync({
+        await updateMutation.mutateAsync({
           id: props.record.id,
           input: { ...payload, reason: editReason.trim() },
         });
-        router.push(`/records/${updated.id}`);
+        props.onEditComplete();
       } else {
         await createMutation.mutateAsync(payload);
         form.reset(initialValues());
@@ -137,10 +145,12 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
     <section aria-labelledby="manual-record-heading" className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight" id="manual-record-heading">
-          {isEdit ? "Editar registro manual" : "Nuevo registro manual"}
+          {isEdit ? "Editar registro" : "Nuevo registro manual"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Los importes oficiales los calcula el servidor. Si la captura es válida, quedará confirmada al guardarla.
+          {isEdit
+            ? "Corrige los datos y guarda con un motivo. Los importes oficiales los calcula el servidor y el estado no cambia."
+            : "Los importes oficiales los calcula el servidor. Si la captura es válida, quedará confirmada al guardarla."}
         </p>
       </header>
 

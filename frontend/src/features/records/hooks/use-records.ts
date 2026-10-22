@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recordsService } from "../services/records.service";
-import type { ManualRecordInput, RecordListParams, UpdateManualRecordInput } from "../types";
+import type { CancelRecordInput, ManualRecordInput, RecordListParams, UpdateManualRecordInput } from "../types";
+
+const processingPollIntervalMs = 3000;
 
 export const recordKeys = {
   all: ["records"] as const,
@@ -22,6 +24,10 @@ export function useRecord(id: number) {
     queryKey: recordKeys.detail(id),
     queryFn: () => recordsService.get(id),
     enabled: Number.isInteger(id) && id > 0,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "PENDING" || status === "PROCESSING" ? processingPollIntervalMs : false;
+    },
   });
 }
 
@@ -30,6 +36,19 @@ export function useCreateRecord() {
 
   return useMutation({
     mutationFn: (input: ManualRecordInput) => recordsService.create(input),
+    retry: false,
+    onSuccess: async (record) => {
+      queryClient.setQueryData(recordKeys.detail(record.id), record);
+      await queryClient.invalidateQueries({ queryKey: recordKeys.lists() });
+    },
+  });
+}
+
+export function useCreateRecordFromImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => recordsService.createFromImage(file),
     retry: false,
     onSuccess: async (record) => {
       queryClient.setQueryData(recordKeys.detail(record.id), record);
@@ -57,6 +76,33 @@ export function useConfirmRecord() {
 
   return useMutation({
     mutationFn: (id: number) => recordsService.confirm(id),
+    retry: false,
+    onSuccess: async (record) => {
+      queryClient.setQueryData(recordKeys.detail(record.id), record);
+      await queryClient.invalidateQueries({ queryKey: recordKeys.lists() });
+    },
+  });
+}
+
+export function useCancelRecord() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: number; input: CancelRecordInput }) =>
+      recordsService.cancel(id, input),
+    retry: false,
+    onSuccess: async (record) => {
+      queryClient.setQueryData(recordKeys.detail(record.id), record);
+      await queryClient.invalidateQueries({ queryKey: recordKeys.lists() });
+    },
+  });
+}
+
+export function useRetryAiProcessing() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => recordsService.retryAiProcessing(id),
     retry: false,
     onSuccess: async (record) => {
       queryClient.setQueryData(recordKeys.detail(record.id), record);

@@ -34,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/records/{record}', [RecordController::class, 'show']);
     Route::put('/records/{record}', [RecordController::class, 'update']);
     Route::post('/records/{record}/confirm', [RecordController::class, 'confirm']);
+    Route::post('/records/{record}/cancel', [RecordController::class, 'cancel']);
     Route::post('/records/{record}/image', [RecordImageController::class, 'store']);
     Route::get('/records/{record}/image', [RecordImageController::class, 'show']);
 });

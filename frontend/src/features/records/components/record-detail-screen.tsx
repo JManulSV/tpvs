@@ -1,11 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useConfirmRecord, useRecord } from "../hooks/use-records";
+import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
+import { getRecordActionPermissions } from "../record-actions";
+import { recordsService } from "../services/records.service";
+import { RecordsApiError, type AiProcessingStatus, type RecordStatus } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
-import { RecordsApiError, type RecordStatus } from "../types";
+import { RecordActionDialog } from "./record-action-dialog";
 
 const statusLabels: Record<RecordStatus, string> = {
   PENDING: "Pendiente",
@@ -16,18 +20,42 @@ const statusLabels: Record<RecordStatus, string> = {
   CANCELED: "Cancelado",
 };
 
+const aiStatusLabels: Record<AiProcessingStatus, string> = {
+  PENDING: "Pendiente",
+  PROCESSING: "Procesando",
+  NEEDS_REVIEW: "Revisión necesaria",
+  ERROR: "Error",
+  COMPLETED: "Completado",
+};
+
 function money(value: string | null | undefined) {
-  if (value === null) return "—";
+  if (value === null || value === undefined) return "—";
   return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(value));
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+
+  const kilobytes = bytes / 1024;
+  if (kilobytes < 1024) return `${kilobytes.toFixed(1)} KB`;
+
+  return `${(kilobytes / 1024).toFixed(1)} MB`;
 }
 
 export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
   const recordQuery = useRecord(recordId);
   const confirmRecord = useConfirmRecord();
+  const cancelRecord = useCancelRecord();
+  const retryAiProcessing = useRetryAiProcessing();
   const [isEditing, setIsEditing] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [retryError, setRetryError] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const record = recordQuery.data;
-  const canMutateManualRecord = canEdit && record?.source === "MANUAL" && record.status === "NEEDS_REVIEW";
 
   if (recordQuery.isPending) {
     return <p aria-live="polite" className="py-10 text-center text-sm text-muted-foreground">Cargando registro…</p>;
@@ -46,19 +74,100 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
     );
   }
 
-  if (isEditing && canMutateManualRecord) {
-    return <ManualRecordForm mode="edit" record={record} />;
+  const {
+    canCancel,
+    canConfirm,
+    canCorrect,
+    canRetryAiProcessing: canRetry,
+  } = getRecordActionPermissions(record, canEdit);
+  const companyHint = record.company === null
+    ? record.ai_processing?.normalized_extraction?.record.company_name?.value ?? null
+    : null;
+  const isProcessing = record.status === "PENDING" || record.status === "PROCESSING";
+
+  if (isEditing && canCorrect) {
+    return <ManualRecordForm mode="edit" onEditComplete={() => setIsEditing(false)} record={record} />;
+  }
+
+  async function reportActionError(
+    error: unknown,
+    setError: (message: string | null) => void,
+    fallback: string,
+  ) {
+    if (error instanceof RecordsApiError) {
+      setError(error.message);
+      if (error.status === 409) {
+        await recordQuery.refetch();
+      }
+
+      return;
+    }
+
+    setError(fallback);
   }
 
   async function handleConfirm() {
     if (!record) return;
     setConfirmError(null);
+    setSuccessMessage(null);
     confirmRecord.reset();
+
     try {
       await confirmRecord.mutateAsync(record.id);
+      setIsConfirmOpen(false);
+      setSuccessMessage("El registro se confirmó correctamente.");
     } catch (error) {
-      setConfirmError(error instanceof RecordsApiError ? error.message : "No se pudo confirmar el registro.");
+      await reportActionError(error, setConfirmError, "No se pudo confirmar el registro.");
     }
+  }
+
+  async function handleCancel() {
+    if (!record) return;
+    const reason = cancelReason.trim();
+    if (reason === "") {
+      setCancelError("El motivo de la cancelación es obligatorio.");
+      return;
+    }
+
+    setCancelError(null);
+    setSuccessMessage(null);
+    cancelRecord.reset();
+
+    try {
+      await cancelRecord.mutateAsync({ id: record.id, input: { reason } });
+      setIsCancelOpen(false);
+      setCancelReason("");
+      setSuccessMessage("El registro se canceló correctamente.");
+    } catch (error) {
+      await reportActionError(error, setCancelError, "No se pudo cancelar el registro.");
+    }
+  }
+
+  async function handleRetry() {
+    if (!record) return;
+    setRetryError(null);
+    setSuccessMessage(null);
+    retryAiProcessing.reset();
+
+    try {
+      await retryAiProcessing.mutateAsync(record.id);
+      setSuccessMessage("El procesamiento con IA se reinició. La pantalla se actualizará automáticamente.");
+    } catch (error) {
+      await reportActionError(error, setRetryError, "No se pudo reintentar el procesamiento con IA.");
+    }
+  }
+
+  function openConfirmDialog() {
+    setConfirmError(null);
+    confirmRecord.reset();
+    setIsConfirmOpen(true);
+  }
+
+  function openCancelDialog() {
+    setCancelError(null);
+    cancelRecord.reset();
+    setCancelReason("");
+    setIsCancelOpen(true);
   }
 
   return (
@@ -74,12 +183,73 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
         <span className="rounded-full border px-3 py-1 text-sm font-medium" role="status">{statusLabels[record.status]}</span>
       </header>
 
+      {isProcessing && (
+        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="status">
+          El registro se está procesando. Esta pantalla se actualiza automáticamente hasta que termine.
+        </p>
+      )}
+
+      {record.image !== null && record.status !== "CANCELED" && (
+        <section aria-labelledby="record-image-heading" className="space-y-3">
+          <h2 className="text-lg font-semibold" id="record-image-heading">Imagen del registro</h2>
+          <Image
+            alt={`Imagen del registro ${record.id}`}
+            className="h-auto max-h-[32rem] w-auto rounded-md border object-contain"
+            height={1600}
+            src={recordsService.imageUrl(record.id)}
+            unoptimized
+            width={1200}
+          />
+          <p className="text-sm text-muted-foreground">
+            {record.image.original_file_name} · {record.image.mime_type} · {formatFileSize(record.image.file_size)}
+          </p>
+        </section>
+      )}
+
+      {record.status === "CANCELED" && (
+        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
+          El registro fue cancelado. La imagen ya no está disponible, pero los datos permanecen consultables.
+        </p>
+      )}
+
       <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-3">
         <Info label="Empresa" value={record.company?.name ?? "—"} />
         <Info label="Año / semana del negocio" value={`${record.year ?? "—"} / ${record.week ?? "—"}`} />
         <Info label="Inicio y fin" value={`${record.week_start_date ?? "—"} – ${record.week_end_date ?? "—"}`} />
         <Info label="Origen" value={record.source === "MANUAL" ? "Manual" : "Imagen"} />
       </div>
+
+      {companyHint !== null && (
+        <p className="rounded-md border px-4 py-3 text-sm" role="note">
+          Empresa detectada en la imagen: <strong>{companyHint}</strong>. Selecciónala al corregir el registro si corresponde.
+        </p>
+      )}
+
+      {record.ai_processing !== null ? (
+        <section aria-labelledby="ai-diagnostics-heading" className="space-y-3 rounded-md border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold" id="ai-diagnostics-heading">Diagnóstico de IA</h2>
+            <span className="rounded-full border px-3 py-1 text-sm font-medium">{aiStatusLabels[record.ai_processing.status]}</span>
+          </div>
+
+          {record.ai_processing.issues.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin observaciones de revisión.</p>
+          ) : (
+            <ul className="space-y-2">
+              {record.ai_processing.issues.map((issue, index) => (
+                <li className="rounded-md border px-3 py-2 text-sm" key={`${issue.path}-${issue.code}-${index}`}>
+                  <p>{issue.message}</p>
+                  <p className="text-xs text-muted-foreground">{issue.path} · {issue.code}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : record.status === "ERROR" ? (
+        <p className="rounded-md border px-4 py-3 text-sm text-destructive" role="alert">
+          El procesamiento falló y no hay un diagnóstico de IA disponible. Puedes reintentar o cancelar el registro.
+        </p>
+      ) : null}
 
       <section aria-labelledby="record-movements-heading" className="space-y-3">
         <h2 className="text-lg font-semibold" id="record-movements-heading">Movimientos</h2>
@@ -124,34 +294,72 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
         </div>
       </section>
 
-      {record.source === "IMAGE" && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          Este registro proviene de imagen. Las acciones de imagen, IA y revisión automatizada se habilitarán en fases posteriores.
-        </p>
-      )}
-
       {record.source === "MANUAL" && record.status === "CONFIRMED" && (
         <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
           Este registro fue capturado y confirmado por el Editor. La edición auditada de registros confirmados estará disponible en una fase posterior.
         </p>
       )}
 
-      {confirmError && <p className="rounded-md border border-destructive/40 px-4 py-3 text-sm text-destructive" role="alert">{confirmError}</p>}
-      {confirmRecord.isSuccess && record.status === "CONFIRMED" && <p className="rounded-md border px-4 py-3 text-sm" role="status">El registro se confirmó correctamente.</p>}
+      {successMessage && <p className="rounded-md border px-4 py-3 text-sm" role="status">{successMessage}</p>}
+      {retryError && <p className="rounded-md border border-destructive/40 px-4 py-3 text-sm text-destructive" role="alert">{retryError}</p>}
 
-      {canMutateManualRecord && (
+      {(canCorrect || canConfirm || canCancel || canRetry) && (
         <div className="flex flex-wrap justify-end gap-3 rounded-md border p-4">
-          <Button disabled={confirmRecord.isPending} onClick={() => setIsEditing(true)} type="button" variant="outline">Editar registro</Button>
-          <Button disabled={confirmRecord.isPending} onClick={() => {
-            if (window.confirm("¿Confirmas que revisaste este registro y que los datos son correctos?")) void handleConfirm();
-          }} type="button">
-            {confirmRecord.isPending ? "Confirmando…" : "Confirmar registro"}
-          </Button>
+          {canRetry && (
+            <Button disabled={retryAiProcessing.isPending} onClick={() => void handleRetry()} type="button" variant="outline">
+              {retryAiProcessing.isPending ? "Reintentando…" : "Reintentar procesamiento"}
+            </Button>
+          )}
+          {canCorrect && <Button onClick={() => setIsEditing(true)} type="button" variant="outline">Editar registro</Button>}
+          {canCancel && <Button onClick={openCancelDialog} type="button" variant="destructive">Cancelar registro</Button>}
+          {canConfirm && <Button onClick={openConfirmDialog} type="button">Confirmar registro</Button>}
         </div>
       )}
 
-      {record.status === "NEEDS_REVIEW" && record.source === "MANUAL" && !canEdit && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">Puedes consultar este registro. Solo un Editor puede editarlo o confirmarlo.</p>
+      {(record.status === "NEEDS_REVIEW" || record.status === "ERROR") && !canEdit && (
+        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
+          Puedes consultar este registro. Solo un Editor puede corregirlo, confirmarlo, cancelarlo o reintentar el procesamiento.
+        </p>
+      )}
+
+      {isConfirmOpen && (
+        <RecordActionDialog
+          confirmLabel="Confirmar registro"
+          description="¿Confirmas que revisaste este registro y que los datos son correctos? La confirmación no modifica empresa, periodo ni movimientos."
+          error={confirmError}
+          isPending={confirmRecord.isPending}
+          onClose={() => setIsConfirmOpen(false)}
+          onConfirm={() => void handleConfirm()}
+          title="Confirmar registro"
+        />
+      )}
+
+      {isCancelOpen && (
+        <RecordActionDialog
+          confirmDisabled={cancelReason.trim() === ""}
+          confirmLabel="Cancelar registro"
+          description="El registro quedará cancelado y ya no podrá editarse ni confirmarse. La imagen y el diagnóstico de IA se conservan, pero la imagen dejará de estar disponible."
+          destructive
+          error={cancelError}
+          isPending={cancelRecord.isPending}
+          onClose={() => setIsCancelOpen(false)}
+          onConfirm={() => void handleCancel()}
+          title="Cancelar registro"
+        >
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="record-cancel-reason">Motivo de la cancelación</label>
+            <textarea
+              className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              data-autofocus
+              disabled={cancelRecord.isPending}
+              id="record-cancel-reason"
+              maxLength={2000}
+              onChange={(event) => setCancelReason(event.target.value)}
+              value={cancelReason}
+            />
+            <p className="text-xs text-muted-foreground">Obligatorio, máximo 2000 caracteres.</p>
+          </div>
+        </RecordActionDialog>
       )}
     </section>
   );
