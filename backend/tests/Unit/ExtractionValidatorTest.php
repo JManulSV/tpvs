@@ -32,16 +32,14 @@ class ExtractionValidatorTest extends TestCase
         $extraction = $this->extraction();
         $extraction['details'][0]['income']['value'] = '1,200';
         $extraction['details'][0]['source_commission']['value'] = '1.200';
-        $extraction['details'][0]['source_return_amount']['value'] = '55.963.03';
 
         $result = $this->validator()->validate($this->makeResult($extraction));
 
-        $this->assertSame(3, $result->unconvertibleNumericCount);
+        $this->assertSame(2, $result->unconvertibleNumericCount);
         $this->assertTrue($result->isUsable());
         $this->assertNull($result->normalizedExtraction['details'][0]['income']['value']);
         $this->assertNull($result->normalizedExtraction['details'][0]['source_commission']['value']);
-        $this->assertNull($result->normalizedExtraction['details'][0]['source_return_amount']['value']);
-        $this->assertSame(['UNCONVERTIBLE_NUMERIC', 'UNCONVERTIBLE_NUMERIC', 'UNCONVERTIBLE_NUMERIC'], array_column($result->issues, 'code'));
+        $this->assertSame(['UNCONVERTIBLE_NUMERIC', 'UNCONVERTIBLE_NUMERIC'], array_column($result->issues, 'code'));
     }
 
     public function test_it_counts_numeric_values_globally_and_applies_four_value_boundary(): void
@@ -49,8 +47,8 @@ class ExtractionValidatorTest extends TestCase
         $four = $this->extraction();
         $four['details'][0]['income']['value'] = '55.963.03';
         $four['details'][0]['source_commission']['value'] = '1,200';
-        $four['details'][0]['source_return_amount']['value'] = '1.200';
         $four['source_totals']['income']['value'] = '1,200';
+        $four['source_totals']['commission']['value'] = '1.200';
 
         $fourResult = $this->validator()->validate($this->makeResult($four));
         $this->assertSame(4, $fourResult->unconvertibleNumericCount);
@@ -59,9 +57,9 @@ class ExtractionValidatorTest extends TestCase
         $five = $this->extraction();
         $five['details'][0]['income']['value'] = '55.963.03';
         $five['details'][0]['source_commission']['value'] = '1.200';
-        $five['details'][0]['source_return_amount']['value'] = '1,200';
         $five['source_totals']['income']['value'] = '1,200';
         $five['source_totals']['commission']['value'] = '1.200';
+        $five['source_totals']['return_amount']['value'] = '1,200';
 
         $fiveResult = $this->validator()->validate($this->makeResult($five));
         $this->assertSame(5, $fiveResult->unconvertibleNumericCount);
@@ -102,7 +100,7 @@ class ExtractionValidatorTest extends TestCase
 
     public function test_it_treats_invalid_json_missing_properties_wrappers_and_confidence_as_structural_errors(): void
     {
-        $invalidJson = new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v4', '{', '{', null);
+        $invalidJson = new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v5', '{', '{', null);
         $invalidJsonResult = $this->validator()->validate($invalidJson);
         $this->assertFalse($invalidJsonResult->structurallyValid);
         $this->assertSame(0, $invalidJsonResult->unconvertibleNumericCount);
@@ -145,7 +143,7 @@ class ExtractionValidatorTest extends TestCase
     {
         $rawResponse ??= json_encode($extraction, JSON_THROW_ON_ERROR);
 
-        return new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v4', $rawResponse, $rawResponse, $extraction);
+        return new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v5', $rawResponse, $rawResponse, $extraction);
     }
 
     /** @return array<string, mixed> */
@@ -165,7 +163,6 @@ class ExtractionValidatorTest extends TestCase
                 'income' => ['value' => '10000.00', 'confidence' => 0.95],
                 'commission_percentage' => ['value' => '2.00', 'confidence' => 0.95],
                 'source_commission' => ['value' => '200.00', 'confidence' => 0.95],
-                'source_return_amount' => ['value' => '9800.00', 'confidence' => 0.95],
             ]],
             'source_totals' => [
                 'income' => ['value' => '10000.00', 'confidence' => 0.95],

@@ -33,7 +33,6 @@ class RecordExtractionServiceTest extends TestCase
         $this->assertSame([null, null], $record->details->pluck('operation_number')->all());
         $this->assertContains('OPERATION_NUMBER_MISSING', array_column($issues, 'code'));
         $this->assertContains('SOURCE_COMMISSION_MISMATCH', array_column($issues, 'code'));
-        $this->assertContains('SOURCE_RETURN_MISMATCH', array_column($issues, 'code'));
         $this->assertContains('SOURCE_TOTAL_MISMATCH', array_column($issues, 'code'));
         $this->assertSame(RecordStatus::PROCESSING, $record->status);
     }
@@ -117,7 +116,6 @@ class RecordExtractionServiceTest extends TestCase
                     'income' => ['value' => '10000.00', 'confidence' => 0.9],
                     'commission_percentage' => ['value' => '2.00', 'confidence' => 0.9],
                     'source_commission' => ['value' => '199.00', 'confidence' => 0.9],
-                    'source_return_amount' => ['value' => '9801.00', 'confidence' => 0.9],
                 ],
                 [
                     'affiliation' => ['value' => 'AFF-2', 'confidence' => 0.9],
@@ -125,7 +123,6 @@ class RecordExtractionServiceTest extends TestCase
                     'income' => ['value' => '2000.00', 'confidence' => 0.9],
                     'commission_percentage' => ['value' => null, 'confidence' => 0],
                     'source_commission' => ['value' => '100.00', 'confidence' => 0.9],
-                    'source_return_amount' => ['value' => '1900.00', 'confidence' => 0.9],
                 ],
             ],
             'source_totals' => [

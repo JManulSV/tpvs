@@ -40,7 +40,7 @@ class OllamaAIServiceTest extends TestCase
 
         $this->assertSame('ollama', $result->provider);
         $this->assertSame('qwen2.5vl:3b', $result->model);
-        $this->assertSame('v4', $result->promptVersion);
+        $this->assertSame('v5', $result->promptVersion);
         $this->assertSame($rawProviderResponse, $result->rawResponse);
         $this->assertSame($content, $result->responseText);
         $this->assertSame($extraction, $result->decodedResponse);

@@ -102,9 +102,9 @@ class ProcessImageJobTest extends TestCase
         [$record, $image, $processing] = $this->aggregate();
         $extraction = $this->extraction('Example Co');
         $extraction['details'][0]['source_commission']['value'] = '1,200';
-        $extraction['details'][0]['source_return_amount']['value'] = '1.200';
         $extraction['source_totals']['income']['value'] = '1,200';
         $extraction['source_totals']['commission']['value'] = '1.200';
+        $extraction['source_totals']['return_amount']['value'] = '1,200';
         $this->mock(AIService::class, function ($mock) use ($extraction): void {
             $mock->shouldReceive('extract')->once()->andReturn($this->makeResult($extraction));
         });
@@ -122,11 +122,11 @@ class ProcessImageJobTest extends TestCase
         Storage::fake('record_images');
         [$record, $image, $processing] = $this->aggregate();
         $extraction = $this->extraction('Example Co');
+        $extraction['details'][0]['income']['value'] = '55.963.03';
         $extraction['details'][0]['source_commission']['value'] = '1,200';
-        $extraction['details'][0]['source_return_amount']['value'] = '1.200';
         $extraction['source_totals']['income']['value'] = '1,200';
         $extraction['source_totals']['commission']['value'] = '1.200';
-        $extraction['source_totals']['return_amount']['value'] = '55.963.03';
+        $extraction['source_totals']['return_amount']['value'] = '1,200';
         $this->mock(AIService::class, function ($mock) use ($extraction): void {
             $mock->shouldReceive('extract')->once()->andReturn($this->makeResult($extraction));
         });
@@ -148,7 +148,7 @@ class ProcessImageJobTest extends TestCase
             'AI_PROVIDER_CONNECTION_FAILED',
             'The AI provider could not be reached or timed out.',
             true,
-            promptVersion: 'v4',
+            promptVersion: 'v5',
         ));
         $this->app->instance(AIService::class, $service);
 
@@ -178,7 +178,7 @@ class ProcessImageJobTest extends TestCase
             'The AI provider returned a server error.',
             true,
             rawResponse: 'provider error body',
-            promptVersion: 'v4',
+            promptVersion: 'v5',
             httpStatus: 503,
         ));
         $this->app->instance(AIService::class, $provider);
@@ -256,7 +256,7 @@ class ProcessImageJobTest extends TestCase
     {
         $responseText ??= json_encode($extraction, JSON_THROW_ON_ERROR);
 
-        return new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v4', 'private provider response', $responseText, $extraction);
+        return new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v5', 'private provider response', $responseText, $extraction);
     }
 
     private function runJob(int $processingId): void
@@ -285,7 +285,6 @@ class ProcessImageJobTest extends TestCase
                 'income' => ['value' => '10000.00', 'confidence' => 0.95],
                 'commission_percentage' => ['value' => '2.00', 'confidence' => 0.95],
                 'source_commission' => ['value' => '200.00', 'confidence' => 0.95],
-                'source_return_amount' => ['value' => '9800.00', 'confidence' => 0.95],
             ]],
             'source_totals' => [
                 'income' => ['value' => '10000.00', 'confidence' => 0.95],
