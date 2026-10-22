@@ -61,7 +61,7 @@ Tests
 
 ## Image Review, Correction, Confirmation, and Cancellation
 
-**Status:** SPEC 09 / phase 8.10 contract; implementation status is tracked in the roadmap.
+**Status:** SPEC 09 / phase 8.10 implemented and verified (2026-10-22); checkpoint recorded in the roadmap.
 
 **Purpose:** Let an authorized Editor resolve the output of image extraction or a failed processing attempt without bypassing backend validation or the human-confirmation rule.
 

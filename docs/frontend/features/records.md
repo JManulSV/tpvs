@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09** adds image upload, processing progress, human review, correction, confirmation, cancellation, and retry. Its implementation status is tracked in the roadmap.
+**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. The checkpoint is recorded in the roadmap.
 
 ## Goal and Scope
 
@@ -71,10 +71,11 @@ Mutation errors are handled from the backend response: `RECORD_UPDATE_BLOCKED`, 
 
 ## Phase 8.10 Verification
 
-To be completed when SPEC 09 is implemented:
+Verified on 2026-10-22:
 
-- Backend feature suite, Vitest, lint, TypeScript, production build, and changed-file Pint checks pass.
-- Browser acceptance with `EDITOR` and `VIEWER` covers upload, processing, review, correction, confirmation, cancellation, and retry as documented in [`../06_testing.md`](../06_testing.md).
+- Backend feature suite (133 tests, 778 assertions), Vitest, lint, TypeScript, production build, and changed-file Pint checks pass.
+- Browser acceptance with `EDITOR` and `VIEWER` covers upload, processing, review, correction, confirmation, cancellation, retry, and stale-state `409` handling as documented in [`../06_testing.md`](../06_testing.md).
+- The live AI provider was Ollama `qwen2.5vl:3b`; its documented structural limitation produced an `ERROR` proposal, so the review/confirmation path used a controlled IMAGE Record in `NEEDS_REVIEW`. The same checkpoint covered the real upload, retry, and cancellation flow.
 - The implementation checkpoint is recorded in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
 
 ## Related Documents

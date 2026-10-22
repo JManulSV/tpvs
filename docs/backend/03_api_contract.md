@@ -133,9 +133,9 @@ Results are ordered by company name ascending and use Laravel's standard paginat
 
 Successful creation returns `201` with `{ "data": { "id": 1, "name": "Acme" } }`.
 
-## Records Contract — Phase 8.6 / SPEC 07 (Implemented) and SPEC 09 (Phase 8.10 contract)
+## Records Contract — Phase 8.6 / SPEC 07 (Implemented) and SPEC 09 (Phase 8.10 Implemented)
 
-The endpoints below implement the manual-record workflow for phase 8.6 and are covered by Laravel feature tests. SPEC 09 extends review, correction, confirmation, and cancellation as described below; its implementation status is tracked in the roadmap.
+The endpoints below implement the manual-record workflow for phase 8.6 and are covered by Laravel feature tests. SPEC 09 extends review, correction, confirmation, and cancellation as described below and was verified on 2026-10-22; the checkpoint is recorded in the roadmap.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |

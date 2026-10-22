@@ -1,6 +1,6 @@
 # SPEC 09 — Revisión, corrección, confirmación y cancelación de registros
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 05, SPEC 07, SPEC 08
 > **Date:** 2026-10-22
 > **Objective:** Completar el flujo humano que revisa, corrige, confirma o cancela registros `IMAGE`/`MANUAL` en `NEEDS_REVIEW` y registros en `ERROR`, con validación backend y auditoría básica.
@@ -169,23 +169,23 @@ La UI de esta fase es funcional, no el diseño final de 8.15.
 
 ## Acceptance criteria
 
-- [ ] No se añaden tablas ni migraciones; la spec se apoya en el esquema y `History` existentes.
-- [ ] `PUT /api/records/{record}` acepta `MANUAL` e `IMAGE` en `NEEDS_REVIEW` y conserva `source`, `status`, `Image` y `AIProcessing`.
-- [ ] La corrección exige motivo, valida el agregado completo, calcula importes en backend y escribe `record_updated` en la misma transacción.
-- [ ] La corrección rechaza `CONFIRMED`, `CANCELED`, `PENDING`, `PROCESSING` y `ERROR` con `409 RECORD_UPDATE_BLOCKED`.
-- [ ] `POST /api/records/{record}/confirm` confirma IMAGE válidos en `NEEDS_REVIEW` y mantiene el bloqueo para agregados incompletos o inválidos.
-- [ ] Los issues de AI no bloquean la confirmación si el agregado es válido; el evento History usa el motivo correspondiente a la fuente.
-- [ ] `POST /api/records/{record}/cancel` acepta `NEEDS_REVIEW` y `ERROR`, exige motivo y cambia a `CANCELED` atómicamente con evento `status`.
-- [ ] La cancelación no borra imagen, archivo ni `AIProcessing`, y la imagen deja de ser accesible después de cancelar.
-- [ ] Cancelar `CONFIRMED`, `PENDING`, `PROCESSING` o `CANCELED` devuelve `409 RECORD_CANCELLATION_BLOCKED`.
-- [ ] `VIEWER` recibe `403` en corregir, confirmar, cancelar y retry; conserva lectura de registro, imagen e issues.
-- [ ] Un fallo de persistencia o History revierte completamente corrección, confirmación o cancelación.
-- [ ] La UI permite cargar una imagen, muestra procesamiento y llega a revisión sin exponer rutas privadas ni la respuesta cruda de AI.
-- [ ] La pantalla de revisión muestra imagen, estado e issues, y permite corregir, confirmar y cancelar según rol y estado.
-- [ ] En `ERROR` la UI muestra diagnóstico seguro y permite retry o cancelación.
-- [ ] El polling se detiene en estados finales y un `409` refresca el registro.
-- [ ] Suite backend, Vitest, lint, TypeScript, build y Pint pasan; las guías reflejan el nuevo contrato.
-- [ ] El checkpoint de navegador demuestra el flujo completo y se documenta el proveedor AI usado.
+- [x] No se añaden tablas ni migraciones; la spec se apoya en el esquema y `History` existentes.
+- [x] `PUT /api/records/{record}` acepta `MANUAL` e `IMAGE` en `NEEDS_REVIEW` y conserva `source`, `status`, `Image` y `AIProcessing`.
+- [x] La corrección exige motivo, valida el agregado completo, calcula importes en backend y escribe `record_updated` en la misma transacción.
+- [x] La corrección rechaza `CONFIRMED`, `CANCELED`, `PENDING`, `PROCESSING` y `ERROR` con `409 RECORD_UPDATE_BLOCKED`.
+- [x] `POST /api/records/{record}/confirm` confirma IMAGE válidos en `NEEDS_REVIEW` y mantiene el bloqueo para agregados incompletos o inválidos.
+- [x] Los issues de AI no bloquean la confirmación si el agregado es válido; el evento History usa el motivo correspondiente a la fuente.
+- [x] `POST /api/records/{record}/cancel` acepta `NEEDS_REVIEW` y `ERROR`, exige motivo y cambia a `CANCELED` atómicamente con evento `status`.
+- [x] La cancelación no borra imagen, archivo ni `AIProcessing`, y la imagen deja de ser accesible después de cancelar.
+- [x] Cancelar `CONFIRMED`, `PENDING`, `PROCESSING` o `CANCELED` devuelve `409 RECORD_CANCELLATION_BLOCKED`.
+- [x] `VIEWER` recibe `403` en corregir, confirmar, cancelar y retry; conserva lectura de registro, imagen e issues.
+- [x] Un fallo de persistencia o History revierte completamente corrección, confirmación o cancelación.
+- [x] La UI permite cargar una imagen, muestra procesamiento y llega a revisión sin exponer rutas privadas ni la respuesta cruda de AI.
+- [x] La pantalla de revisión muestra imagen, estado e issues, y permite corregir, confirmar y cancelar según rol y estado.
+- [x] En `ERROR` la UI muestra diagnóstico seguro y permite retry o cancelación.
+- [x] El polling se detiene en estados finales y un `409` refresca el registro.
+- [x] Suite backend, Vitest, lint, TypeScript, build y Pint pasan; las guías reflejan el nuevo contrato.
+- [x] El checkpoint de navegador demuestra el flujo completo y se documenta el proveedor AI usado.
 
 ## Decisions
 

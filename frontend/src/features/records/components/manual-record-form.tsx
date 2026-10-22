@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm, type FieldPath, type FieldErrors } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
@@ -19,6 +19,7 @@ type ManualRecordFormProps = {
 } | {
   mode: "edit";
   record: RecordDetailView;
+  onEditComplete: () => void;
 };
 
 function initialValues(record?: RecordDetailView): ManualRecordFormValues {
@@ -60,6 +61,13 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
     defaultValues: initialValues(isEdit ? props.record : undefined),
   });
   const details = useFieldArray({ control: form.control, name: "details" });
+  const recordCompanyId = isEdit ? props.record.company?.id ?? null : null;
+
+  useEffect(() => {
+    if (recordCompanyId !== null && companiesQuery.isSuccess) {
+      form.setValue("company_id", recordCompanyId, { shouldValidate: true });
+    }
+  }, [companiesQuery.isSuccess, form, recordCompanyId]);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [editReason, setEditReason] = useState("");
@@ -95,11 +103,11 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
 
     try {
       if (props.mode === "edit") {
-        const updated = await updateMutation.mutateAsync({
+        await updateMutation.mutateAsync({
           id: props.record.id,
           input: { ...payload, reason: editReason.trim() },
         });
-        router.push(`/records/${updated.id}`);
+        props.onEditComplete();
       } else {
         await createMutation.mutateAsync(payload);
         form.reset(initialValues());

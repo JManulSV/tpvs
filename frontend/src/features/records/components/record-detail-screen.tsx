@@ -29,7 +29,7 @@ const aiStatusLabels: Record<AiProcessingStatus, string> = {
 };
 
 function money(value: string | null | undefined) {
-  if (value === null) return "—";
+  if (value === null || value === undefined) return "—";
   return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(value));
 }
 
@@ -86,7 +86,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   const isProcessing = record.status === "PENDING" || record.status === "PROCESSING";
 
   if (isEditing && canCorrect) {
-    return <ManualRecordForm mode="edit" record={record} />;
+    return <ManualRecordForm mode="edit" onEditComplete={() => setIsEditing(false)} record={record} />;
   }
 
   async function reportActionError(
