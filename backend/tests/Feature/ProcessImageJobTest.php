@@ -55,6 +55,27 @@ class ProcessImageJobTest extends TestCase
         );
     }
 
+    public function test_duplicate_job_after_completion_does_not_call_provider_or_overwrite_result(): void
+    {
+        Storage::fake('record_images');
+        [$record, $image, $processing] = $this->aggregate();
+        $extraction = $this->extraction('Example Co');
+        $this->mock(AIService::class, function ($mock) use ($extraction): void {
+            $mock->shouldReceive('extract')->once()->andReturn($this->makeResult($extraction));
+        });
+
+        $this->runJob($processing->id);
+        $firstResult = $processing->fresh()->result;
+        $firstCompletedAt = $processing->fresh()->completed_at;
+
+        $this->runJob($processing->id);
+
+        $this->assertSame(AiProcessingStatus::COMPLETED, $processing->fresh()->status);
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertSame($firstResult, $processing->fresh()->result);
+        $this->assertTrue($firstCompletedAt->equalTo($processing->fresh()->completed_at));
+    }
+
     public function test_structural_failure_finishes_in_error_without_applying_details(): void
     {
         Storage::fake('record_images');

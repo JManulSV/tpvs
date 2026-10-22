@@ -1,6 +1,6 @@
 # SPEC 08 — Pipeline asíncrono de extracción AI
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 06, SPEC 07
 > **Date:** 2026-10-20
 > **Objective:** Crear Records IMAGE desde una carga autorizada, procesar su imagen mediante Ollama en cola y persistir una propuesta validada para revisión humana o un error diagnosticable.
@@ -118,26 +118,26 @@ Errores HTTP síncronos: `401` no autenticado, `403` rol inválido, `419` CSRF i
 
 ## Acceptance criteria
 
-- [ ] Solo `EDITOR` autenticado con CSRF válido puede crear desde imagen o solicitar retry; `VIEWER` recibe `403`, anónimo `401` y CSRF inválido `419`.
-- [ ] Un upload inválido responde `422` sin Record, Image, AIProcessing, archivo activo ni job.
-- [ ] La creación válida persiste un Record IMAGE PENDING, Image privada y exactamente un AIProcessing PENDING dentro de la misma operación y retorna `202`.
-- [ ] El job se despacha después del commit; un fallo de persistencia limpia el archivo nuevo y un fallo de dispatch queda persistido como ERROR diagnosticable.
-- [ ] La URL de Ollama no aparece en código cliente, APIs públicas ni configuración del navegador; solo Laravel worker llama al proveedor.
-- [ ] La respuesta cruda, incluso JSON inválido, se conserva en base de datos backend y nunca aparece en el RecordResource ni en logs públicos; el recurso expone status, normalizado e issues sin claves privadas.
-- [ ] Ollama desconectado, timeout y HTTP 5xx generan hasta tres ejecuciones en el primer ciclo; al agotarse, Record y AIProcessing quedan ERROR.
-- [ ] Fallos estructurales, HTTP 4xx no transitorios y cinco o más valores numéricos no convertibles producen ERROR sin aplicar valores parciales al agregado.
-- [ ] De cero a cuatro valores numéricos no convertibles permiten persistir campos restantes y terminan Record NEEDS_REVIEW / AIProcessing COMPLETED.
-- [ ] Nulos válidos, compañía sin match, fecha no ISO, afiliación/sucursal/operación faltante, baja confianza y discrepancias nunca confirman el registro y se conservan como issues/revisión.
-- [ ] Company solo se asigna mediante coincidencia única exacta después de trim y comparación case-insensitive; no se ignoran acentos/puntuación ni se usa fuzzy matching.
-- [ ] Las comisiones y retornos oficiales se calculan con lógica de backend; comisión fuente fija solo es provisional cuando es válida, y diferencias con importes/totales impresos quedan documentadas.
-- [ ] Un resultado utilizable marca `AIProcessing.COMPLETED` y `Record.NEEDS_REVIEW`; ningún job/transición AI pone Record CONFIRMED.
-- [ ] Un retry manual solo se admite en ERROR, requiere Editor, reutiliza la misma fila y realiza una sola ejecución; otro estado responde `409`.
-- [ ] Jobs duplicados o ejecuciones ya completadas no realizan llamadas duplicadas ni sobrescriben una extracción utilizable.
-- [ ] El endpoint de confirmación rechaza IMAGE con campos obligatorios ausentes o cálculos/reglas inválidas y no cambia estado ni escribe History ante rechazo.
-- [ ] El primer ciclo permite tres llamadas totales ante fallos transitorios; cada retry manual permite una llamada y puede repetirse por Editor.
-- [ ] El worker supera los 300 segundos del cliente AI y `retry_after` supera el timeout del worker; Compose ya no fuerza una sola ejecución incompatible.
-- [ ] No se crean entradas History para transiciones AI dentro de este spec.
-- [ ] Las pruebas cubren Editor/Viewer, HTTP fake, validación, estados, persistencia, retry, idempotencia, transacciones, privacidad y confirmación bloqueada; el checkpoint documenta procesamiento sin confirmación automática.
+- [x] Solo `EDITOR` autenticado con CSRF válido puede crear desde imagen o solicitar retry; `VIEWER` recibe `403`, anónimo `401` y CSRF inválido `419`.
+- [x] Un upload inválido responde `422` sin Record, Image, AIProcessing, archivo activo ni job.
+- [x] La creación válida persiste un Record IMAGE PENDING, Image privada y exactamente un AIProcessing PENDING dentro de la misma operación y retorna `202`.
+- [x] El job se despacha después del commit; un fallo de persistencia limpia el archivo nuevo y un fallo de dispatch queda persistido como ERROR diagnosticable.
+- [x] La URL de Ollama no aparece en código cliente, APIs públicas ni configuración del navegador; solo Laravel worker llama al proveedor.
+- [x] La respuesta cruda, incluso JSON inválido, se conserva en base de datos backend y nunca aparece en el RecordResource ni en logs públicos; el recurso expone status, normalizado e issues sin claves privadas.
+- [x] Ollama desconectado, timeout y HTTP 5xx generan hasta tres ejecuciones en el primer ciclo; al agotarse, Record y AIProcessing quedan ERROR.
+- [x] Fallos estructurales, HTTP 4xx no transitorios y cinco o más valores numéricos no convertibles producen ERROR sin aplicar valores parciales al agregado.
+- [x] De cero a cuatro valores numéricos no convertibles permiten persistir campos restantes y terminan Record NEEDS_REVIEW / AIProcessing COMPLETED.
+- [x] Nulos válidos, compañía sin match, fecha no ISO, afiliación/sucursal/operación faltante, baja confianza y discrepancias nunca confirman el registro y se conservan como issues/revisión.
+- [x] Company solo se asigna mediante coincidencia única exacta después de trim y comparación case-insensitive; no se ignoran acentos/puntuación ni se usa fuzzy matching.
+- [x] Las comisiones y retornos oficiales se calculan con lógica de backend; comisión fuente fija solo es provisional cuando es válida, y diferencias con importes/totales impresos quedan documentadas.
+- [x] Un resultado utilizable marca `AIProcessing.COMPLETED` y `Record.NEEDS_REVIEW`; ningún job/transición AI pone Record CONFIRMED.
+- [x] Un retry manual solo se admite en ERROR, requiere Editor, reutiliza la misma fila y realiza una sola ejecución; otro estado responde `409`.
+- [x] Jobs duplicados o ejecuciones ya completadas no realizan llamadas duplicadas ni sobrescriben una extracción utilizable.
+- [x] El endpoint de confirmación rechaza IMAGE con campos obligatorios ausentes o cálculos/reglas inválidas y no cambia estado ni escribe History ante rechazo.
+- [x] El primer ciclo permite tres llamadas totales ante fallos transitorios; cada retry manual permite una llamada y puede repetirse por Editor.
+- [x] El worker supera los 300 segundos del cliente AI y `retry_after` supera el timeout del worker; Compose ya no fuerza una sola ejecución incompatible.
+- [x] No se crean entradas History para transiciones AI dentro de este spec.
+- [x] Las pruebas cubren Editor/Viewer, HTTP fake, validación, estados, persistencia, retry, idempotencia, transacciones, privacidad y confirmación bloqueada; el checkpoint documenta procesamiento sin confirmación automática.
 
 ## Decisions
 

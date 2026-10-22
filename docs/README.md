@@ -28,7 +28,7 @@ The documentation describes both the current repository implementation and the t
 
 ## Implementation Status
 
-The current backend is a Laravel 12 application with authentication, Companies, Records, private images, and the SPEC 08 asynchronous AI extraction implementation; its full PostgreSQL/Compose acceptance remains pending, and it is not the complete MVP backend.
+The current backend is a Laravel 12 application with authentication, Companies, Records, private images, and the SPEC 08 asynchronous AI extraction implementation; SPEC 08 is complete and verified against PostgreSQL, and it is not the complete MVP backend.
 
 Implemented now:
 

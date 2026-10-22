@@ -267,7 +267,7 @@ The Record resource includes an `image` object or `null`:
 
 The metadata contains no `file_path`, storage key, physical path, or public URL. It is included in Record detail and Record responses where the relation is loaded; a Record without an image reports `image: null`.
 
-## Asynchronous AI Image Extraction — SPEC 08 (Implemented; PostgreSQL acceptance pending)
+## Asynchronous AI Image Extraction — SPEC 08 (Implemented; PostgreSQL verified)
 
 The following routes implement the SPEC 08 asynchronous pipeline. They require Laravel's authenticated Sanctum session. Stateful browser mutations also require valid CSRF.
 
