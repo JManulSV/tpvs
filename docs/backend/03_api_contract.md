@@ -133,17 +133,18 @@ Results are ordered by company name ascending and use Laravel's standard paginat
 
 Successful creation returns `201` with `{ "data": { "id": 1, "name": "Acme" } }`.
 
-## Records Contract — Phase 8.6 / SPEC 07 (Implemented)
+## Records Contract — Phase 8.6 / SPEC 07 (Implemented) and SPEC 09 (Phase 8.10 contract)
 
-The endpoints below implement the manual-record workflow for phase 8.6 and are covered by Laravel feature tests.
+The endpoints below implement the manual-record workflow for phase 8.6 and are covered by Laravel feature tests. SPEC 09 extends review, correction, confirmation, and cancellation as described below; its implementation status is tracked in the roadmap.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
 | `GET` | `/api/records` | List records using search, filters, and pagination. | Authenticated `EDITOR` or `VIEWER` |
 | `POST` | `/api/records` | Create a manual record and its details. | Authenticated `EDITOR` only |
 | `GET` | `/api/records/{id}` | Retrieve a record and ordered details. | Authenticated `EDITOR` or `VIEWER` |
-| `PUT` | `/api/records/{id}` | Replace all editable record fields and details atomically. | Authenticated `EDITOR` only; only `MANUAL` + `NEEDS_REVIEW` |
-| `POST` | `/api/records/{id}/confirm` | Validate and confirm a manual record. | Authenticated `EDITOR` only; only `MANUAL` + `NEEDS_REVIEW` |
+| `PUT` | `/api/records/{id}` | Replace all editable record fields and details atomically. | Authenticated `EDITOR` only; `MANUAL` or `IMAGE` + `NEEDS_REVIEW` |
+| `POST` | `/api/records/{id}/confirm` | Validate and confirm a review-required record. | Authenticated `EDITOR` only; `NEEDS_REVIEW` |
+| `POST` | `/api/records/{id}/cancel` | Cancel a review-required or failed record with a reason. | Authenticated `EDITOR` only; `NEEDS_REVIEW` or `ERROR` |
 
 All endpoints use the authenticated Sanctum session. Laravel remains authoritative for authorization, business validation, calculated amounts, and state transitions. Frontend visibility does not grant permission.
 
@@ -165,9 +166,9 @@ All endpoints use the authenticated Sanctum session. Laravel remains authoritati
 
 When a `week` filter is supplied, `year` is required so the business period is unambiguous. The API does not validate `week` as an ISO week. Results are ordered by `updated_at` descending and use Laravel's standard paginated response (`data`, `links`, `meta`). List resources include record identity, nullable company and period, source, status, calculated income/commission/return totals, and the ordered movement summary needed by search and display. Affiliation and branch are returned on movement details, never on the Record root. Financial totals are calculated from `RecordDetail`; they are not stored as Record source-of-truth columns. Search matches affiliation and branch on any movement in the aggregate.
 
-### Manual Record Create and Replace Payload
+### Record Create and Replace Payload
 
-`POST /api/records` accepts the aggregate fields below and returns `201` with `{ "data": { ...record } }`. `PUT /api/records/{id}` accepts the same complete editable aggregate plus a required `reason`; it replaces, rather than patches, the record's full detail collection. The JSON example shows the common aggregate fields; include `reason` only for `PUT`. Neither request accepts `source`, `status`, `order`, `return_amount`, or aggregate totals as client-controlled values.
+`POST /api/records` accepts the aggregate fields below and returns `201` with `{ "data": { ...record } }`. `PUT /api/records/{id}` accepts the same complete editable aggregate plus a required `reason` for `MANUAL` or `IMAGE` records in `NEEDS_REVIEW`; it replaces, rather than patches, the record's full detail collection. The JSON example shows the common aggregate fields; include `reason` only for `PUT`. Neither request accepts `source`, `status`, `order`, `return_amount`, or aggregate totals as client-controlled values.
 
 ```json
 {
@@ -201,24 +202,34 @@ For percentage input, Laravel calculates `commission` using decimal arithmetic a
 
 `year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id` and all period fields are required. Each detail requires `operation_number`, `affiliation`, `branch`, `income`, and exactly one commission input. The API rejects `affiliation` or `branch` at the Record root; there is no legacy dual-payload support. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=status`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro manual confirmado`.
 
-On replacement, Laravel accepts only a `MANUAL` record in `NEEDS_REVIEW`. It validates the complete new aggregate before atomically updating the Record and replacing its details. It creates one generic `History` event with `field_name=manual_record_updated`, null `previous_value` and `new_value`, the authenticated `user_id`, and the supplied reason. The aggregate update and History event share one database transaction.
+On replacement, Laravel accepts a `MANUAL` or `IMAGE` record in `NEEDS_REVIEW`. It validates the complete new aggregate before atomically updating the Record and replacing its details. For IMAGE records, replacement preserves the associated Image and the existing `AIProcessing` row and result; it does not re-run AI, replace the image, or alter the AI evidence. The request must not change `source` or `status`, which remain as they were. Laravel creates one generic `History` event with `field_name=record_updated`, null `previous_value` and `new_value`, the authenticated `user_id`, and the supplied reason. The aggregate update and History event share one database transaction. Rows in `record_details` may be recreated by the full replacement; field-level before/after audit is deferred to phase 8.11.
 
 ### Record Resource and Detail
 
-`GET /api/records/{id}` returns `200` with `{ "data": { ...record } }`, including `id`, nullable `company`, `source`, `status`, nullable `year`, `week`, `week_start_date`, and `week_end_date`, ordered `details`, and calculated aggregate totals. The Record root does not expose `affiliation` or `branch`. Each detail contains `id`, nullable `operation_number`, `affiliation`, `branch`, `income`, `commission_percentage`, `commission`, `return_amount`, and `order`; IMAGE extraction may leave detail values null until review. Totals with no calculable value may be absent, whereas a calculated zero is returned as `"0.00"`. MANUAL creation and confirmation validation remain strict and reject incomplete business data. A missing record returns `404`. No private file paths are exposed.
+`GET /api/records/{id}` returns `200` with `{ "data": { ...record } }`, including `id`, nullable `company`, `source`, `status`, nullable `year`, `week`, `week_start_date`, and `week_end_date`, ordered `details`, and calculated aggregate totals. The Record root does not expose `affiliation` or `branch`. Each detail contains `id`, nullable `operation_number`, `affiliation`, `branch`, `income`, `commission_percentage`, `commission`, `return_amount`, and `order`; IMAGE extraction may leave detail values null until review. Totals with no calculable value may be absent, whereas a calculated zero is returned as `"0.00"`. MANUAL creation and all confirmation validation remain strict and reject incomplete business data. A missing record returns `404`. No private file paths are exposed.
 
 The list resource uses the same record fields and may omit detail fields not needed by the list, but it includes nullable company/period fields, state, source, calculated totals, and ordered movement summaries including affiliation and branch. Response types must be kept consistent between list and detail where a field has the same meaning. If a provisional IMAGE aggregate has no calculable total, the corresponding total may be absent; zero totals remain `"0.00"`.
 
 ### Confirm a Review-Required Record
 
-`POST /api/records/{id}/confirm` accepts an empty JSON object for records from workflows that require a separate human review, such as future image/AI capture. Laravel accepts only a valid record in `NEEDS_REVIEW`, revalidates its business data, and transactionally updates status to `CONFIRMED` with a History row for `status` (`NEEDS_REVIEW` to `CONFIRMED`), the authenticated user, and fixed reason `Registro manual confirmado`. Manual creation is different: Laravel validates and confirms it atomically when created, because the Editor enters and reviews the data together. Clients cannot choose the status.
+`POST /api/records/{id}/confirm` accepts an empty JSON object for records that require separate human review, including IMAGE/AI records. Laravel accepts only a record in `NEEDS_REVIEW`, revalidates its business data, and transactionally updates status to `CONFIRMED` with a History row for `status` (`NEEDS_REVIEW` to `CONFIRMED`) and the authenticated user. The fixed reason is `Registro manual confirmado` for MANUAL records and `Registro de imagen confirmado` for IMAGE records. For IMAGE records, confirmation additionally requires an active Image, a company, a complete business period, and complete movement data. AI issues are review signals and do not block confirmation once the persisted aggregate passes backend validation. Manual creation is different: Laravel validates and confirms it atomically when created, because the Editor enters and reviews the data together. Clients cannot choose the status or supply a confirmation reason.
+
+### Cancel a Review-Required or Failed Record
+
+`POST /api/records/{id}/cancel` accepts:
+
+```json
+{ "reason": "La imagen no es legible y no se puede reutilizar" }
+```
+
+Laravel accepts only a `NEEDS_REVIEW` or `ERROR` record. `reason` is required, trimmed, and limited to 2000 characters. The request must not accept client-controlled `status` or `source`. Laravel locks the Record, rechecks its state, changes it to `CANCELED`, and creates one `History` event for `status` with the previous state (`NEEDS_REVIEW` or `ERROR`), `new_value=CANCELED`, the authenticated user, and the supplied reason, all in one transaction. Cancellation preserves the Record's Image, private file, and `AIProcessing` evidence; it does not delete them. After cancellation, `GET /api/records/{record}/image` returns `409` as described in the Record Images contract. Clients cannot cancel `CONFIRMED`, `PENDING`, `PROCESSING`, or already `CANCELED` records.
 
 ### Record Errors
 
 - Unauthenticated requests return `401`; a `VIEWER` mutation returns `403`; missing resources return `404`.
 - Shape, relationship, invalid-date, inverted date-range, and financial input errors return Laravel's standard `422` validation structure, with errors keyed to the relevant field or detail index where possible.
-- A disallowed state/source transition returns `409` with a stable business code. Use `RECORD_UPDATE_BLOCKED` for replacement and `RECORD_CONFIRMATION_BLOCKED` for confirmation, with a stable reason in `details` such as `INVALID_STATE`, `INVALID_SOURCE`, or `BUSINESS_VALIDATION_FAILED`.
-- All multi-row create, replace, and confirmation operations roll back completely if persistence or History creation fails.
+- A disallowed state transition returns `409` with a stable business code. Use `RECORD_UPDATE_BLOCKED` for replacement, `RECORD_CONFIRMATION_BLOCKED` for confirmation, and `RECORD_CANCELLATION_BLOCKED` for cancellation, with a stable reason in `details` such as `INVALID_STATE` or `BUSINESS_VALIDATION_FAILED`.
+- All multi-row create, replace, confirmation, and cancellation operations roll back completely if persistence or History creation fails.
 
 ## Record Images Contract — Phase 8.7 (Implemented)
 

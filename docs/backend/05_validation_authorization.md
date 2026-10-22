@@ -42,7 +42,7 @@ Implement resource-specific permissions with Laravel Policies as each resource i
 
 Protect state-changing requests with Laravel CSRF validation. The Next.js BFF is the browser-facing same-origin boundary and must forward the session cookie and `X-XSRF-TOKEN`; do not exempt API mutations from CSRF to simplify the proxy.
 
-## Records — Phase 8.6 Contract Decisions
+## Records — Phase 8.6 / SPEC 09 Contract Decisions
 
 The Records API contract is documented in [`03_api_contract.md`](03_api_contract.md). Endpoints are implemented incrementally under SPEC 04; keep this validation guidance aligned with the verified implementation.
 
@@ -52,9 +52,10 @@ The Records API contract is documented in [`03_api_contract.md`](03_api_contract
 | --- | --- | --- |
 | List and view any record | Yes | Yes |
 | Create a manual record | Yes | No (`403`) |
-| Replace a manual record in `NEEDS_REVIEW` | Yes | No (`403`) |
-| Confirm a manual record in `NEEDS_REVIEW` | Yes | No (`403`) |
-| Replace or confirm a record with another source or state | No (`409`) | No (`403`) |
+| Replace a `MANUAL` or `IMAGE` record in `NEEDS_REVIEW` | Yes | No (`403`) |
+| Confirm a record in `NEEDS_REVIEW` | Yes | No (`403`) |
+| Cancel a record in `NEEDS_REVIEW` or `ERROR` | Yes | No (`403`) |
+| Replace, confirm, or cancel a record in another state | No (`409`) | No (`403`) |
 
 Every mutation must authorize on the backend, including requests made directly to Laravel or through the BFF. Client-hidden controls are only presentation.
 
@@ -78,20 +79,22 @@ The upload must not change source/status, create History or AIProcessing, or enq
 
 ### HTTP and Period Validation
 
-Use Form Requests for list, create, replace, and confirmation inputs. Validate the company relationship, required general fields, detail array shape, decimal precision, mutually exclusive commission inputs, and all query filter types. Return the standard Laravel `422` response for malformed or invalid user input.
+Use Form Requests for list, create, replace, confirmation, and cancellation inputs. Validate the company relationship, required general fields, detail array shape, decimal precision, mutually exclusive commission inputs, all query filter types, and the required cancellation reason. Return the standard Laravel `422` response for malformed or invalid user input.
 
 `year` and `week` are business period identifiers: `year` is the calendar year and `week` is an integer from 1 to 53. Do not validate against ISO or derive dates from these values. Require valid `week_start_date` and `week_end_date` dates with start not after end. Do not impose weekdays or a fixed range length. When a list query supplies `week`, require `year` as well.
 
 ### Business Validation and Financial Arithmetic
 
-For every manual detail, exactly one of `commission_percentage` or fixed-amount `commission` is required. `income` and fixed commission are non-negative decimal values with at most two decimal places. Percentage is from 0 through 100 and has at most two decimal places. Fixed commission may not exceed income. At least one detail is required.
+For every detail submitted during manual capture or review correction, exactly one of `commission_percentage` or fixed-amount `commission` is required. `income` and fixed commission are non-negative decimal values with at most two decimal places. Percentage is from 0 through 100 and has at most two decimal places. Fixed commission may not exceed income. At least one detail is required.
 
 Use decimal arithmetic, not binary floating-point arithmetic, for financial calculations. When a percentage is supplied, calculate commission with `ROUND_HALF_UP` to two decimal places. When a fixed commission is supplied, persist it and leave `commission_percentage` null. In both modes calculate `return_amount = income - commission`; do not accept return or Record-level totals from the client. The resulting return must be non-negative. All values are persisted at their schema's decimal precision.
 
 A valid new manual aggregate is created with `source=MANUAL` and status `CONFIRMED`, because the Editor enters and reviews the data in one operation. Create a History status event with null previous value, new value `CONFIRMED`, authenticated actor, and fixed reason `Registro manual confirmado`. Do not create an Image, AIProcessing, or AI job. A Record, its details, and History are persisted in one transaction.
 
-Replacement is full-aggregate rather than partial: validate all fields and details, require a non-empty reason, and allow only `MANUAL` + `NEEDS_REVIEW`. Update the Record, replace its details in submitted order, and create one generic History event (`manual_record_updated`, null before/after values, authenticated actor, supplied reason) in one transaction. Do not allow this endpoint to edit `CONFIRMED` records or change source/status.
+Replacement is full-aggregate rather than partial: validate all fields and details, require a non-empty reason, and allow only `MANUAL` or `IMAGE` in `NEEDS_REVIEW`. Update the Record, replace its details in submitted order, and create one generic History event (`record_updated`, null before/after values, authenticated actor, supplied reason) in one transaction. Do not allow this endpoint to edit `CONFIRMED`, `CANCELED`, `PENDING`, `PROCESSING`, or `ERROR` records or change source/status. For IMAGE records, the associated Image and `AIProcessing` row/result must remain unchanged; correction must not re-run AI, replace the image, or alter AI evidence.
 
-The separate confirmation endpoint is retained for future review-required workflows. Revalidate the complete business aggregate, allow only `NEEDS_REVIEW`, and transactionally persist status `CONFIRMED` with a History status transition and fixed reason `Registro manual confirmado`. Manual creation confirms in its creation transaction instead. Do not accept a client-provided target state or confirmation reason. Invalid source/state transitions return `409` with a stable business error code; no partial writes are allowed.
+Confirmation requires `NEEDS_REVIEW` and a complete, business-valid aggregate. Revalidate the persisted data, allow both `MANUAL` and `IMAGE`, and transactionally persist status `CONFIRMED` with a History status transition. Use the fixed reason `Registro manual confirmado` for MANUAL and `Registro de imagen confirmado` for IMAGE. IMAGE confirmation additionally requires an active Image, company, business period, and complete movement data. AI issues do not by themselves block confirmation after the aggregate passes backend validation. Manual creation confirms in its creation transaction instead. Do not accept a client-provided target state or confirmation reason. Invalid state transitions return `409` with a stable business error code; no partial writes are allowed.
+
+Cancellation requires a non-empty reason and allows only `NEEDS_REVIEW` or `ERROR`. Lock the Record, recheck its state, transactionally set `CANCELED`, and create a History `status` event with the previous state, the authenticated actor, and the supplied reason. Do not accept client-controlled `status` or `source`. Cancellation must preserve the Image, private file, and `AIProcessing` evidence. `CONFIRMED`, `PENDING`, `PROCESSING`, and already canceled records return `409` with a stable business code.
 
 The list's `month` filter uses `week_end_date`, consistent with the product reporting convention. Search is a case-insensitive substring over company name and any detail's operation number, affiliation, or branch. All calculated totals are derived from details and are never persisted as the financial source of truth. Schema nullability supports provisional IMAGE records; create/replace requests and confirmation validation continue to require complete company, period, and movement data.

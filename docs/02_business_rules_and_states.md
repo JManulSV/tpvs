@@ -35,6 +35,7 @@ AI interprets the image, the backend validates the financial data, the person re
 | `ERROR` | `PROCESSING` | Retry processing |
 | `NEEDS_REVIEW` | `CONFIRMED` | User validates and confirms |
 | `NEEDS_REVIEW` | `CANCELED` | User rejects the record |
+| `ERROR` | `CANCELED` | User discards a record that cannot be processed |
 | `CONFIRMED` | `NEEDS_REVIEW` | A confirmed record is modified |
 | `NEEDS_REVIEW` | `CONFIRMED` | Modified record is revalidated and approved |
 
@@ -172,3 +173,19 @@ Both sources use the same financial business validation rules. Image-derived rec
 - A mismatch blocks successful preparation and Word generation.
 - Word generation additionally requires the Record's associated Image.
 - A manual Record may be created and confirmed without an Image; an Image must be attached before Word generation.
+
+## 12. Review, Correction, Confirmation, and Cancellation Rules
+
+- Only an authenticated `EDITOR` may correct, confirm, cancel, or retry a record. `VIEWER` may read records, images, and AI diagnostics but cannot mutate them.
+- A record in `NEEDS_REVIEW` may be corrected by replacing its complete business aggregate: company, business period, and ordered movements. Correction preserves `source`, `status`, the associated Image, and the existing `AIProcessing` result.
+- Correction requires a reason. It must not re-run AI, replace the image after AI attempts, or alter the normalized/raw AI result.
+- A record may be confirmed only from `NEEDS_REVIEW`, after backend revalidation of the complete aggregate and financial rules.
+- AI issues are review signals, not a permanent confirmation block. Once the Editor has corrected the aggregate so it is complete and valid, unresolved AI issues do not prevent confirmation.
+- A record in `NEEDS_REVIEW` or `ERROR` may be canceled with a required reason. Cancellation changes the record to `CANCELED` and preserves its Image and `AIProcessing` evidence.
+- A `CONFIRMED`, `PENDING`, or `PROCESSING` record cannot be canceled in this workflow. `PENDING` and `PROCESSING` may still have work in flight; `CONFIRMED` records follow the audited modification workflow.
+- Correction, confirmation, and cancellation are transactional with their `History` events. A failure must leave no partial record, detail, or audit changes.
+- History events for this workflow use:
+  - `record_updated` with null previous/new values and the Editor's reason for correction;
+  - a `status` transition to `CONFIRMED` with the source-appropriate fixed reason for confirmation;
+  - a `status` transition to `CANCELED` with the Editor's reason for cancellation.
+- Detailed field-level before/after audit remains outside this workflow and is implemented in phase 8.11.

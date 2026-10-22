@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md). Backend-only phase 8.7 image HTTP acceptance is recorded in [`../11_technical_roadmap.md`](../11_technical_roadmap.md) and its API contract in [`../backend/03_api_contract.md`](../backend/03_api_contract.md).
+The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md). Backend-only phase 8.7 image HTTP acceptance is recorded in [`../11_technical_roadmap.md`](../11_technical_roadmap.md) and its API contract in [`../backend/03_api_contract.md`](../backend/03_api_contract.md). Phase 8.10 / SPEC 09 adds the review, correction, confirmation, and cancellation acceptance flow described below; its evidence is recorded when the implementation checkpoint passes.
 
 ## Verification Layers
 
@@ -110,6 +110,32 @@ Sign in through the browser and verify:
 Use a uniquely named QA company/record when the local database is operationally shared, then remove only the QA record's History and details, the record, and the QA company in foreign-key order after acceptance. Keep the existing test accounts and unrelated data.
 
 **Phase 8.6 browser verification (2026-10-15):** `EDITOR` saved manual record `#37` against QA company `#47` through `/records/new`; BFF POST returned `201`, persisted status `CONFIRMED`, and calculated income `$123.45`, commission `$6.17`, return `$117.28`. A custom business week 53 with date range `2026-10-01` through `2026-10-08` was accepted. The form stayed on `/records/new`, announced success, and reset all fields. The record appeared in `/records` and its detail displayed the calculations with no edit/confirm actions. `VIEWER` could list and view records, had no create link, `/records/new` redirected to `/records`, and a CSRF-valid direct POST returned `403`. QA record/company were removed; test accounts remain. The first browser attempt occurred before restoring a seeded company and submitted invalid data; it returned `422`, created no row, and was not counted as the successful checkpoint flow.
+
+### Record review, correction, confirmation, and cancellation browser acceptance (phase 8.10)
+
+Run the stack, the queue worker, and the local test accounts. The configured AI provider must be reachable for a live extraction; if it is not available, use a controlled IMAGE Record already in `NEEDS_REVIEW` and record that limitation in the evidence.
+
+```bash
+docker compose up -d
+docker compose exec -T tpvs-backend php artisan db:seed --class=TestUsersSeeder
+```
+
+Sign in through the browser and verify:
+
+1. As `EDITOR`, open `/records/new`, choose image upload, and submit a valid JPEG/PNG/WebP no larger than 10 MiB. Verify the request returns `202`, the UI redirects to the new Record, and `PENDING`/`PROCESSING` states are shown while polling.
+2. Confirm polling stops when the Record reaches `NEEDS_REVIEW`, `ERROR`, `CONFIRMED`, or `CANCELED`.
+3. For `NEEDS_REVIEW`, verify the screen shows the authorized image, the current status, safe AI issues, and persisted business data. Confirm no private path, storage key, provider host, raw AI response, or numeric confidence value is exposed.
+4. As `EDITOR`, correct the aggregate (company, period, movements, and reason). Verify the request succeeds, the Record remains `NEEDS_REVIEW`, `source` is unchanged, and the image/AI evidence is unchanged.
+5. Confirm the corrected Record. Verify Laravel revalidates, the state becomes `CONFIRMED`, and the UI no longer offers review actions. Verify History records the source-appropriate confirmation reason.
+6. As `EDITOR`, open or create an `ERROR` Record. Verify the safe diagnostic, retry action, and cancellation action are available. Use retry once and verify it performs a single manual attempt; then cancel with a reason and verify the state becomes `CANCELED`.
+7. Verify a canceled Record remains readable, its image is no longer accessible, and its image/AI evidence was not deleted.
+8. Verify a `NEEDS_REVIEW` Record can also be canceled with a reason, while `CONFIRMED`, `PENDING`, and `PROCESSING` Records reject cancellation.
+9. As `VIEWER`, open a reviewable Record and verify the image, status, data, and safe AI issues are readable while all mutation actions are absent. Send a CSRF-valid direct correction/confirmation/cancellation request and confirm Laravel returns `403`.
+10. Force a stale-state action where practical and verify the UI handles the resulting `409` by refreshing the Record and showing the backend message. Check the browser console for unexpected JavaScript exceptions; expected `401`/`403`/`409` HTTP responses may appear as failed requests.
+
+Use uniquely named QA records/companies and remove only the QA data in foreign-key order after acceptance. Do not remove unrelated data or the local test accounts.
+
+**Phase 8.10 browser verification:** pending implementation.
 
 ### Integration and end-to-end checks
 
