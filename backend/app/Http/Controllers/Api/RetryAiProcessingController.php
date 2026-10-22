@@ -54,7 +54,7 @@ class RetryAiProcessingController extends Controller
         }
 
         try {
-            ProcessImageJob::dispatch($result->getKey(), manualRetry: true);
+            ProcessImageJob::dispatch($result->getKey(), manualRetry: true)->afterCommit();
         } catch (Throwable) {
             $this->markDispatchFailure($record, $result);
         }

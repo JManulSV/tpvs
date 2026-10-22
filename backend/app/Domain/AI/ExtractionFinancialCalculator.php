@@ -3,10 +3,13 @@
 namespace App\Domain\AI;
 
 use App\Domain\AI\DTO\ExtractedDetailFinancialValues;
+use App\Domain\Records\BusinessValidator;
 
 class ExtractionFinancialCalculator
 {
     private const MAX_MONEY_CENTS = 999_999_999_999;
+
+    public function __construct(private readonly BusinessValidator $businessValidator = new BusinessValidator) {}
 
     /**
      * Calculate official provisional financial values from normalized evidence.
@@ -22,33 +25,11 @@ class ExtractionFinancialCalculator
         $sourceCommission = $this->money($this->value($detail, 'source_commission'), "details.{$index}.source_commission", $issues);
         $sourceReturn = $this->money($this->value($detail, 'source_return_amount'), "details.{$index}.source_return_amount", $issues);
 
-        $commission = null;
-        $returnAmount = null;
-        if ($income !== null) {
-            if ($percentage !== null) {
-                $incomeCents = $this->toCents($income);
-                $percentageHundredths = $this->toCents($percentage);
-                if ($percentageHundredths > 0 && $incomeCents > intdiv(PHP_INT_MAX - 5000, $percentageHundredths)) {
-                    $issues[] = $this->issue("details.{$index}.commission", 'CALCULATED_COMMISSION_OUT_OF_RANGE', 'The calculated commission exceeds the supported range.');
-                } else {
-                    $commissionCents = intdiv(($incomeCents * $percentageHundredths) + 5000, 10000);
-                    if ($commissionCents <= $incomeCents && $commissionCents <= self::MAX_MONEY_CENTS) {
-                        $commission = $this->fromCents($commissionCents);
-                        $returnAmount = $this->fromCents($incomeCents - $commissionCents);
-                    } else {
-                        $issues[] = $this->issue("details.{$index}.commission", 'CALCULATED_COMMISSION_OUT_OF_RANGE', 'The calculated commission violates financial limits.');
-                    }
-                }
-            } elseif ($sourceCommission !== null) {
-                $incomeCents = $this->toCents($income);
-                $sourceCommissionCents = $this->toCents($sourceCommission);
-                if ($sourceCommissionCents <= $incomeCents) {
-                    $commission = $sourceCommission;
-                    $returnAmount = $this->fromCents($incomeCents - $sourceCommissionCents);
-                } else {
-                    $issues[] = $this->issue("details.{$index}.source_commission", 'FIXED_COMMISSION_EXCEEDS_INCOME', 'The source commission exceeds income and cannot be used as a provisional fixed commission.', $sourceCommission);
-                }
-            }
+        $calculated = $this->businessValidator->calculateProvisionalImageAmounts($income, $percentage, $sourceCommission);
+        $commission = $calculated['commission'];
+        $returnAmount = $calculated['return_amount'];
+        foreach ($calculated['issues'] as $calculationIssue) {
+            $issues[] = $this->issue("details.{$index}.commission", $calculationIssue['code'], $calculationIssue['message']);
         }
 
         if ($commission !== null && $sourceCommission !== null && $commission !== $sourceCommission) {
@@ -105,11 +86,6 @@ class ExtractionFinancialCalculator
         [$whole, $fraction] = explode('.', $amount, 2);
 
         return ((int) $whole * 100) + (int) $fraction;
-    }
-
-    private function fromCents(int $amount): string
-    {
-        return intdiv($amount, 100).'.'.str_pad((string) ($amount % 100), 2, '0', STR_PAD_LEFT);
     }
 
     /** @return array{path: string, code: string, severity: string, message: string, value?: mixed} */

@@ -13,11 +13,19 @@ use App\Models\Record;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Tests\Support\EnforceCsrfToken;
 use Tests\TestCase;
 
 class AiProcessingRetryTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['sanctum.middleware.validate_csrf_token' => EnforceCsrfToken::class]);
+    }
 
     public function test_editor_can_retry_failed_image_processing_once_using_the_existing_row(): void
     {
@@ -46,6 +54,24 @@ class AiProcessingRetryTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => UserRole::VIEWER]), 'web')
             ->postJson('/api/records/'.$record->id.'/ai-processing/retry', [])
             ->assertForbidden();
+    }
+
+    public function test_stateful_editor_retry_requires_valid_csrf_token(): void
+    {
+        Queue::fake();
+        [$record] = $this->failedAggregate();
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+
+        $this->withSession(['_token' => 'expected-csrf-token'])
+            ->actingAs($editor, 'web')
+            ->post('/api/records/'.$record->id.'/ai-processing/retry', [], [
+                'Origin' => 'http://localhost:3000',
+                'X-CSRF-TOKEN' => 'invalid-csrf-token',
+            ])
+            ->assertStatus(419);
+
+        $this->assertSame(RecordStatus::ERROR, $record->fresh()->status);
+        Queue::assertNothingPushed();
     }
 
     public function test_retry_is_rejected_unless_the_image_record_and_processing_are_in_error(): void

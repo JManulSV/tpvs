@@ -32,12 +32,20 @@ class RecordExtractionService
             $issues[] = $companyIssue;
         }
 
+        $weekStartDate = $this->fieldValue($recordData, 'week_start_date');
+        $weekEndDate = $this->fieldValue($recordData, 'week_end_date');
+        if ($weekStartDate !== null && $weekEndDate !== null && $weekStartDate > $weekEndDate) {
+            $issues[] = $this->issue('record.week_end_date', 'INVERTED_WEEK_DATE_RANGE', 'The period end date is earlier than its start date; both dates require review.', $weekEndDate);
+            $weekStartDate = null;
+            $weekEndDate = null;
+        }
+
         $record->forceFill([
             'company_id' => $companyId,
             'year' => $this->fieldValue($recordData, 'year'),
             'week' => $this->fieldValue($recordData, 'week'),
-            'week_start_date' => $this->fieldValue($recordData, 'week_start_date'),
-            'week_end_date' => $this->fieldValue($recordData, 'week_end_date'),
+            'week_start_date' => $weekStartDate,
+            'week_end_date' => $weekEndDate,
         ])->save();
 
         $record->details()->delete();
@@ -100,9 +108,10 @@ class RecordExtractionService
         }
 
         $normalizedName = mb_strtolower(trim($companyName), 'UTF-8');
-        $matches = Company::query()->get(['id', 'name'])->filter(
-            static fn (Company $company): bool => mb_strtolower(trim($company->name), 'UTF-8') === $normalizedName,
-        );
+        $matches = Company::query()
+            ->whereRaw('LOWER(BTRIM(name)) = ?', [$normalizedName])
+            ->limit(2)
+            ->get(['id']);
 
         if ($matches->count() === 1) {
             return [$matches->first()->id, null];

@@ -15,6 +15,7 @@ use App\Models\AiProcessing;
 use App\Models\Company;
 use App\Models\Image;
 use App\Models\Record;
+use Illuminate\Contracts\Queue\Job as QueueJobContract;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
@@ -71,7 +72,50 @@ class ProcessImageJobTest extends TestCase
         $this->assertSame(RecordStatus::ERROR, $record->fresh()->status);
         $this->assertSame(AiProcessingStatus::ERROR, $processing->fresh()->status);
         $this->assertDatabaseCount('record_details', 0);
-        $this->assertSame('{invalid', $processing->fresh()->result['raw_response']);
+        $this->assertSame('private provider response', $processing->fresh()->result['raw_response']);
+    }
+
+    public function test_four_unconvertible_numeric_values_still_persist_usable_fields(): void
+    {
+        Storage::fake('record_images');
+        [$record, $image, $processing] = $this->aggregate();
+        $extraction = $this->extraction('Example Co');
+        $extraction['details'][0]['source_commission']['value'] = '1,200';
+        $extraction['details'][0]['source_return_amount']['value'] = '1.200';
+        $extraction['source_totals']['income']['value'] = '1,200';
+        $extraction['source_totals']['commission']['value'] = '1.200';
+        $this->mock(AIService::class, function ($mock) use ($extraction): void {
+            $mock->shouldReceive('extract')->once()->andReturn($this->makeResult($extraction));
+        });
+
+        $this->runJob($processing->id);
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertSame(AiProcessingStatus::COMPLETED, $processing->fresh()->status);
+        $this->assertSame(4, $processing->fresh()->result['unconvertible_numeric_count']);
+        $this->assertSame('10000.00', $record->fresh()->details()->firstOrFail()->income);
+    }
+
+    public function test_five_unconvertible_numeric_values_fail_without_applying_any_detail(): void
+    {
+        Storage::fake('record_images');
+        [$record, $image, $processing] = $this->aggregate();
+        $extraction = $this->extraction('Example Co');
+        $extraction['details'][0]['source_commission']['value'] = '1,200';
+        $extraction['details'][0]['source_return_amount']['value'] = '1.200';
+        $extraction['source_totals']['income']['value'] = '1,200';
+        $extraction['source_totals']['commission']['value'] = '1.200';
+        $extraction['source_totals']['return_amount']['value'] = '55.963.03';
+        $this->mock(AIService::class, function ($mock) use ($extraction): void {
+            $mock->shouldReceive('extract')->once()->andReturn($this->makeResult($extraction));
+        });
+
+        $this->runJob($processing->id);
+
+        $this->assertSame(RecordStatus::ERROR, $record->fresh()->status);
+        $this->assertSame(AiProcessingStatus::ERROR, $processing->fresh()->status);
+        $this->assertSame(5, $processing->fresh()->result['unconvertible_numeric_count']);
+        $this->assertSame(0, $record->fresh()->details()->count());
     }
 
     public function test_transient_failure_is_kept_for_retry_until_final_attempt(): void
@@ -101,6 +145,65 @@ class ProcessImageJobTest extends TestCase
         $this->assertSame(RecordStatus::PROCESSING, $record->fresh()->status);
         $this->assertSame(AiProcessingStatus::PROCESSING, $processing->fresh()->status);
         $this->assertSame('AI_PROVIDER_CONNECTION_FAILED', $processing->fresh()->error_message);
+    }
+
+    public function test_initial_cycle_stops_after_three_transient_provider_calls(): void
+    {
+        Storage::fake('record_images');
+        [$record, $image, $processing] = $this->aggregate();
+        $provider = Mockery::mock(AIService::class);
+        $provider->shouldReceive('extract')->times(3)->andThrow(new AiProviderException(
+            'AI_PROVIDER_SERVER_ERROR',
+            'The AI provider returned a server error.',
+            true,
+            rawResponse: 'provider error body',
+            promptVersion: 'v4',
+            httpStatus: 503,
+        ));
+        $this->app->instance(AIService::class, $provider);
+
+        foreach ([1, 2] as $attempt) {
+            $queueJob = Mockery::mock(QueueJobContract::class);
+            $queueJob->shouldReceive('attempts')->andReturn($attempt);
+            $job = (new ProcessImageJob($processing->id))->setJob($queueJob);
+
+            try {
+                $job->handle(app(AIService::class), app(ExtractionValidator::class), app(RecordExtractionService::class));
+                $this->fail('Transient provider errors before the final attempt should be retried.');
+            } catch (AiProviderException $exception) {
+                $this->assertTrue($exception->transient);
+            }
+        }
+
+        $finalQueueJob = Mockery::mock(QueueJobContract::class);
+        $finalQueueJob->shouldReceive('attempts')->andReturn(3);
+        $finalJob = (new ProcessImageJob($processing->id))->setJob($finalQueueJob);
+        $finalJob->handle(app(AIService::class), app(ExtractionValidator::class), app(RecordExtractionService::class));
+
+        $this->assertSame(RecordStatus::ERROR, $record->fresh()->status);
+        $this->assertSame(AiProcessingStatus::ERROR, $processing->fresh()->status);
+        $this->assertSame('AI_PROVIDER_SERVER_ERROR', $processing->fresh()->error_message);
+        $this->assertSame('provider error body', $processing->fresh()->result['raw_response']);
+    }
+
+    public function test_nontransient_provider_error_does_not_retry(): void
+    {
+        Storage::fake('record_images');
+        [$record, $image, $processing] = $this->aggregate();
+        $provider = Mockery::mock(AIService::class);
+        $provider->shouldReceive('extract')->once()->andThrow(new AiProviderException(
+            'AI_PROVIDER_REQUEST_REJECTED',
+            'The AI provider rejected the extraction request.',
+            false,
+            httpStatus: 404,
+        ));
+        $this->app->instance(AIService::class, $provider);
+
+        $this->runJob($processing->id);
+
+        $this->assertSame(RecordStatus::ERROR, $record->fresh()->status);
+        $this->assertSame(AiProcessingStatus::ERROR, $processing->fresh()->status);
+        $this->assertSame('AI_PROVIDER_REQUEST_REJECTED', $processing->fresh()->error_message);
     }
 
     /** @return array{0: Record, 1: Image, 2: AiProcessing} */
@@ -133,6 +236,15 @@ class ProcessImageJobTest extends TestCase
         $responseText ??= json_encode($extraction, JSON_THROW_ON_ERROR);
 
         return new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v4', 'private provider response', $responseText, $extraction);
+    }
+
+    private function runJob(int $processingId): void
+    {
+        (new ProcessImageJob($processingId))->handle(
+            app(AIService::class),
+            app(ExtractionValidator::class),
+            app(RecordExtractionService::class),
+        );
     }
 
     /** @return array<string, mixed> */

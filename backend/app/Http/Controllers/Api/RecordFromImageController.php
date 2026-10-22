@@ -64,7 +64,7 @@ class RecordFromImageController extends Controller
         }
 
         try {
-            ProcessImageJob::dispatch($processing->getKey());
+            ProcessImageJob::dispatch($processing->getKey())->afterCommit();
         } catch (\Throwable $exception) {
             report($exception);
             DB::transaction(function () use ($record, $processing): void {
@@ -79,6 +79,17 @@ class RecordFromImageController extends Controller
                     'status' => AiProcessingStatus::ERROR,
                     'error_message' => 'AI_JOB_DISPATCH_FAILED',
                     'completed_at' => now(),
+                    'result' => [
+                        'prompt_version' => 'v4',
+                        'normalized_extraction' => null,
+                        'issues' => [[
+                            'path' => '$',
+                            'code' => 'AI_JOB_DISPATCH_FAILED',
+                            'severity' => 'error',
+                            'message' => 'The extraction job could not be queued.',
+                        ]],
+                        'unconvertible_numeric_count' => 0,
+                    ],
                 ])->save();
             });
         }

@@ -49,16 +49,18 @@ class RecordExtractionServiceTest extends TestCase
         $this->assertContains('COMPANY_NOT_FOUND', array_column($issues, 'code'));
     }
 
-    public function test_it_leaves_company_unresolved_when_exact_match_is_ambiguous(): void
+    public function test_it_leaves_company_unresolved_when_extracted_name_is_blank_after_trim(): void
     {
         Company::factory()->create(['name' => 'Acme']);
-        Company::factory()->create(['name' => ' ACME ']);
+        Company::factory()->create(['name' => 'ACME Corporation']);
         $record = $this->imageRecord();
 
-        $issues = $this->service()->apply($record, $this->extraction('Acme'));
+        $extraction = $this->extraction('Acme');
+        $extraction['record']['company_name']['value'] = '   ';
+        $issues = $this->service()->apply($record, $extraction);
 
         $this->assertNull($record->fresh()->company_id);
-        $this->assertContains('COMPANY_AMBIGUOUS', array_column($issues, 'code'));
+        $this->assertContains('COMPANY_NAME_MISSING', array_column($issues, 'code'));
     }
 
     public function test_it_does_not_persist_values_outside_schema_constraints(): void
