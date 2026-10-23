@@ -160,6 +160,29 @@ export type RecordResponse = {
   data: RecordDetailView;
 };
 
+export type RecordHistoryUser = {
+  id: number;
+  name: string;
+  email: string;
+};
+
+export type RecordHistoryEntry = {
+  id: number;
+  field_name: string;
+  previous_value: string | null;
+  new_value: string | null;
+  reason: string;
+  created_at: string;
+  user: RecordHistoryUser;
+};
+
+export type RecordHistoryParams = {
+  page?: number;
+  per_page?: number;
+};
+
+export type RecordHistoryResponse = LaravelPagination<RecordHistoryEntry>;
+
 export type ManualRecordInput = {
   company_id: number;
   year: number;
@@ -227,6 +250,8 @@ export function toRecordsApiError(error: unknown): RecordsApiError {
         response?.message ?? "Revisa los datos ingresados.",
         status,
         response?.errors ?? {},
+        response?.code ?? null,
+        response?.details?.reason ?? null,
       );
     default:
       if (!error.response) {

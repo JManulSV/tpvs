@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recordsService } from "../services/records.service";
-import type { CancelRecordInput, ManualRecordInput, RecordListParams, UpdateManualRecordInput } from "../types";
+import type {
+  CancelRecordInput,
+  ManualRecordInput,
+  RecordHistoryParams,
+  RecordListParams,
+  UpdateManualRecordInput,
+} from "../types";
 
 const processingPollIntervalMs = 3000;
 
@@ -10,6 +16,9 @@ export const recordKeys = {
   list: (params: RecordListParams) => [...recordKeys.lists(), params] as const,
   details: () => [...recordKeys.all, "detail"] as const,
   detail: (id: number) => [...recordKeys.details(), id] as const,
+  histories: (id: number) => [...recordKeys.detail(id), "history"] as const,
+  history: (id: number, params: RecordHistoryParams = {}) =>
+    [...recordKeys.histories(id), params] as const,
 };
 
 export function useRecords(params: RecordListParams = {}) {
@@ -28,6 +37,14 @@ export function useRecord(id: number) {
       const status = query.state.data?.status;
       return status === "PENDING" || status === "PROCESSING" ? processingPollIntervalMs : false;
     },
+  });
+}
+
+export function useRecordHistory(id: number, params: RecordHistoryParams = {}) {
+  return useQuery({
+    queryKey: recordKeys.history(id, params),
+    queryFn: () => recordsService.getHistory(id, params),
+    enabled: Number.isInteger(id) && id > 0,
   });
 }
 
@@ -66,7 +83,10 @@ export function useUpdateRecord() {
     retry: false,
     onSuccess: async (record) => {
       queryClient.setQueryData(recordKeys.detail(record.id), record);
-      await queryClient.invalidateQueries({ queryKey: recordKeys.lists() });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: recordKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: recordKeys.histories(record.id) }),
+      ]);
     },
   });
 }
@@ -79,7 +99,10 @@ export function useConfirmRecord() {
     retry: false,
     onSuccess: async (record) => {
       queryClient.setQueryData(recordKeys.detail(record.id), record);
-      await queryClient.invalidateQueries({ queryKey: recordKeys.lists() });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: recordKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: recordKeys.histories(record.id) }),
+      ]);
     },
   });
 }
@@ -93,7 +116,10 @@ export function useCancelRecord() {
     retry: false,
     onSuccess: async (record) => {
       queryClient.setQueryData(recordKeys.detail(record.id), record);
-      await queryClient.invalidateQueries({ queryKey: recordKeys.lists() });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: recordKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: recordKeys.histories(record.id) }),
+      ]);
     },
   });
 }
