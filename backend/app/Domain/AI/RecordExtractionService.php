@@ -52,13 +52,11 @@ class RecordExtractionService
         foreach ($extraction['details'] as $index => $detail) {
             $financial = $this->financialCalculator->calculate($detail, $index);
             array_push($issues, ...$financial->issues);
-            $issues[] = $this->issue("details.{$index}.operation_number", 'OPERATION_NUMBER_MISSING', 'An operation number is not part of AI extraction and requires human review.');
 
             $affiliation = $this->safeText($this->fieldValue($detail, 'affiliation'), "details.{$index}.affiliation", $issues);
             $branch = $this->safeText($this->fieldValue($detail, 'branch'), "details.{$index}.branch", $issues);
 
             $record->details()->create([
-                'operation_number' => null,
                 'affiliation' => $affiliation,
                 'branch' => $branch,
                 'income' => $financial->income,

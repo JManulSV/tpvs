@@ -15,7 +15,6 @@ return new class extends Migration
         Schema::create('record_details', function (Blueprint $table) {
             $table->id();
             $table->foreignId('record_id')->constrained()->cascadeOnDelete();
-            $table->string('operation_number')->nullable();
             $table->string('affiliation')->nullable();
             $table->string('branch')->nullable();
             $table->decimal('income', 12, 2)->nullable();
@@ -26,7 +25,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['record_id', 'order']);
-            $table->index('operation_number');
         });
 
         DB::statement(<<<'SQL'

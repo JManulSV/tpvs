@@ -91,8 +91,7 @@ class RecordController extends Controller
                     $query->whereHas('company', static fn ($companyQuery) => $companyQuery
                         ->whereRaw('LOWER(name) LIKE ?', [$term]))
                         ->orWhereHas('details', static fn ($detailsQuery) => $detailsQuery
-                            ->whereRaw('LOWER(operation_number) LIKE ?', [$term])
-                            ->orWhereRaw('LOWER(affiliation) LIKE ?', [$term])
+                            ->whereRaw('LOWER(affiliation) LIKE ?', [$term])
                             ->orWhereRaw('LOWER(branch) LIKE ?', [$term]));
                 });
             })
@@ -299,8 +298,7 @@ class RecordController extends Controller
         }
 
         foreach ($record->details as $detail) {
-            if ($detail->operation_number === null
-                || $detail->affiliation === null
+            if ($detail->affiliation === null
                 || $detail->branch === null
                 || $detail->income === null
                 || $detail->commission === null

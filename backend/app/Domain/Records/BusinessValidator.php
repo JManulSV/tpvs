@@ -102,7 +102,6 @@ class BusinessValidator
             }
 
             $calculated[] = [
-                'operation_number' => $detail['operation_number'],
                 'affiliation' => $detail['affiliation'],
                 'branch' => $detail['branch'],
                 'income' => $this->fromCents($incomeCents),
@@ -136,7 +135,7 @@ class BusinessValidator
         }
 
         $details = $record->details->map(static function ($detail): array {
-            foreach (['operation_number', 'affiliation', 'branch', 'income', 'commission', 'return_amount'] as $field) {
+            foreach (['affiliation', 'branch', 'income', 'commission', 'return_amount'] as $field) {
                 if ($detail->{$field} === null || $detail->{$field} === '') {
                     throw ValidationException::withMessages([
                         "details.{$detail->order}.{$field}" => ['This field is required before the record can be confirmed.'],
@@ -145,7 +144,6 @@ class BusinessValidator
             }
 
             $input = [
-                'operation_number' => $detail->operation_number,
                 'affiliation' => $detail->affiliation,
                 'branch' => $detail->branch,
                 'income' => $detail->income,

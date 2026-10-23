@@ -32,7 +32,6 @@ class UpdateRecordRequest extends FormRequest
             'week_end_date' => ['required', 'date'],
             'details' => ['required', 'array', 'min:1'],
             'details.*' => ['required', 'array'],
-            'details.*.operation_number' => ['required', 'string', 'max:255'],
             'details.*.affiliation' => ['required', 'string', 'max:255'],
             'details.*.branch' => ['required', 'string', 'max:255'],
             'details.*.income' => ['required', 'string', 'regex:/^\d{1,10}(?:\.\d{1,2})?$/'],

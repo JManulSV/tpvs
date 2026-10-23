@@ -38,8 +38,7 @@ Follow these rules exactly:
 6. The record object contains document-level company and period fields only. Affiliation and
    branch belong to each individual movement in details and must never be moved to record.
 7. Include exactly one details item for each visible movement, in visual reading order. Do not
-   merge rows or create movements from totals. Array position represents movement order; do not
-   extract operation_number.
+   merge rows or create movements from totals. Array position represents movement order.
 8. source_commission, source_return_amount, and source_totals are transcriptions of printed
    source amounts only. Never calculate them. If the document does not print a per-movement
    return amount, use null even if it can be calculated from income and commission.

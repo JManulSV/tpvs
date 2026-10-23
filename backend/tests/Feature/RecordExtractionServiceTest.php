@@ -30,8 +30,6 @@ class RecordExtractionServiceTest extends TestCase
         $this->assertSame(['AFF-1', 'AFF-2'], $record->details->pluck('affiliation')->all());
         $this->assertSame(['200.00', '100.00'], $record->details->pluck('commission')->all());
         $this->assertSame(['9800.00', '1900.00'], $record->details->pluck('return_amount')->all());
-        $this->assertSame([null, null], $record->details->pluck('operation_number')->all());
-        $this->assertContains('OPERATION_NUMBER_MISSING', array_column($issues, 'code'));
         $this->assertContains('SOURCE_COMMISSION_MISMATCH', array_column($issues, 'code'));
         $this->assertContains('SOURCE_TOTAL_MISMATCH', array_column($issues, 'code'));
         $this->assertSame(RecordStatus::PROCESSING, $record->status);

@@ -16,7 +16,6 @@ class RecordDetailResource extends JsonResource
     {
         return [
             'id' => $this->getKey(),
-            'operation_number' => $this->operation_number,
             'affiliation' => $this->affiliation,
             'branch' => $this->branch,
             'income' => $this->income,

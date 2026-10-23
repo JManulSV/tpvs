@@ -44,7 +44,6 @@ class RecordsApiTest extends TestCase
                 ->assertJsonPath('data.0.company.id', $record->company_id)
                 ->assertJsonPath('data.0.source', RecordSource::MANUAL->value)
                 ->assertJsonPath('data.0.status', RecordStatus::NEEDS_REVIEW->value)
-                ->assertJsonPath('data.0.details.0.operation_number', 'OP-12345')
                 ->assertJsonPath('data.0.details.0.affiliation', 'AFF-12345')
                 ->assertJsonPath('data.0.details.0.branch', 'Guadalajara');
 
@@ -67,17 +66,15 @@ class RecordsApiTest extends TestCase
         $record = $this->createRecordWithDetails($company, [], [
             'affiliation' => 'AFF-928',
             'branch' => 'Guadalajara Centro',
-            'operation_number' => 'OP-74531',
         ]);
         RecordDetail::factory()->for($record)->create([
-            'operation_number' => 'OP-SECOND',
             'affiliation' => 'AFF-SECOND',
             'branch' => 'Tonalá',
             'order' => 2,
         ]);
         $other = $this->createRecordWithDetails(Company::factory()->create(['name' => 'Contoso']));
 
-        foreach ([' NORTHWIND ', 'op-745', 'aff-second', 'TONALÁ'] as $search) {
+        foreach ([' NORTHWIND ', 'aff-second', 'TONALÁ'] as $search) {
             $this->actingAs(User::factory()->create(), 'web')
                 ->getJson('/api/records?search='.urlencode($search))
                 ->assertOk()
@@ -180,14 +177,12 @@ class RecordsApiTest extends TestCase
         $response = $this->actingAs($editor, 'web')
             ->postJson('/api/records', $this->validManualRecordPayload($company->id, [
                 [
-                    'operation_number' => 'OP-HALF-UP',
                     'affiliation' => 'AFF-FIRST',
                     'branch' => 'Guadalajara',
                     'income' => '0.10',
                     'commission_percentage' => '5.00',
                 ],
                 [
-                    'operation_number' => 'OP-FIXED',
                     'affiliation' => 'AFF-SECOND',
                     'branch' => 'Zapopan',
                     'income' => '100.00',
@@ -358,7 +353,6 @@ class RecordsApiTest extends TestCase
         ] as $invalidDetail) {
             $invalidPayload = $payload;
             $invalidPayload['details'] = [array_merge([
-                'operation_number' => 'OP-INVALID',
                 'affiliation' => 'AFF-INVALID',
                 'branch' => 'Guadalajara',
             ], $invalidDetail)];
@@ -379,12 +373,10 @@ class RecordsApiTest extends TestCase
         $newCompany = Company::factory()->create();
         $payload = $this->validManualRecordPayload($newCompany->id, [
             [
-                'operation_number' => 'OP-NEW-2',
                 'income' => '200.00',
                 'commission_percentage' => '10.00',
             ],
             [
-                'operation_number' => 'OP-NEW-1',
                 'income' => '50.00',
                 'commission' => '5.00',
             ],
@@ -405,12 +397,10 @@ class RecordsApiTest extends TestCase
             ->assertJsonMissingPath('data.affiliation')
             ->assertJsonMissingPath('data.branch')
             ->assertJsonCount(2, 'data.details')
-            ->assertJsonPath('data.details.0.operation_number', 'OP-NEW-2')
             ->assertJsonPath('data.details.0.affiliation', 'AFF-NEW-2')
             ->assertJsonPath('data.details.0.branch', 'Zapopan')
             ->assertJsonPath('data.details.0.order', 1)
             ->assertJsonPath('data.details.0.commission', '20.00')
-            ->assertJsonPath('data.details.1.operation_number', 'OP-NEW-1')
             ->assertJsonPath('data.details.1.affiliation', 'AFF-NEW-1')
             ->assertJsonPath('data.details.1.branch', 'Tlaquepaque')
             ->assertJsonPath('data.details.1.order', 2)
@@ -451,7 +441,6 @@ class RecordsApiTest extends TestCase
         ]);
         $newCompany = Company::factory()->create();
         $payload = $this->validManualRecordPayload($newCompany->id, [[
-            'operation_number' => 'OP-IMAGE-FIXED',
             'income' => '200.00',
             'commission_percentage' => '10.00',
         ]]);
@@ -469,7 +458,6 @@ class RecordsApiTest extends TestCase
             ->assertJsonPath('data.image.id', $image->id)
             ->assertJsonPath('data.ai_processing.status', AiProcessingStatus::NEEDS_REVIEW->value)
             ->assertJsonPath('data.ai_processing.issues.0.code', 'BRANCH_MISSING')
-            ->assertJsonPath('data.details.0.operation_number', 'OP-IMAGE-FIXED')
             ->assertJsonPath('data.income_total', '200.00')
             ->assertJsonPath('data.commission_total', '20.00')
             ->assertJsonPath('data.return_total', '180.00');
@@ -587,7 +575,6 @@ class RecordsApiTest extends TestCase
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $record = $this->createRecordWithDetails();
         $payload = $this->validManualRecordPayload($record->company_id, [[
-            'operation_number' => 'OP-ROLLBACK',
             'income' => '500.00',
             'commission' => '50.00',
         ]]);
@@ -610,7 +597,6 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('record_details', 1);
         $this->assertDatabaseHas('record_details', [
             'record_id' => $record->id,
-            'operation_number' => 'OP-12345',
             'affiliation' => 'AFF-12345',
             'branch' => 'Guadalajara',
         ]);
@@ -1042,7 +1028,6 @@ class RecordsApiTest extends TestCase
             ->create($recordAttributes);
 
         RecordDetail::factory()->for($record)->create(array_merge([
-            'operation_number' => 'OP-12345',
             'income' => '100.00',
             'commission_percentage' => '5.00',
             'commission' => '5.00',
@@ -1062,7 +1047,6 @@ class RecordsApiTest extends TestCase
     private function validManualRecordPayload(int $companyId, ?array $details = null): array
     {
         $details ??= [[
-            'operation_number' => 'OP-NEW',
             'income' => '100.00',
             'commission_percentage' => '5.00',
         ]];

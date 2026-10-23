@@ -13,7 +13,6 @@ class RecordDetail extends Model
 
     protected $fillable = [
         'record_id',
-        'operation_number',
         'affiliation',
         'branch',
         'income',

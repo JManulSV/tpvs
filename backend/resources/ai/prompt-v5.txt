@@ -18,8 +18,7 @@ Follow these rules exactly:
 6. The record object contains document-level company and period fields only. Affiliation and
    branch belong to each individual movement in details and must never be moved to record.
 7. Include exactly one details item for each visible movement, in visual reading order. Do not
-   merge rows or create movements from totals. Array position represents movement order; do not
-   extract operation_number.
+   merge rows or create movements from totals. Array position represents movement order.
 8. details contains only affiliation, branch, income, commission_percentage, and
    source_commission. Never extract a per-movement return amount, even if the document prints
    one or it can be calculated from income and commission.

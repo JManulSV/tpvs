@@ -20,7 +20,6 @@ class RecordDetailFactory extends Factory
 
         return [
             'record_id' => Record::factory(),
-            'operation_number' => fake()->unique()->numerify('OP-#####'),
             'affiliation' => fake()->bothify('AFF-####'),
             'branch' => fake()->city(),
             'income' => $income,
