@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domain\Images\RecordImageStorage;
+use App\Domain\Records\RecordHistoryService;
 use App\Enums\AiProcessingStatus;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
@@ -20,8 +21,10 @@ use Illuminate\Validation\ValidationException;
 
 class RecordFromImageController extends Controller
 {
-    public function store(StoreImageRecordRequest $request): JsonResponse
-    {
+    public function store(
+        StoreImageRecordRequest $request,
+        RecordHistoryService $recordHistory,
+    ): JsonResponse {
         try {
             $stored = app(RecordImageStorage::class)->store($request->file('image'));
         } catch (ValidationException $exception) {
@@ -32,8 +35,10 @@ class RecordFromImageController extends Controller
             return response()->json(['message' => 'The image could not be stored.'], 500);
         }
 
+        $userId = $request->user()->id;
+
         try {
-            [$record, $processing] = DB::transaction(function () use ($stored): array {
+            [$record, $processing] = DB::transaction(function () use ($stored, $userId, $recordHistory): array {
                 $record = Record::query()->create([
                     'company_id' => null,
                     'source' => RecordSource::IMAGE,
@@ -53,6 +58,13 @@ class RecordFromImageController extends Controller
                     'model' => config('ai.ollama.model'),
                     'status' => AiProcessingStatus::PENDING,
                 ]);
+
+                $recordHistory->writeRecordCreated(
+                    $record,
+                    $userId,
+                    RecordStatus::PENDING,
+                    'Registro creado desde imagen',
+                );
 
                 return [$record, $processing];
             });

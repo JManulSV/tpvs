@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domain\Records\BusinessValidator;
+use App\Domain\Records\RecordHistoryService;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
@@ -12,7 +13,6 @@ use App\Http\Requests\Records\IndexRecordsRequest;
 use App\Http\Requests\Records\StoreRecordRequest;
 use App\Http\Requests\Records\UpdateRecordRequest;
 use App\Http\Resources\RecordResource;
-use App\Models\History;
 use App\Models\Record;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -22,13 +22,16 @@ use Illuminate\Validation\ValidationException;
 
 class RecordController extends Controller
 {
-    public function store(StoreRecordRequest $request, BusinessValidator $businessValidator): JsonResponse
-    {
+    public function store(
+        StoreRecordRequest $request,
+        BusinessValidator $businessValidator,
+        RecordHistoryService $recordHistory,
+    ): JsonResponse {
         $validated = $request->validated();
         $details = $businessValidator->validateAndCalculateManualDetails($validated);
         $userId = $request->user()->id;
 
-        $record = DB::transaction(function () use ($validated, $details, $userId): Record {
+        $record = DB::transaction(function () use ($validated, $details, $userId, $recordHistory): Record {
             $record = Record::query()->create([
                 'company_id' => $validated['company_id'],
                 'source' => RecordSource::MANUAL,
@@ -40,14 +43,12 @@ class RecordController extends Controller
             ]);
 
             $record->details()->createMany($details);
-            History::query()->create([
-                'record_id' => $record->id,
-                'user_id' => $userId,
-                'field_name' => 'status',
-                'previous_value' => null,
-                'new_value' => RecordStatus::CONFIRMED->value,
-                'reason' => 'Registro manual confirmado',
-            ]);
+            $recordHistory->writeRecordCreated(
+                $record,
+                $userId,
+                RecordStatus::CONFIRMED,
+                'Registro creado manualmente',
+            );
 
             return $record;
         });

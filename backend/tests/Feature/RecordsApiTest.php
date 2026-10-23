@@ -234,10 +234,10 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseHas('histories', [
             'record_id' => $recordId,
             'user_id' => $editor->id,
-            'field_name' => 'status',
+            'field_name' => 'record_created',
             'previous_value' => null,
             'new_value' => RecordStatus::CONFIRMED->value,
-            'reason' => 'Registro manual confirmado',
+            'reason' => 'Registro creado manualmente',
         ]);
         $this->assertDatabaseCount('images', 0);
         $this->assertDatabaseCount('ai_processings', 0);
