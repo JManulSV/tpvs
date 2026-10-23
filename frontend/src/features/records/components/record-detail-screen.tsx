@@ -10,6 +10,7 @@ import { recordsService } from "../services/records.service";
 import { RecordsApiError, type AiProcessingStatus, type RecordStatus } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
 import { RecordActionDialog } from "./record-action-dialog";
+import { RecordHistoryPanel } from "./record-history-panel";
 
 const statusLabels: Record<RecordStatus, string> = {
   PENDING: "Pendiente",
@@ -291,6 +292,8 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
           </table>
         </div>
       </section>
+
+      <RecordHistoryPanel recordId={record.id} />
 
       {record.source === "MANUAL" && record.status === "CONFIRMED" && (
         <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
