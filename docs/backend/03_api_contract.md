@@ -154,7 +154,7 @@ All endpoints use the authenticated Sanctum session. Laravel remains authoritati
 
 | Parameter | Rules | Default |
 | --- | --- | --- |
-| `search` | Optional string, trimmed, maximum 255 characters; case-insensitive partial match against company name, operation number, affiliation, or branch. | No filter |
+| `search` | Optional string, trimmed, maximum 255 characters; case-insensitive partial match against company name, affiliation, or branch. | No filter |
 | `company_id` | Optional existing company identifier. | No filter |
 | `year` | Optional calendar/business year integer from 1 to 9999. | No filter |
 | `month` | Optional integer from 1 to 12; filters by the month containing `week_end_date`. | No filter |
@@ -179,14 +179,12 @@ When a `week` filter is supplied, `year` is required so the business period is u
   "week_end_date": "2026-09-20",
   "details": [
     {
-      "operation_number": "10231",
       "affiliation": "AFF-123",
       "branch": "Guadalajara",
       "income": "10000.00",
       "commission_percentage": "2.00"
     },
     {
-      "operation_number": "10232",
       "affiliation": "AFF-456",
       "branch": "Zapopan",
       "income": "5000.00",
@@ -196,17 +194,17 @@ When a `week` filter is supplied, `year` is required so the business period is u
 }
 ```
 
-For replacement, add the required top-level field `"reason": "Corrección de captura"`. Each detail requires an operation number, affiliation, branch, and non-negative `income` with at most two decimal places. Exactly one of `commission_percentage` or fixed-amount `commission` must be supplied. The percentage is between 0 and 100 with at most two decimal places. A fixed commission is non-negative, has at most two decimal places, and cannot exceed income. Details must contain at least one item. Their `order` is assigned from array order, starting at 1.
+For replacement, add the required top-level field `"reason": "Corrección de captura"`. Each detail requires affiliation, branch, and non-negative `income` with at most two decimal places. Exactly one of `commission_percentage` or fixed-amount `commission` must be supplied. The percentage is between 0 and 100 with at most two decimal places. A fixed commission is non-negative, has at most two decimal places, and cannot exceed income. Details must contain at least one item. Their `order` is assigned from array order, starting at 1.
 
 For percentage input, Laravel calculates `commission` using decimal arithmetic and `ROUND_HALF_UP` to two decimal places. For fixed commission input, Laravel stores the supplied amount and sets `commission_percentage` to `null`. Laravel always calculates `return_amount = income - commission`; the client must not submit a return amount. Zero-valued income, commission, and return are permitted by the current schema, provided all rules above pass.
 
-`year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id` and all period fields are required. Each detail requires `operation_number`, `affiliation`, `branch`, `income`, and exactly one commission input. The API rejects `affiliation` or `branch` at the Record root; there is no legacy dual-payload support. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=status`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro manual confirmado`.
+`year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id` and all period fields are required. Each detail requires `affiliation`, `branch`, `income`, and exactly one commission input. The API rejects `affiliation` or `branch` at the Record root; there is no legacy dual-payload support. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=status`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro manual confirmado`.
 
 On replacement, Laravel accepts a `MANUAL` or `IMAGE` record in `NEEDS_REVIEW`. It validates the complete new aggregate before atomically updating the Record and replacing its details. For IMAGE records, replacement preserves the associated Image and the existing `AIProcessing` row and result; it does not re-run AI, replace the image, or alter the AI evidence. The request must not change `source` or `status`, which remain as they were. Laravel creates one generic `History` event with `field_name=record_updated`, null `previous_value` and `new_value`, the authenticated `user_id`, and the supplied reason. The aggregate update and History event share one database transaction. Rows in `record_details` may be recreated by the full replacement; field-level before/after audit is deferred to phase 8.11.
 
 ### Record Resource and Detail
 
-`GET /api/records/{id}` returns `200` with `{ "data": { ...record } }`, including `id`, nullable `company`, `source`, `status`, nullable `year`, `week`, `week_start_date`, and `week_end_date`, ordered `details`, and calculated aggregate totals. The Record root does not expose `affiliation` or `branch`. Each detail contains `id`, nullable `operation_number`, `affiliation`, `branch`, `income`, `commission_percentage`, `commission`, `return_amount`, and `order`; IMAGE extraction may leave detail values null until review. Totals with no calculable value may be absent, whereas a calculated zero is returned as `"0.00"`. MANUAL creation and all confirmation validation remain strict and reject incomplete business data. A missing record returns `404`. No private file paths are exposed.
+`GET /api/records/{id}` returns `200` with `{ "data": { ...record } }`, including `id`, nullable `company`, `source`, `status`, nullable `year`, `week`, `week_start_date`, and `week_end_date`, ordered `details`, and calculated aggregate totals. The Record root does not expose `affiliation` or `branch`. Each detail contains `id`, `affiliation`, `branch`, `income`, `commission_percentage`, `commission`, `return_amount`, and `order`; IMAGE extraction may leave detail values null until review. Totals with no calculable value may be absent, whereas a calculated zero is returned as `"0.00"`. MANUAL creation and all confirmation validation remain strict and reject incomplete business data. A missing record returns `404`. No private file paths are exposed.
 
 The list resource uses the same record fields and may omit detail fields not needed by the list, but it includes nullable company/period fields, state, source, calculated totals, and ordered movement summaries including affiliation and branch. Response types must be kept consistent between list and detail where a field has the same meaning. If a provisional IMAGE aggregate has no calculable total, the corresponding total may be absent; zero totals remain `"0.00"`.
 

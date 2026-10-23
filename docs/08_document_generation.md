@@ -55,7 +55,6 @@ General information for each `Record`:
 All movements for the selected records:
 
 - Record
-- Operation number
 - Income
 - Commission percentage
 - Commission

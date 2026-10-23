@@ -103,7 +103,6 @@ Represents each movement inside a record.
 | --- | --- | --- | --- |
 | id | UUID / bigint | Yes | Primary key |
 | record_id | FK | Yes | References `Record` |
-| operation_number | string nullable | No for provisional IMAGE | Movement identifier; required for MANUAL creation and confirmation |
 | affiliation | string nullable | No for provisional IMAGE | Movement affiliation; required for MANUAL creation and confirmation |
 | branch | string nullable | No for provisional IMAGE | Movement branch; required for MANUAL creation and confirmation |
 | income | decimal(12,2) nullable | No for provisional IMAGE | Gross amount; required for MANUAL creation and confirmation |

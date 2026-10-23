@@ -94,7 +94,7 @@ All properties shown in the contract are required, including when a value is not
 - The model transcribes monetary amounts and `commission_percentage` faithfully as strings, retaining visible currency symbols, grouping/decimal separators, and percent signs. The experimental normalizer accepts only unambiguous patterns and converts accepted values to decimal strings with a period and exactly two fractional digits (for example, `"$1,234.56"` -> `"1234.56"`, `"1.234,56"` -> `"1234.56"`, `"5%"` -> `"5.00"`). Ambiguous forms such as `"1,200"`, `"1.200"`, and malformed values such as `"55.963.03"` remain unconvertible issues; they are not guessed.
 - `details` is an array with at least one movement. Array order is the visual order in the document; the backend assigns the persisted `order` value.
 - `affiliation` and `branch` are movement-level fields and belong inside each `details` item.
-- `operation_number` is omitted from AI extraction for this spike. Movement order comes from each item's array position.
+- Movement order comes from each item's array position.
 - `details` does not include a per-movement return amount. The official return for each movement is calculated by the backend as `income - commission`; only the printed total return is transcribed in `source_totals.return_amount`.
 - `source_totals` always contains `income`, `commission`, and `return_amount`. If a total is not shown or cannot be read, its value is `null`.
 
@@ -151,7 +151,7 @@ The system does not create multiple records for one image.
 
 The movements preserve their visual order and Laravel assigns the `order` field.
 
-The AI extraction contract does not include `operation_number`; Laravel assigns movement order from array position.
+Laravel assigns movement order from each item's array position.
 
 ## 8. Validation Layers
 

@@ -69,7 +69,7 @@ This is the main operational screen.
 ```text
 Records                                  + New record
 
-Search company, operation, affiliation...
+Search company, affiliation, branch...
 
 Company    Year    Month    Week    Status    Source
 [All]      [2026]   [Sep]    [38]    [All]     [All]
@@ -82,7 +82,6 @@ Company C    37    08/09/26    $5,500      Processing
 Search supports:
 
 - Company
-- Operation number
 - Affiliation
 - Branch
 
@@ -138,8 +137,8 @@ Start date    [ 28/08/26 ]
 End date      [ 15/09/26 ]
 
 Movements
-- Operation   Income   Commission
-  10231      $10,000   2%
+- Income   Commission
+  $10,000  2%
 
 Confirm
 ```
@@ -165,7 +164,6 @@ Even if AI extracts everything correctly:
 
 - Company
 - Week
-- Operation
 - Income
 - Commission
 - Return

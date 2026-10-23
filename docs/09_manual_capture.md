@@ -57,7 +57,7 @@ The Editor's manual data entry is also the human review. A valid manual record i
 
 The business week and year follow the office's operational calendar. The week is an integer from 1 to 53 and is not validated as ISO. Period dates must be valid, and the start date cannot be later than the end date. The dates need not be Monday and Sunday and are not calculated from the week number. Company and all period fields are required for MANUAL creation and confirmation, even though they may be null on provisional IMAGE records.
 
-Each movement requires its own `operation_number`, `affiliation`, `branch`, `income`, and exactly one commission input (`commission_percentage` or fixed `commission`). Affiliation and branch belong to the movement, not to the Record. Every movement must have a positive order assigned from its position in the submitted array. MANUAL capture never accepts missing movement values; schema nullability exists only to persist incomplete IMAGE extraction until review.
+Each movement requires its own `affiliation`, `branch`, `income`, and exactly one commission input (`commission_percentage` or fixed `commission`). Affiliation and branch belong to the movement, not to the Record. Every movement must have a positive order assigned from its position in the submitted array. MANUAL capture never accepts missing movement values; schema nullability exists only to persist incomplete IMAGE extraction until review.
 
 ## 5. Shared Validation
 
