@@ -65,7 +65,7 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
             id="record-search"
             maxLength={255}
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Empresa, operación, afiliación o sucursal"
+            placeholder="Empresa, afiliación o sucursal"
             type="search"
             value={searchInput}
           />

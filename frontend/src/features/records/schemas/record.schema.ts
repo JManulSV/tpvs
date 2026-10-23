@@ -10,7 +10,6 @@ const percentageSchema = z
   .refine((value) => Number(value) <= 100, "El porcentaje no puede superar 100.");
 
 const recordDetailFormSchema = z.object({
-  operation_number: z.string().trim().min(1, "El número de operación es obligatorio.").max(255),
   affiliation: z.string().trim().min(1, "La afiliación es obligatoria.").max(255),
   branch: z.string().trim().min(1, "La sucursal es obligatoria.").max(255),
   income: decimalAmountSchema,

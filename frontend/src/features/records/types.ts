@@ -83,7 +83,6 @@ export type RecordAiProcessing = {
 
 export type RecordDetail = {
   id: number;
-  operation_number: string | null;
   affiliation: string | null;
   branch: string | null;
   income: string | null;
@@ -94,7 +93,6 @@ export type RecordDetail = {
 };
 
 export type RecordDetailInput = {
-  operation_number: string;
   affiliation: string;
   branch: string;
   income: string;

@@ -28,7 +28,6 @@ const validRecord = {
   week_end_date: "2026-09-20",
   details: [
     {
-      operation_number: "OP-100",
       affiliation: "AFF-123",
       branch: "Guadalajara",
       income: "100.00",
@@ -58,7 +57,7 @@ describe("manual record schemas", () => {
     }).success).toBe(false);
     expect(manualRecordFormSchema.safeParse({
       ...validRecord,
-      details: [{ operation_number: "OP-100", affiliation: "AFF-123", branch: "Guadalajara", income: "10.00", commission: "10.01" }],
+      details: [{ affiliation: "AFF-123", branch: "Guadalajara", income: "10.00", commission: "10.01" }],
     }).success).toBe(false);
   });
 

@@ -33,7 +33,6 @@ function initialValues(record?: RecordDetailView): ManualRecordFormValues {
     week_end_date: record?.week_end_date ?? "",
     details: record?.details.length
       ? record.details.map((detail) => ({
-          operation_number: detail.operation_number ?? "",
           affiliation: detail.affiliation ?? "",
           branch: detail.branch ?? "",
           income: detail.income ?? "",
@@ -41,7 +40,7 @@ function initialValues(record?: RecordDetailView): ManualRecordFormValues {
             ? { commission_percentage: detail.commission_percentage }
             : { commission: detail.commission ?? "" }),
         }))
-      : [{ operation_number: "", affiliation: "", branch: "", income: "", commission_percentage: "" }],
+      : [{ affiliation: "", branch: "", income: "", commission_percentage: "" }],
   } as ManualRecordFormValues;
 }
 
@@ -90,7 +89,6 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
     const inputs: RecordDetailInput[] = values.details.map((detail, index) => {
       const mode = commissionModes[index] ?? "percentage";
       return {
-        operation_number: detail.operation_number.trim(),
         affiliation: detail.affiliation.trim(),
         branch: detail.branch.trim(),
         income: detail.income,
@@ -184,13 +182,12 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
               <p className="text-sm text-muted-foreground">Ingresa comisión como porcentaje o como importe fijo.</p>
             </div>
             <Button disabled={isSubmitting} onClick={() => {
-              details.append({ operation_number: "", affiliation: "", branch: "", income: "", commission_percentage: "" });
+              details.append({ affiliation: "", branch: "", income: "", commission_percentage: "" });
               setCommissionModes((current) => [...current, "percentage"]);
             }} type="button" variant="outline">Agregar movimiento</Button>
           </div>
           {details.fields.map((field, index) => {
             const mode = commissionModes[index] ?? "percentage";
-            const operationError = detailErrors[`details.${index}.operation_number`] ?? form.formState.errors.details?.[index]?.operation_number?.message;
             const affiliationError = detailErrors[`details.${index}.affiliation`] ?? form.formState.errors.details?.[index]?.affiliation?.message;
             const branchError = detailErrors[`details.${index}.branch`] ?? form.formState.errors.details?.[index]?.branch?.message;
             const incomeError = detailErrors[`details.${index}.income`] ?? form.formState.errors.details?.[index]?.income?.message;
@@ -200,9 +197,6 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
             return (
               <fieldset className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4" disabled={isSubmitting} key={field.id}>
                 <legend className="px-2 font-medium">Movimiento {index + 1}</legend>
-                <Field id={`movement-${index}-operation`} label="Número de operación" error={operationError}>
-                  <input className="h-10 w-full rounded-md border bg-background px-3 text-sm" id={`movement-${index}-operation`} maxLength={255} aria-invalid={Boolean(operationError)} {...form.register(`details.${index}.operation_number`)} />
-                </Field>
                 <Field id={`movement-${index}-affiliation`} label="Afiliación" error={affiliationError}>
                   <input className="h-10 w-full rounded-md border bg-background px-3 text-sm" id={`movement-${index}-affiliation`} maxLength={255} aria-invalid={Boolean(affiliationError)} {...form.register(`details.${index}.affiliation`)} />
                 </Field>

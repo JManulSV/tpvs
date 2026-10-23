@@ -259,7 +259,6 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-4 py-3 font-medium" scope="col">#</th>
-                <th className="px-4 py-3 font-medium" scope="col">Operación</th>
                 <th className="px-4 py-3 font-medium" scope="col">Afiliación</th>
                 <th className="px-4 py-3 font-medium" scope="col">Sucursal</th>
                 <th className="px-4 py-3 text-right font-medium" scope="col">Ingreso</th>
@@ -271,7 +270,6 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
               {record.details.map((detail) => (
                 <tr className="border-t" key={detail.id}>
                   <td className="px-4 py-3 tabular-nums">{detail.order}</td>
-                  <th className="px-4 py-3 font-medium" scope="row">{detail.operation_number ?? "—"}</th>
                   <td className="px-4 py-3">{detail.affiliation ?? "—"}</td>
                   <td className="px-4 py-3">{detail.branch ?? "—"}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{money(detail.income)}</td>
@@ -284,7 +282,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
             </tbody>
             <tfoot className="border-t bg-muted/30 font-semibold">
               <tr>
-                <th className="px-4 py-3" colSpan={4} scope="row">Totales calculados por el servidor</th>
+                <th className="px-4 py-3" colSpan={3} scope="row">Totales calculados por el servidor</th>
                 <td className="px-4 py-3 text-right tabular-nums">{money(record.income_total)}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{money(record.commission_total)}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{money(record.return_total)}</td>
