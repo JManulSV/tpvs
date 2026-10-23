@@ -7,7 +7,7 @@
 
 ## Why this spec exists
 
-El contrato de extracción coloca afiliación y sucursal en cada movimiento, y no extrae número de operación. El esquema actual los ubica en `Record`, exige todos los campos desde el inicio y obliga a `operation_number`; por eso no puede conservar una extracción parcial ni reflejar fielmente varios movimientos.
+El contrato de extracción coloca afiliación y sucursal en cada movimiento. El esquema actual los ubica en `Record` y exige todos los campos desde el inicio; por eso no puede conservar una extracción parcial ni reflejar fielmente varios movimientos.
 
 ## Scope
 
@@ -15,7 +15,6 @@ El contrato de extracción coloca afiliación y sucursal en cada movimiento, y n
 
 - Definir `affiliation` y `branch` en `record_details` y retirarlos de `records` en el esquema base.
 - Hacer nullable en base de datos los campos que un `Record` de origen `IMAGE` puede no tener durante `PENDING`, `PROCESSING`, `NEEDS_REVIEW` o `ERROR`, incluido `company_id`, periodo y valores de detalle.
-- Hacer nullable `record_details.operation_number` para movimientos IMAGE hasta que el Editor lo complete.
 - Mantener requeridos los datos completos en las validaciones de captura/edición manual y las reglas para confirmar.
 - Actualizar los payloads, recursos, búsqueda y captura manual existente para enviar afiliación y sucursal dentro de cada movimiento.
 - No conservar ni migrar datos de bases locales existentes; se reconstruyen con el nuevo esquema.
@@ -41,7 +40,6 @@ Record
 
 RecordDetail
   record_id: requerido
-  operation_number: nullable hasta revisión IMAGE; requerido para MANUAL/confirmación
   affiliation: nullable durante extracción IMAGE; requerido para MANUAL/confirmación
   branch: nullable durante extracción IMAGE; requerido para MANUAL/confirmación
   income, commission, return_amount: nullable cuando la extracción no los proporciona
@@ -49,13 +47,13 @@ RecordDetail
   order: requerido y positivo; asignado según orden visual/manual
 ```
 
-El esquema base define `affiliation` y `branch` nullable en `record_details` y no las define en `records`. `company_id`, `year`, `week`, `week_start_date`, `week_end_date`, `operation_number`, `income`, `commission` y `return_amount` permiten null para representar extracción IMAGE parcial. Las Form Requests y `BusinessValidator` conservan requisitos estrictos para MANUAL y para confirmación. Los datos actuales de desarrollo/pruebas no se trasladan; se eliminan al reconstruir la base con el esquema nuevo.
+El esquema base define `affiliation` y `branch` nullable en `record_details` y no las define en `records`. `company_id`, `year`, `week`, `week_start_date`, `week_end_date`, `income`, `commission` y `return_amount` permiten null para representar extracción IMAGE parcial. Las Form Requests y `BusinessValidator` conservan requisitos estrictos para MANUAL y para confirmación. Los datos actuales de desarrollo/pruebas no se trasladan; se eliminan al reconstruir la base con el esquema nuevo.
 
 Los valores de compañía cuyo nombre extraído no tenga coincidencia en catálogo se representarán con `company_id = null`; el texto fuente se conserva en `AIProcessing.result` en SPEC 08.
 
 ## API and manual payload contract
 
-`POST /api/records` y `PUT /api/records/{id}` mantienen sus campos raíz de compañía y periodo, pero cada elemento `details[]` incluye `operation_number`, `affiliation`, `branch`, `income` y exactamente una forma de comisión. `affiliation` y `branch` se eliminan del nivel raíz.
+`POST /api/records` y `PUT /api/records/{id}` mantienen sus campos raíz de compañía y periodo, pero cada elemento `details[]` incluye `affiliation`, `branch`, `income` y exactamente una forma de comisión. `affiliation` y `branch` se eliminan del nivel raíz.
 
 ```json
 {
@@ -66,7 +64,6 @@ Los valores de compañía cuyo nombre extraído no tenga coincidencia en catálo
   "week_end_date": "2026-09-20",
   "details": [
     {
-      "operation_number": "10231",
       "affiliation": "AF-123",
       "branch": "Guadalajara",
       "income": "10000.00",
@@ -97,12 +94,12 @@ La respuesta de cada `RecordDetail` expone afiliación y sucursal. El recurso ra
 
 - [x] Las migraciones base almacenan afiliación/sucursal por movimiento y no las exponen en `records`.
 - [x] El esquema base acepta valores nulos de campos IMAGE provisionales sin eliminar checks válidos, como límites de semana, dinero no negativo cuando presente y orden positivo.
-- [x] Una captura MANUAL sigue requiriendo empresa, periodo, al menos un movimiento, número de operación, afiliación, sucursal e importes/comisión válidos.
+- [x] Una captura MANUAL sigue requiriendo empresa, periodo, al menos un movimiento, afiliación, sucursal e importes/comisión válidos.
 - [x] La creación manual sigue confirmando en la misma transacción y sus cálculos financieros mantienen precisión decimal y redondeo actuales.
 - [x] Cada `details[]` manual requiere afiliación y sucursal; el API rechaza esos campos en el nivel raíz y no mantiene compatibilidad dual.
 - [x] La respuesta `RecordDetail` expone afiliación y sucursal y `RecordResource` ya no las expone en el nivel raíz.
 - [x] La búsqueda parcial de registros encuentra afiliación y sucursal almacenadas en cualquier movimiento del agregado.
-- [x] Un registro IMAGE puede persistir temporalmente sin compañía, periodo, movimiento completo o número de operación; el flujo manual no puede hacerlo.
+- [x] Un registro IMAGE puede persistir temporalmente sin compañía, periodo o movimiento completo; el flujo manual no puede hacerlo.
 - [x] El frontend manual actualizado captura ambos campos por movimiento y crea/consulta agregados válidos a través del BFF.
 - [x] Las pruebas backend/frontend relevantes, lint, TypeScript, build y checks PHP pasan; las guías describen el nuevo contrato.
 - [x] Las bases locales/pruebas se pueden reconstruir con el esquema base actualizado; no se incluye una migración de copia de datos.
@@ -110,7 +107,7 @@ La respuesta de cada `RecordDetail` expone afiliación y sucursal. El recurso ra
 ## Decisions
 
 - **Sí:** afiliación y sucursal pertenecen a cada movimiento, como indica el contrato de extracción.
-- **Sí:** `operation_number` es nullable en detalle IMAGE porque el modelo no lo extrae; será obligatorio antes de confirmar.
+- **No:** conservar `operation_number`; se elimina del modelo porque el contrato de extracción no lo usa y la captura manual no lo requiere.
 - **Sí:** hacer nullable en esquema los datos IMAGE que pueden faltar; Requests y validadores siguen exigiendo la captura manual completa.
 - **Sí:** cambiar el payload manual y adaptar lo mínimo del frontend existente para que el flujo no quede roto.
 - **Sí:** la coincidencia de compañía en SPEC 08 puede dejar `company_id` null hasta revisión; el nombre crudo se conserva en AIProcessing.

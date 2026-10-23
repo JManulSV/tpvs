@@ -89,20 +89,19 @@ Todas las rutas requieren sesión Sanctum. Las mutaciones requieren CSRF y rol `
   "week_end_date": "2026-09-20",
   "details": [
     {
-      "operation_number": "10231",
       "affiliation": "AF-123",
       "branch": "Guadalajara",
       "income": "10000.00",
       "commission_percentage": "2.00"
     }
   ],
-  "reason": "Se corrigió la sucursal y el número de operación"
+  "reason": "Se corrigió la sucursal"
 }
 ```
 
 - Solo acepta `MANUAL` o `IMAGE` con estado `NEEDS_REVIEW`.
 - Conserva `source` y `status`; la respuesta sigue en `NEEDS_REVIEW`.
-- Valida exactamente igual que la captura manual: empresa, periodo, al menos un movimiento, número de operación, afiliación, sucursal, ingreso y exactamente una forma de comisión.
+- Valida exactamente igual que la captura manual: empresa, periodo, al menos un movimiento, afiliación, sucursal, ingreso y exactamente una forma de comisión.
 - Calcula comisión y retorno en backend con aritmética decimal.
 - `reason` se recorta, es obligatorio y tiene máximo 2000 caracteres.
 - Escribe un evento `record_updated` en la misma transacción.

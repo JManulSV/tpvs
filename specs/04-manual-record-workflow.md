@@ -9,7 +9,7 @@
 
 **In:**
 
-- Implementar el listado autenticado de registros con búsqueda por empresa, número de operación, afiliación y sucursal, filtros por empresa, año, mes, semana, estado y origen, y paginación.
+- Implementar el listado autenticado de registros con búsqueda por empresa, afiliación y sucursal, filtros por empresa, año, mes, semana, estado y origen, y paginación.
 - Implementar consulta individual de registros con sus movimientos ordenados y valores financieros calculados desde los movimientos.
 - Permitir que `EDITOR` cree un registro con `source=MANUAL`, sin imagen ni intento `AIProcessing`, y con estado inicial `CONFIRMED` después de validar.
 - Capturar empresa, año calendario, semana del sistema operativo del negocio, rango de fechas válido, afiliación, sucursal y uno o más movimientos.
@@ -43,11 +43,10 @@ La creación asigna en el backend `source=MANUAL` y, si la validación pasa, `st
 
 Los campos generales requeridos son `company_id`, `week`, `year`, `week_start_date`, `week_end_date`, `affiliation` y `branch`. `week` es un entero de 1 a 53 y `year` es el año calendario indicado por la operación del negocio. La aplicación no deriva ni valida la semana según ISO. Las fechas deben ser fechas reales y la fecha de inicio no puede ser posterior a la fecha de fin; el período no se restringe a lunes-domingo ni a un rango derivado de `week`/`year`.
 
-Cada movimiento contiene `operation_number`, `income`, una de las dos entradas de comisión y un orden asignado por el backend:
+Cada movimiento contiene `income`, una de las dos entradas de comisión y un orden asignado por el backend:
 
 ```text
 Movimiento recibido:
-  operation_number: string requerido
   income: decimal(12,2), >= 0
   commission_percentage: decimal(5,2), 0..100, opcional
   commission: decimal(12,2), importe fijo opcional
@@ -86,7 +85,7 @@ Todos los endpoints requieren sesión autenticada. Las consultas permiten `EDITO
 | `PUT` | `/api/records/{id}` | Reemplaza atómicamente los campos editables y todos los movimientos de un registro manual en `NEEDS_REVIEW`. Requiere `reason`. |
 | `POST` | `/api/records/{id}/confirm` | Confirma explícitamente registros de otros flujos que requieren revisión y llegan en `NEEDS_REVIEW`. |
 
-El listado acepta `search`, `company_id`, `year`, `month`, `week`, `status`, `source`, `page` y `per_page`. `search` coincide parcialmente y sin distinguir mayúsculas con nombre de empresa, número de operación, afiliación o sucursal. `year` y `week` son identificadores del período propio del negocio; `week` admite enteros de 1 a 53 y, si se filtra por semana, `year` es requerido. `month` filtra por el mes de `week_end_date`. Los resultados se ordenan por `updated_at` descendente. `page` inicia en 1; `per_page` es 15 por defecto y su máximo es 100. Parámetros inválidos responden `422`. La respuesta usa la paginación estándar de Laravel (`data`, `links`, `meta`).
+El listado acepta `search`, `company_id`, `year`, `month`, `week`, `status`, `source`, `page` y `per_page`. `search` coincide parcialmente y sin distinguir mayúsculas con nombre de empresa, afiliación o sucursal. `year` y `week` son identificadores del período propio del negocio; `week` admite enteros de 1 a 53 y, si se filtra por semana, `year` es requerido. `month` filtra por el mes de `week_end_date`. Los resultados se ordenan por `updated_at` descendente. `page` inicia en 1; `per_page` es 15 por defecto y su máximo es 100. Parámetros inválidos responden `422`. La respuesta usa la paginación estándar de Laravel (`data`, `links`, `meta`).
 
 Los datos de creación y reemplazo usan los campos generales y el arreglo `details` descritos en Data model. `PUT` requiere el agregado completo y `reason`; no es una actualización parcial. La respuesta del recurso incluye identidad, empresa, origen, estado, período, afiliación, sucursal, movimientos ordenados y totales calculados. Las respuestas de validación usan la estructura `422` estándar de Laravel. Errores de transición o reglas de negocio exponen una respuesta estable con código de error.
 
@@ -105,7 +104,7 @@ Los datos de creación y reemplazo usan los campos generales y el arreglo `detai
 
 - [ ] `EDITOR` y `VIEWER` autenticados pueden consultar el listado y el detalle; las solicitudes anónimas reciben `401`.
 - [ ] El listado pagina con `page=1`, `per_page=15` por defecto y máximo 100, ordena por `updated_at` descendente y valida parámetros inválidos con `422`.
-- [ ] La búsqueda parcial sin distinción de mayúsculas incluye empresa, número de operación, afiliación y sucursal.
+- [ ] La búsqueda parcial sin distinción de mayúsculas incluye empresa, afiliación y sucursal.
 - [ ] Los filtros por empresa, año, mes, semana, estado y origen afectan los resultados; el filtro mensual usa `week_end_date`.
 - [ ] Un `EDITOR` crea un agregado manual válido con respuesta `201`, origen `MANUAL`, estado `CONFIRMED` y al menos un movimiento.
 - [ ] La creación manual no crea `Image` ni `AIProcessing` y no inicia jobs AI.
@@ -132,7 +131,7 @@ Los datos de creación y reemplazo usan los campos generales y el arreglo `detai
 
 - **Sí:** un spec vertical backend/frontend, como SPEC 03. El contrato y el flujo completo se pueden validar juntos.
 - **Sí:** el listado incluye todos los orígenes y estados, aunque las acciones manuales de este spec solo aplican a `MANUAL` en `NEEDS_REVIEW`.
-- **Sí:** búsqueda por empresa, número de operación, afiliación y sucursal; filtros de compañía, año, mes, semana, estado y origen.
+- **Sí:** búsqueda por empresa, afiliación y sucursal; filtros de compañía, año, mes, semana, estado y origen.
 - **Sí:** paginación `page`/`per_page`, 15 por defecto, máximo 100, orden por actualización más reciente y mes basado en `week_end_date`.
 - **No:** validar semanas ISO ni derivar fechas desde `year`/`week`; conservar semana de negocio entera 1–53 y año calendario.
 - **Sí:** requerir fechas reales y `week_start_date <= week_end_date`, sin imponer días específicos de la semana.
