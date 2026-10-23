@@ -42,17 +42,18 @@ Implement resource-specific permissions with Laravel Policies as each resource i
 
 Protect state-changing requests with Laravel CSRF validation. The Next.js BFF is the browser-facing same-origin boundary and must forward the session cookie and `X-XSRF-TOKEN`; do not exempt API mutations from CSRF to simplify the proxy.
 
-## Records — Phase 8.6 / SPEC 09 Contract Decisions
+## Records — Phase 8.6 / SPEC 09 / SPEC 10 Contract Decisions
 
-The Records API contract is documented in [`03_api_contract.md`](03_api_contract.md). Endpoints are implemented incrementally under SPEC 04; keep this validation guidance aligned with the verified implementation.
+The Records API contract is documented in [`03_api_contract.md`](03_api_contract.md). Endpoints are implemented incrementally under SPEC 04; keep this validation guidance aligned with the verified implementation. SPEC 10 adds field-level history and audited reopening.
 
 ### Authorization and Allowed Operations
 
 | Operation | `EDITOR` | `VIEWER` |
 | --- | --- | --- |
 | List and view any record | Yes | Yes |
+| Read any record's change history | Yes | Yes |
 | Create a manual record | Yes | No (`403`) |
-| Replace a `MANUAL` or `IMAGE` record in `NEEDS_REVIEW` | Yes | No (`403`) |
+| Replace a `MANUAL` or `IMAGE` record in `NEEDS_REVIEW` or `CONFIRMED` | Yes | No (`403`) |
 | Confirm a record in `NEEDS_REVIEW` | Yes | No (`403`) |
 | Cancel a record in `NEEDS_REVIEW` or `ERROR` | Yes | No (`403`) |
 | Replace, confirm, or cancel a record in another state | No (`409`) | No (`403`) |
@@ -89,9 +90,17 @@ For every detail submitted during manual capture or review correction, exactly o
 
 Use decimal arithmetic, not binary floating-point arithmetic, for financial calculations. When a percentage is supplied, calculate commission with `ROUND_HALF_UP` to two decimal places. When a fixed commission is supplied, persist it and leave `commission_percentage` null. In both modes calculate `return_amount = income - commission`; do not accept return or Record-level totals from the client. The resulting return must be non-negative. All values are persisted at their schema's decimal precision.
 
-A valid new manual aggregate is created with `source=MANUAL` and status `CONFIRMED`, because the Editor enters and reviews the data in one operation. Create a History status event with null previous value, new value `CONFIRMED`, authenticated actor, and fixed reason `Registro manual confirmado`. Do not create an Image, AIProcessing, or AI job. A Record, its details, and History are persisted in one transaction.
+A valid new manual aggregate is created with `source=MANUAL` and status `CONFIRMED`, because the Editor enters and reviews the data in one operation. Create a single History `record_created` event with null previous value, new value `CONFIRMED`, authenticated actor, and fixed reason `Registro creado manualmente`. Do not create a creation `status` event, an Image, AIProcessing, or an AI job. A Record, its details, and History are persisted in one transaction. Image creation follows the same rule with new value `PENDING` and fixed reason `Registro creado desde imagen`.
 
-Replacement is full-aggregate rather than partial: validate all fields and details, require a non-empty reason, and allow only `MANUAL` or `IMAGE` in `NEEDS_REVIEW`. Update the Record, replace its details in submitted order, and create one generic History event (`record_updated`, null before/after values, authenticated actor, supplied reason) in one transaction. Do not allow this endpoint to edit `CONFIRMED`, `CANCELED`, `PENDING`, `PROCESSING`, or `ERROR` records or change source/status. For IMAGE records, the associated Image and `AIProcessing` row/result must remain unchanged; correction must not re-run AI, replace the image, or alter AI evidence.
+Replacement is full-aggregate rather than partial: validate all fields and details, require a non-empty reason, and allow only `MANUAL` or `IMAGE` in `NEEDS_REVIEW` or `CONFIRMED`. Update the Record, replace its details in submitted order, and write the field-level History diff in one transaction under a Record row lock. Canonicalize values before comparison: dates `Y-m-d`; amounts and percentages with two decimals; integers as text; enum values for status/source; company name instead of id; and `details[N].campo` for detail fields, with `N` 1-based and equal to `order`. Write one row per changed field; added details produce null-to-values rows and removed details produce values-to-null rows. Leave `record_detail_id` and `delivery_id` null in this phase.
+
+For `NEEDS_REVIEW`, if no field differs, write a single `record_updated` event with null before/after values and the supplied reason, and respond `200` without changing state. For `CONFIRMED`, a different aggregate additionally writes `status` `CONFIRMED -> NEEDS_REVIEW` with the supplied reason and returns the record in `NEEDS_REVIEW`; a no-change replacement returns `422 RECORD_UPDATE_NO_CHANGES` with `details.reason=NO_CHANGES` and writes nothing. Reopening requires a separate confirmation afterward. `PENDING`, `PROCESSING`, `ERROR`, and `CANCELED` records return `409 RECORD_UPDATE_BLOCKED` with `details.reason=INVALID_STATE`. Do not allow the endpoint to change source/status directly. For IMAGE records, the associated Image and `AIProcessing` row/result must remain unchanged; correction or reopening must not re-run AI, replace the image, or alter AI evidence.
+
+A failure while writing the aggregate, details, status event, or field diff must roll back all of them.
+
+### History Query Validation
+
+`GET /api/records/{id}/history` requires `auth:sanctum` and permits `EDITOR` and `VIEWER`. Validate `page` as an integer of at least 1 and `per_page` as an integer from 1 to 100, defaulting to 50; invalid values return the standard `422` response. Order by `created_at` descending and `id` descending. The response exposes only `id`, `field_name`, `previous_value`, `new_value`, `reason`, `created_at`, and the acting user's `id`, `name`, and `email`. Do not expose AIProcessing data, raw provider responses, private paths, tokens, or exception details. The history is append-only; do not add update or delete endpoints.
 
 Confirmation requires `NEEDS_REVIEW` and a complete, business-valid aggregate. Revalidate the persisted data, allow both `MANUAL` and `IMAGE`, and transactionally persist status `CONFIRMED` with a History status transition. Use the fixed reason `Registro manual confirmado` for MANUAL and `Registro de imagen confirmado` for IMAGE. IMAGE confirmation additionally requires an active Image, company, business period, and complete movement data. AI issues do not by themselves block confirmation after the aggregate passes backend validation. Manual creation confirms in its creation transaction instead. Do not accept a client-provided target state or confirmation reason. Invalid state transitions return `409` with a stable business error code; no partial writes are allowed.
 

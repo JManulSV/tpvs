@@ -156,7 +156,7 @@ It does not require:
 - `Image`
 - `AIProcessing`
 
-A valid manual record is confirmed when the Editor saves it, because the Editor enters and reviews the data in the same workflow. The creation transaction records `status` from `null` to `CONFIRMED` in `History`. A later phase will add the audited `CONFIRMED -> NEEDS_REVIEW -> CONFIRMED` editing workflow.
+A valid manual record is confirmed when the Editor saves it, because the Editor enters and reviews the data in the same workflow. The creation transaction records a single `record_created` event with `new_value=CONFIRMED` in `History`, replacing the former creation `status` event. The audited `CONFIRMED -> NEEDS_REVIEW -> CONFIRMED` editing workflow is available through the record replacement endpoint.
 
 ### Shared Rule
 
@@ -176,16 +176,29 @@ Both sources use the same financial business validation rules. Image-derived rec
 
 ## 12. Review, Correction, Confirmation, and Cancellation Rules
 
-- Only an authenticated `EDITOR` may correct, confirm, cancel, or retry a record. `VIEWER` may read records, images, and AI diagnostics but cannot mutate them.
+- Only an authenticated `EDITOR` may correct, reopen, confirm, cancel, or retry a record. `VIEWER` may read records, images, AI diagnostics, and change history but cannot mutate them.
 - A record in `NEEDS_REVIEW` may be corrected by replacing its complete business aggregate: company, business period, and ordered movements. Correction preserves `source`, `status`, the associated Image, and the existing `AIProcessing` result.
-- Correction requires a reason. It must not re-run AI, replace the image after AI attempts, or alter the normalized/raw AI result.
+- A `CONFIRMED` record may be reopened by submitting the same complete aggregate replacement. The record moves to `NEEDS_REVIEW`; the Editor must confirm it again through the separate confirmation step. Reopening preserves `source`, the associated Image, and the existing `AIProcessing` result.
+- Correction and reopening require a reason. They must not re-run AI, replace the image after AI attempts, or alter the normalized/raw AI result.
+- A replacement `NEEDS_REVIEW` aggregate writes one `History` row per modified field with the previous value, new value, authenticated user, reason, and timestamp. A replacement without differences writes a single `record_updated` event with null values. Reopening additionally writes a `status` `CONFIRMED -> NEEDS_REVIEW` event. A no-change replacement of a `CONFIRMED` record is rejected with `422 RECORD_UPDATE_NO_CHANGES`, keeps the record `CONFIRMED`, and writes no history.
 - A record may be confirmed only from `NEEDS_REVIEW`, after backend revalidation of the complete aggregate and financial rules.
 - AI issues are review signals, not a permanent confirmation block. Once the Editor has corrected the aggregate so it is complete and valid, unresolved AI issues do not prevent confirmation.
 - A record in `NEEDS_REVIEW` or `ERROR` may be canceled with a required reason. Cancellation changes the record to `CANCELED` and preserves its Image and `AIProcessing` evidence.
-- A `CONFIRMED`, `PENDING`, or `PROCESSING` record cannot be canceled in this workflow. `PENDING` and `PROCESSING` may still have work in flight; `CONFIRMED` records follow the audited modification workflow.
-- Correction, confirmation, and cancellation are transactional with their `History` events. A failure must leave no partial record, detail, or audit changes.
+- A `CONFIRMED`, `PENDING`, or `PROCESSING` record cannot be canceled in this workflow. `PENDING` and `PROCESSING` may still have work in flight; `CONFIRMED` records follow the audited reopening workflow.
+- Creation, correction, reopening, confirmation, and cancellation are transactional with their `History` events. A failure must leave no partial record, detail, state, or audit changes.
 - History events for this workflow use:
-  - `record_updated` with null previous/new values and the Editor's reason for correction;
+  - `record_created` with null previous value and `CONFIRMED` or `PENDING` for manual or image creation;
+  - one row per changed field with canonical previous/new values for correction or reopening;
+  - `record_updated` with null previous/new values when a `NEEDS_REVIEW` correction has no differences;
+  - a `status` transition to `NEEDS_REVIEW` when a `CONFIRMED` record is reopened;
   - a `status` transition to `CONFIRMED` with the source-appropriate fixed reason for confirmation;
   - a `status` transition to `CANCELED` with the Editor's reason for cancellation.
-- Detailed field-level before/after audit remains outside this workflow and is implemented in phase 8.11.
+
+### History Value Conventions
+
+- Dates use `Y-m-d`; amounts and percentages use decimal text with two decimals (for example `100.00`).
+- `year`, `week`, and detail `order` use integer text. `status` and `source` use the enum value. A company change uses the company name, not its id.
+- Detail fields use `details[N].campo`, where `N` is 1-based and matches the movement's `order`. Adding or removing a movement writes null to values or values to null.
+- `record_detail_id` and `delivery_id` remain null in this phase because replacement recreates detail rows and `Delivery` history belongs to a later phase.
+- Values are canonicalized before comparison, so changes in formatting alone do not create events.
+- AI transitions, retries, and internal pipeline changes are not written to `History`; `AIProcessing` remains their technical evidence.

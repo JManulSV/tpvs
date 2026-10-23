@@ -133,18 +133,19 @@ Results are ordered by company name ascending and use Laravel's standard paginat
 
 Successful creation returns `201` with `{ "data": { "id": 1, "name": "Acme" } }`.
 
-## Records Contract — Phase 8.6 / SPEC 07 (Implemented) and SPEC 09 (Phase 8.10 Implemented)
+## Records Contract — Phase 8.6 / SPEC 07 (Implemented), SPEC 09 (Phase 8.10 Implemented), and SPEC 10 (Phase 8.11 Implemented)
 
-The endpoints below implement the manual-record workflow for phase 8.6 and are covered by Laravel feature tests. SPEC 09 extends review, correction, confirmation, and cancellation as described below and was verified on 2026-10-22; the checkpoint is recorded in the roadmap.
+The endpoints below implement the manual-record workflow for phase 8.6 and are covered by Laravel feature tests. SPEC 09 extends review, correction, confirmation, and cancellation and was verified on 2026-10-22. SPEC 10 adds field-level change history and audited reopening of confirmed records.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
 | `GET` | `/api/records` | List records using search, filters, and pagination. | Authenticated `EDITOR` or `VIEWER` |
 | `POST` | `/api/records` | Create a manual record and its details. | Authenticated `EDITOR` only |
 | `GET` | `/api/records/{id}` | Retrieve a record and ordered details. | Authenticated `EDITOR` or `VIEWER` |
-| `PUT` | `/api/records/{id}` | Replace all editable record fields and details atomically. | Authenticated `EDITOR` only; `MANUAL` or `IMAGE` + `NEEDS_REVIEW` |
+| `PUT` | `/api/records/{id}` | Replace all editable record fields and details atomically; reopen a `CONFIRMED` record. | Authenticated `EDITOR` only; `MANUAL` or `IMAGE` + `NEEDS_REVIEW` or `CONFIRMED` |
 | `POST` | `/api/records/{id}/confirm` | Validate and confirm a review-required record. | Authenticated `EDITOR` only; `NEEDS_REVIEW` |
 | `POST` | `/api/records/{id}/cancel` | Cancel a review-required or failed record with a reason. | Authenticated `EDITOR` only; `NEEDS_REVIEW` or `ERROR` |
+| `GET` | `/api/records/{id}/history` | List the record's change history, newest first, with pagination. | Authenticated `EDITOR` or `VIEWER` |
 
 All endpoints use the authenticated Sanctum session. Laravel remains authoritative for authorization, business validation, calculated amounts, and state transitions. Frontend visibility does not grant permission.
 
@@ -196,11 +197,13 @@ When a `week` filter is supplied, `year` is required so the business period is u
 
 For replacement, add the required top-level field `"reason": "Corrección de captura"`. Each detail requires affiliation, branch, and non-negative `income` with at most two decimal places. Exactly one of `commission_percentage` or fixed-amount `commission` must be supplied. The percentage is between 0 and 100 with at most two decimal places. A fixed commission is non-negative, has at most two decimal places, and cannot exceed income. Details must contain at least one item. Their `order` is assigned from array order, starting at 1.
 
+`PUT` accepts `MANUAL` or `IMAGE` records in `NEEDS_REVIEW` or `CONFIRMED`. The request always replaces the complete aggregate. For a `CONFIRMED` record with differences, the transaction updates the aggregate, writes one History row per modified field, writes a `status` `CONFIRMED -> NEEDS_REVIEW` row with the supplied reason, and returns the record in `NEEDS_REVIEW`. Confirmation remains a separate human action. A `CONFIRMED` replacement with no differences returns `422` with `code=RECORD_UPDATE_NO_CHANGES` and `details.reason=NO_CHANGES`, without writing History or changing state. `PENDING`, `PROCESSING`, `ERROR`, and `CANCELED` records return `409 RECORD_UPDATE_BLOCKED` with `details.reason=INVALID_STATE`.
+
 For percentage input, Laravel calculates `commission` using decimal arithmetic and `ROUND_HALF_UP` to two decimal places. For fixed commission input, Laravel stores the supplied amount and sets `commission_percentage` to `null`. Laravel always calculates `return_amount = income - commission`; the client must not submit a return amount. Zero-valued income, commission, and return are permitted by the current schema, provided all rules above pass.
 
-`year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id` and all period fields are required. Each detail requires `affiliation`, `branch`, `income`, and exactly one commission input. The API rejects `affiliation` or `branch` at the Record root; there is no legacy dual-payload support. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=status`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro manual confirmado`.
+`year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id` and all period fields are required. Each detail requires `affiliation`, `branch`, `income`, and exactly one commission input. The API rejects `affiliation` or `branch` at the Record root; there is no legacy dual-payload support. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a single History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=record_created`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro creado manualmente`. It replaces the former creation `status` event.
 
-On replacement, Laravel accepts a `MANUAL` or `IMAGE` record in `NEEDS_REVIEW`. It validates the complete new aggregate before atomically updating the Record and replacing its details. For IMAGE records, replacement preserves the associated Image and the existing `AIProcessing` row and result; it does not re-run AI, replace the image, or alter the AI evidence. The request must not change `source` or `status`, which remain as they were. Laravel creates one generic `History` event with `field_name=record_updated`, null `previous_value` and `new_value`, the authenticated `user_id`, and the supplied reason. The aggregate update and History event share one database transaction. Rows in `record_details` may be recreated by the full replacement; field-level before/after audit is deferred to phase 8.11.
+On replacement, Laravel accepts a `MANUAL` or `IMAGE` record in `NEEDS_REVIEW` or `CONFIRMED`. It validates the complete new aggregate before atomically updating the Record and replacing its details. For IMAGE records, replacement preserves the associated Image and the existing `AIProcessing` row and result; it does not re-run AI, replace the image, or alter the AI evidence. The request must not change `source` or `status` directly. For a `NEEDS_REVIEW` correction, Laravel writes one History row per modified field with canonical previous/new values, the authenticated user, and the supplied reason. If the canonicalized aggregate has no differences, it writes a single `record_updated` event with null values and the supplied reason, then responds `200`. For a `CONFIRMED` record with differences, Laravel applies the same field-level diff and additionally writes `status` `CONFIRMED -> NEEDS_REVIEW` with the supplied reason; the record remains in `NEEDS_REVIEW` for a separate confirmation. A `CONFIRMED` replacement with no differences responds `422 RECORD_UPDATE_NO_CHANGES` and writes nothing. The aggregate update, detail replacement, and History events share one database transaction under a Record row lock. Because replacement recreates `record_details` rows, detail events use `details[N].campo` keyed by 1-based `order` and leave `record_detail_id` null.
 
 ### Record Resource and Detail
 
@@ -227,7 +230,55 @@ Laravel accepts only a `NEEDS_REVIEW` or `ERROR` record. `reason` is required, t
 - Unauthenticated requests return `401`; a `VIEWER` mutation returns `403`; missing resources return `404`.
 - Shape, relationship, invalid-date, inverted date-range, and financial input errors return Laravel's standard `422` validation structure, with errors keyed to the relevant field or detail index where possible.
 - A disallowed state transition returns `409` with a stable business code. Use `RECORD_UPDATE_BLOCKED` for replacement, `RECORD_CONFIRMATION_BLOCKED` for confirmation, and `RECORD_CANCELLATION_BLOCKED` for cancellation, with a stable reason in `details` such as `INVALID_STATE` or `BUSINESS_VALIDATION_FAILED`.
-- All multi-row create, replace, confirmation, and cancellation operations roll back completely if persistence or History creation fails.
+- Replacing a `CONFIRMED` record without changes returns `422` with `code=RECORD_UPDATE_NO_CHANGES` and `details.reason=NO_CHANGES`.
+- All multi-row create, replace, reopen, confirmation, and cancellation operations roll back completely if persistence or History creation fails.
+
+### Record History
+
+`GET /api/records/{id}/history` returns the human change history for an existing record, newest first. It accepts:
+
+| Parameter | Rules | Default |
+| --- | --- | --- |
+| `page` | Integer greater than or equal to 1. Invalid values return `422`. | `1` |
+| `per_page` | Integer from 1 to 100. Invalid values return `422`. | `50` |
+
+Results are ordered by `created_at` descending and `id` descending and use Laravel's standard paginated Resource response with `data`, `links`, and `meta`. Each item contains `id`, `field_name`, `previous_value`, `new_value`, `reason`, `created_at`, and a `user` object with `id`, `name`, and `email`.
+
+```json
+{
+  "data": [
+    {
+      "id": 12,
+      "field_name": "details[1].income",
+      "previous_value": "100.00",
+      "new_value": "120.00",
+      "reason": "Se corrigió el ingreso",
+      "created_at": "2026-10-23T18:00:00.000000Z",
+      "user": {
+        "id": 1,
+        "name": "Editor",
+        "email": "editor@example.com"
+      }
+    }
+  ],
+  "links": {
+    "first": "…",
+    "last": "…",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 1,
+    "per_page": 50,
+    "to": 1,
+    "total": 1
+  }
+}
+```
+
+Both `EDITOR` and `VIEWER` may read history. Unauthenticated requests return `401`, a missing record returns `404`, and invalid pagination returns `422`. The endpoint never exposes `raw_response`, private storage paths, tokens, stack traces, or AIProcessing data. History is read-only: no update or delete endpoint exists.
 
 ## Record Images Contract — Phase 8.7 (Implemented)
 
@@ -286,7 +337,7 @@ The following routes implement the SPEC 08 asynchronous pipeline. They require L
 | `POST` | `/api/records/{record}/ai-processing/retry` | Retry an IMAGE Record whose Record and AIProcessing statuses are `ERROR`, reusing its single AIProcessing row for exactly one provider call. | Authenticated `EDITOR`; stateful SPA requests require CSRF. |
 | `GET` | `/api/records/{id}` | Include the safe `ai_processing` result for an IMAGE record. | Authenticated `EDITOR` or `VIEWER`. |
 
-The creation request accepts only `multipart/form-data` with the `image` field. It does not accept company, status, period, detail, or financial values. Upload type, content validation, size, private disk, and safe metadata follow the Record Image contract above. A successful request creates the Record in `PENDING`, Image association, and AIProcessing in `PENDING` atomically and returns `202` with the provisional Record resource. Queue dispatch occurs only after commit. If persistence fails, the newly staged file is removed where possible; if dispatch fails after commit, both processing models are moved to `ERROR` with a safe diagnostic code.
+The creation request accepts only `multipart/form-data` with the `image` field. It does not accept company, status, period, detail, or financial values. Upload type, content validation, size, private disk, and safe metadata follow the Record Image contract above. A successful request creates the Record in `PENDING`, Image association, AIProcessing in `PENDING`, and a single History `record_created` event with `new_value=PENDING`, the authenticated user, and fixed reason `Registro creado desde imagen`, all atomically, then returns `202` with the provisional Record resource. Queue dispatch occurs only after commit. If persistence fails, the transaction is rolled back and the newly staged file is removed where possible; if dispatch fails after commit, both processing models are moved to `ERROR` with a safe diagnostic code.
 
 `ai_processing` may expose `status`, `provider`, `model`, `started_at`, `completed_at`, `normalized_extraction`, `issues`, and `unconvertible_numeric_count`. It must never expose `raw_response`, private storage metadata, provider host/configuration, stack traces, or unsanitized exceptions. The latest raw provider response is retained in backend persistence for diagnosis but is not serialized or written to public logs.
 
