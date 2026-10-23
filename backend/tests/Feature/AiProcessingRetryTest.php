@@ -42,6 +42,7 @@ class AiProcessingRetryTest extends TestCase
 
         $this->assertSame(1, AiProcessing::query()->where('image_id', $image->id)->count());
         $this->assertNull($processing->fresh()->result);
+        $this->assertDatabaseCount('histories', 0);
         Queue::assertPushed(ProcessImageJob::class, fn (ProcessImageJob $job): bool => $job->manualRetry && $job->tries === 1);
     }
 

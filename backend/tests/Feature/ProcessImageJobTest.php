@@ -93,6 +93,7 @@ class ProcessImageJobTest extends TestCase
         $this->assertSame(RecordStatus::ERROR, $record->fresh()->status);
         $this->assertSame(AiProcessingStatus::ERROR, $processing->fresh()->status);
         $this->assertDatabaseCount('record_details', 0);
+        $this->assertDatabaseCount('histories', 0);
         $this->assertSame('private provider response', $processing->fresh()->result['raw_response']);
     }
 

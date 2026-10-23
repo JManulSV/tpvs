@@ -445,6 +445,285 @@ class RecordsApiTest extends TestCase
         ]);
     }
 
+    public function test_manual_needs_review_update_without_changes_logs_single_record_updated(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, [
+            'year' => 2026,
+            'week' => 38,
+            'week_start_date' => '2026-09-14',
+            'week_end_date' => '2026-09-20',
+        ], ['affiliation' => 'AFF-123']);
+        $payload = $this->validManualRecordPayload($record->company_id);
+        $payload['reason'] = 'Sin cambios relevantes';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertOk()
+            ->assertJsonPath('data.id', $record->id)
+            ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
+            ->assertJsonPath('data.details.0.affiliation', 'AFF-123');
+
+        $this->assertDatabaseCount('histories', 1);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'record_updated',
+            'previous_value' => null,
+            'new_value' => null,
+            'reason' => 'Sin cambios relevantes',
+        ]);
+        $this->assertDatabaseCount('record_details', 1);
+    }
+
+    public function test_manual_update_logs_removed_detail_fields_as_null(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, [
+            'year' => 2026,
+            'week' => 38,
+            'week_start_date' => '2026-09-14',
+            'week_end_date' => '2026-09-20',
+        ], ['affiliation' => 'AFF-123']);
+        RecordDetail::factory()->for($record)->create([
+            'order' => 2,
+            'affiliation' => 'AFF-REMOVED',
+            'branch' => 'Tonalá',
+            'income' => '50.00',
+            'commission_percentage' => null,
+            'commission' => '2.50',
+            'return_amount' => '47.50',
+        ]);
+        $payload = $this->validManualRecordPayload($record->company_id);
+        $payload['reason'] = 'Se eliminó un movimiento';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertOk()
+            ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
+            ->assertJsonCount(1, 'data.details')
+            ->assertJsonPath('data.details.0.affiliation', 'AFF-123');
+
+        $this->assertDatabaseCount('record_details', 1);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'details[2].order',
+            'previous_value' => '2',
+            'new_value' => null,
+            'reason' => 'Se eliminó un movimiento',
+        ]);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'details[2].income',
+            'previous_value' => '50.00',
+            'new_value' => null,
+            'reason' => 'Se eliminó un movimiento',
+        ]);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'details[2].affiliation',
+            'previous_value' => 'AFF-REMOVED',
+            'new_value' => null,
+            'reason' => 'Se eliminó un movimiento',
+        ]);
+        $this->assertDatabaseMissing('histories', [
+            'record_id' => $record->id,
+            'field_name' => 'details[1].income',
+        ]);
+    }
+
+    public function test_editor_can_reopen_confirmed_record_and_logs_status_and_field_changes(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, [
+            'status' => RecordStatus::CONFIRMED,
+            'year' => 2026,
+            'week' => 38,
+            'week_start_date' => '2026-09-14',
+            'week_end_date' => '2026-09-20',
+        ], ['affiliation' => 'AFF-123']);
+        $payload = $this->validManualRecordPayload($record->company_id);
+        $payload['details'][0]['income'] = '120.00';
+        $payload['reason'] = 'Se corrigió el ingreso';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertOk()
+            ->assertJsonPath('data.id', $record->id)
+            ->assertJsonPath('data.source', RecordSource::MANUAL->value)
+            ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
+            ->assertJsonPath('data.details.0.income', '120.00')
+            ->assertJsonPath('data.details.0.commission', '6.00')
+            ->assertJsonPath('data.details.0.return_amount', '114.00');
+
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'status' => RecordStatus::NEEDS_REVIEW->value,
+        ]);
+        foreach ([
+            ['field_name' => 'details[1].income', 'previous_value' => '100.00', 'new_value' => '120.00'],
+            ['field_name' => 'details[1].commission', 'previous_value' => '5.00', 'new_value' => '6.00'],
+            ['field_name' => 'details[1].return_amount', 'previous_value' => '95.00', 'new_value' => '114.00'],
+            ['field_name' => 'status', 'previous_value' => RecordStatus::CONFIRMED->value, 'new_value' => RecordStatus::NEEDS_REVIEW->value],
+        ] as $expected) {
+            $this->assertDatabaseHas('histories', [
+                'record_id' => $record->id,
+                'user_id' => $editor->id,
+                'reason' => 'Se corrigió el ingreso',
+            ] + $expected);
+        }
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/confirm', [])
+            ->assertOk()
+            ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value);
+
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'status',
+            'previous_value' => RecordStatus::NEEDS_REVIEW->value,
+            'new_value' => RecordStatus::CONFIRMED->value,
+            'reason' => 'Registro manual confirmado',
+        ]);
+    }
+
+    public function test_reopening_confirmed_image_record_preserves_source_image_and_ai_evidence(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, [
+            'source' => RecordSource::IMAGE,
+            'status' => RecordStatus::CONFIRMED,
+            'year' => 2026,
+            'week' => 38,
+            'week_start_date' => '2026-09-14',
+            'week_end_date' => '2026-09-20',
+        ], ['affiliation' => 'AFF-123']);
+        $image = Image::factory()->for($record)->create();
+        $processing = AiProcessing::factory()->for($image)->create([
+            'status' => AiProcessingStatus::NEEDS_REVIEW,
+            'result' => [
+                'normalized_extraction' => [
+                    'record' => ['company_name' => 'Acme'],
+                    'details' => [],
+                ],
+                'issues' => [[
+                    'path' => 'details.0.branch',
+                    'code' => 'BRANCH_MISSING',
+                    'severity' => 'review',
+                    'message' => 'Branch could not be read.',
+                ]],
+                'unconvertible_numeric_count' => 1,
+            ],
+        ]);
+        $payload = $this->validManualRecordPayload($record->company_id);
+        $payload['details'][0]['branch'] = 'Zapopan';
+        $payload['reason'] = 'Se corrigió la sucursal';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertOk()
+            ->assertJsonPath('data.source', RecordSource::IMAGE->value)
+            ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
+            ->assertJsonPath('data.image.id', $image->id)
+            ->assertJsonPath('data.ai_processing.status', AiProcessingStatus::NEEDS_REVIEW->value)
+            ->assertJsonPath('data.ai_processing.issues.0.code', 'BRANCH_MISSING');
+
+        $this->assertDatabaseCount('images', 1);
+        $this->assertDatabaseCount('ai_processings', 1);
+        $this->assertSame($image->id, Image::query()->sole()->id);
+        $this->assertSame($processing->id, AiProcessing::query()->sole()->id);
+        $this->assertSame($processing->result, $processing->fresh()->result);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'details[1].branch',
+            'previous_value' => 'Guadalajara',
+            'new_value' => 'Zapopan',
+            'reason' => 'Se corrigió la sucursal',
+        ]);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'status',
+            'previous_value' => RecordStatus::CONFIRMED->value,
+            'new_value' => RecordStatus::NEEDS_REVIEW->value,
+            'reason' => 'Se corrigió la sucursal',
+        ]);
+    }
+
+    public function test_reopening_confirmed_record_without_changes_is_rejected_without_writes(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, [
+            'status' => RecordStatus::CONFIRMED,
+            'year' => 2026,
+            'week' => 38,
+            'week_start_date' => '2026-09-14',
+            'week_end_date' => '2026-09-20',
+        ], ['affiliation' => 'AFF-123']);
+        $payload = $this->validManualRecordPayload($record->company_id);
+        $payload['reason'] = 'Intento sin cambios';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'RECORD_UPDATE_NO_CHANGES')
+            ->assertJsonPath('details.reason', 'NO_CHANGES');
+
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'status' => RecordStatus::CONFIRMED->value,
+        ]);
+        $this->assertDatabaseCount('record_details', 1);
+        $this->assertDatabaseHas('record_details', [
+            'record_id' => $record->id,
+            'income' => '100.00',
+        ]);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_failed_history_write_rolls_back_confirmed_record_reopen(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, [
+            'status' => RecordStatus::CONFIRMED,
+            'year' => 2026,
+            'week' => 38,
+            'week_start_date' => '2026-09-14',
+            'week_end_date' => '2026-09-20',
+        ], ['affiliation' => 'AFF-123']);
+        $payload = $this->validManualRecordPayload($record->company_id);
+        $payload['details'][0]['income'] = '120.00';
+        $payload['reason'] = 'Test rollback de reapertura';
+
+        Event::listen('eloquent.creating: '.History::class, static function (): void {
+            throw new \RuntimeException('Simulated history persistence failure.');
+        });
+
+        try {
+            $this->actingAs($editor, 'web')
+                ->putJson('/api/records/'.$record->id, $payload)
+                ->assertStatus(500);
+        } finally {
+            Event::forget('eloquent.creating: '.History::class);
+        }
+
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'status' => RecordStatus::CONFIRMED->value,
+        ]);
+        $this->assertDatabaseCount('record_details', 1);
+        $this->assertDatabaseHas('record_details', [
+            'record_id' => $record->id,
+            'income' => '100.00',
+        ]);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
     public function test_editor_can_replace_image_needs_review_record_preserving_image_and_ai_evidence(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
