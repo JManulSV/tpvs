@@ -366,7 +366,7 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('record_details', 0);
     }
 
-    public function test_editor_can_replace_manual_needs_review_record_and_logs_generic_history(): void
+    public function test_editor_can_replace_manual_needs_review_record_and_logs_field_history(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $record = $this->createRecordWithDetails();
@@ -407,13 +407,40 @@ class RecordsApiTest extends TestCase
             ->assertJsonPath('data.details.1.return_amount', '45.00');
 
         $this->assertDatabaseCount('record_details', 2);
-        $this->assertDatabaseCount('histories', 1);
+        $this->assertDatabaseMissing('histories', [
+            'record_id' => $record->id,
+            'field_name' => 'record_updated',
+        ]);
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
             'user_id' => $editor->id,
-            'field_name' => 'record_updated',
+            'field_name' => 'company',
+            'previous_value' => $record->company->name,
+            'new_value' => $newCompany->name,
+            'reason' => 'Se corrigieron importes y afiliación/sucursal',
+        ]);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'details[1].branch',
+            'previous_value' => 'Guadalajara',
+            'new_value' => 'Zapopan',
+            'reason' => 'Se corrigieron importes y afiliación/sucursal',
+        ]);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'details[1].income',
+            'previous_value' => '100.00',
+            'new_value' => '200.00',
+            'reason' => 'Se corrigieron importes y afiliación/sucursal',
+        ]);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'details[2].order',
             'previous_value' => null,
-            'new_value' => null,
+            'new_value' => '2',
             'reason' => 'Se corrigieron importes y afiliación/sucursal',
         ]);
     }
@@ -467,12 +494,16 @@ class RecordsApiTest extends TestCase
         $this->assertSame($image->id, Image::query()->sole()->id);
         $this->assertSame($processing->id, AiProcessing::query()->sole()->id);
         $this->assertSame($processing->result, $processing->fresh()->result);
+        $this->assertDatabaseMissing('histories', [
+            'record_id' => $record->id,
+            'field_name' => 'record_updated',
+        ]);
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
             'user_id' => $editor->id,
-            'field_name' => 'record_updated',
-            'previous_value' => null,
-            'new_value' => null,
+            'field_name' => 'details[1].branch',
+            'previous_value' => 'Guadalajara',
+            'new_value' => 'Zapopan',
             'reason' => 'Se corrigió la sucursal mal leída',
         ]);
     }
@@ -543,11 +574,10 @@ class RecordsApiTest extends TestCase
         $this->assertDatabaseCount('record_details', 1);
     }
 
-    public function test_only_records_needing_review_can_be_replaced(): void
+    public function test_records_in_blocked_states_cannot_be_replaced(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $statuses = [
-            RecordStatus::CONFIRMED,
             RecordStatus::CANCELED,
             RecordStatus::PENDING,
             RecordStatus::PROCESSING,
@@ -567,7 +597,7 @@ class RecordsApiTest extends TestCase
         }
 
         $this->assertDatabaseCount('histories', 0);
-        $this->assertDatabaseCount('record_details', 5);
+        $this->assertDatabaseCount('record_details', 4);
     }
 
     public function test_failed_history_write_rolls_back_record_and_detail_replacement(): void

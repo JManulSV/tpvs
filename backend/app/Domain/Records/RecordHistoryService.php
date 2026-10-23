@@ -31,28 +31,33 @@ class RecordHistoryService
     {
         $record->load(['company', 'details']);
 
-        $snapshot = [
-            'company' => $this->canonicalString($record->company?->name),
-            'year' => $this->canonicalInteger($record->year),
-            'week' => $this->canonicalInteger($record->week),
-            'week_start_date' => $this->canonicalDate($record->week_start_date),
-            'week_end_date' => $this->canonicalDate($record->week_end_date),
-        ];
+        return $this->buildSnapshot(
+            $record->company?->name,
+            $record->year,
+            $record->week,
+            $record->week_start_date,
+            $record->week_end_date,
+            $record->details->map(static fn ($detail): array => $detail->toArray())->all(),
+        );
+    }
 
-        foreach ($record->details as $detail) {
-            $order = (int) $detail->order;
-            $snapshot["details[{$order}].order"] = $this->canonicalInteger($detail->order);
-
-            foreach (self::DETAIL_TEXT_FIELDS as $field) {
-                $snapshot["details[{$order}].{$field}"] = $this->canonicalString($detail->{$field});
-            }
-
-            foreach (self::DETAIL_DECIMAL_FIELDS as $field) {
-                $snapshot["details[{$order}].{$field}"] = $this->canonicalDecimal($detail->{$field});
-            }
-        }
-
-        return $snapshot;
+    /**
+     * Build the canonical snapshot that the validated replacement payload would persist.
+     *
+     * @param  array<string, mixed>  $record
+     * @param  list<array<string, mixed>>  $details
+     * @return array<string, string|null>
+     */
+    public function snapshotFromValidated(array $record, array $details, ?string $companyName): array
+    {
+        return $this->buildSnapshot(
+            $companyName,
+            $record['year'] ?? null,
+            $record['week'] ?? null,
+            $record['week_start_date'] ?? null,
+            $record['week_end_date'] ?? null,
+            $details,
+        );
     }
 
     /**
@@ -154,6 +159,42 @@ class RecordHistoryService
             'new_value' => $newStatus->value,
             'reason' => $reason,
         ]);
+    }
+
+    /**
+     * @param  iterable<array<string, mixed>>  $details
+     * @return array<string, string|null>
+     */
+    private function buildSnapshot(
+        ?string $companyName,
+        mixed $year,
+        mixed $week,
+        mixed $weekStartDate,
+        mixed $weekEndDate,
+        iterable $details,
+    ): array {
+        $snapshot = [
+            'company' => $this->canonicalString($companyName),
+            'year' => $this->canonicalInteger($year),
+            'week' => $this->canonicalInteger($week),
+            'week_start_date' => $this->canonicalDate($weekStartDate),
+            'week_end_date' => $this->canonicalDate($weekEndDate),
+        ];
+
+        foreach ($details as $detail) {
+            $order = (int) $detail['order'];
+            $snapshot["details[{$order}].order"] = $this->canonicalInteger($detail['order']);
+
+            foreach (self::DETAIL_TEXT_FIELDS as $field) {
+                $snapshot["details[{$order}].{$field}"] = $this->canonicalString($detail[$field] ?? null);
+            }
+
+            foreach (self::DETAIL_DECIMAL_FIELDS as $field) {
+                $snapshot["details[{$order}].{$field}"] = $this->canonicalDecimal($detail[$field] ?? null);
+            }
+        }
+
+        return $snapshot;
     }
 
     private function canonicalString(mixed $value): ?string
