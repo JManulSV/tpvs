@@ -295,9 +295,9 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
 
       <RecordHistoryPanel recordId={record.id} />
 
-      {record.source === "MANUAL" && record.status === "CONFIRMED" && (
+      {record.status === "CONFIRMED" && canEdit && (
         <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          Este registro fue capturado y confirmado por el Editor. La edición auditada de registros confirmados estará disponible en una fase posterior.
+          Este registro está confirmado. Si lo editas, volverá a necesitar revisión y deberás confirmarlo nuevamente.
         </p>
       )}
 

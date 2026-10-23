@@ -28,10 +28,11 @@ export function getRecordActionPermissions(
   }
 
   const inReview = record.status === "NEEDS_REVIEW";
+  const isConfirmed = record.status === "CONFIRMED";
   const inError = record.status === "ERROR";
 
   return {
-    canCorrect: inReview,
+    canCorrect: inReview || isConfirmed,
     canConfirm: inReview,
     canCancel: inReview || inError,
     canRetryAiProcessing: inError && record.source === "IMAGE",

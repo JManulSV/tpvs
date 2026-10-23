@@ -219,7 +219,16 @@ describe("record action permissions", () => {
     });
   });
 
-  it.each<RecordStatus>(["PENDING", "PROCESSING", "CONFIRMED", "CANCELED"])(
+  it("lets an editor edit a confirmed record to reopen it for review", () => {
+    expect(getRecordActionPermissions(record("CONFIRMED"), true)).toEqual({
+      canCorrect: true,
+      canConfirm: false,
+      canCancel: false,
+      canRetryAiProcessing: false,
+    });
+  });
+
+  it.each<RecordStatus>(["PENDING", "PROCESSING", "CANCELED"])(
     "offers no mutations for an editor when the record is %s",
     (status) => {
       expect(getRecordActionPermissions(record(status), true)).toEqual({

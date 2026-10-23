@@ -147,7 +147,9 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
         </h1>
         <p className="text-sm text-muted-foreground">
           {isEdit
-            ? "Corrige los datos y guarda con un motivo. Los importes oficiales los calcula el servidor y el estado no cambia."
+            ? props.record.status === "CONFIRMED"
+              ? "Este registro está confirmado. Al guardar los cambios se reabrirá para revisión, deberás capturar un motivo y confirmarlo nuevamente. Los importes oficiales los calcula el servidor."
+              : "Corrige los datos y guarda con un motivo. Los importes oficiales los calcula el servidor y el estado no cambia."
             : "Los importes oficiales los calcula el servidor. Si la captura es válida, quedará confirmada al guardarla."}
         </p>
       </header>
@@ -235,8 +237,13 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
         </section>
 
         {isEdit && (
-          <Field id="manual-record-reason" label="Motivo de la edición" error={!editReason.trim() && formError ? "El motivo de la edición es obligatorio." : undefined}>
+          <Field id="manual-record-reason" label="Motivo de la edición (obligatorio)" error={!editReason.trim() && formError ? "El motivo de la edición es obligatorio." : undefined}>
             <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm" id="manual-record-reason" maxLength={2000} onChange={(event) => setEditReason(event.target.value)} value={editReason} />
+            <p className="text-xs text-muted-foreground">
+              {props.record.status === "CONFIRMED"
+                ? "Explica por qué reabres este registro. El motivo quedará registrado en el historial junto con los cambios."
+                : "El motivo quedará registrado en el historial junto con los cambios."}
+            </p>
           </Field>
         )}
 
