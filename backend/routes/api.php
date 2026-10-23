@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/records', [RecordController::class, 'store']);
     Route::post('/records/from-image', [RecordFromImageController::class, 'store'])->middleware('editor');
     Route::post('/records/{record}/ai-processing/retry', [RetryAiProcessingController::class, 'store'])->middleware('editor');
+    Route::get('/records/{record}/history', [RecordController::class, 'history']);
     Route::get('/records/{record}', [RecordController::class, 'show']);
     Route::put('/records/{record}', [RecordController::class, 'update']);
     Route::post('/records/{record}/confirm', [RecordController::class, 'confirm']);

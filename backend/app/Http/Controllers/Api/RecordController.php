@@ -9,14 +9,18 @@ use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Records\CancelRecordRequest;
 use App\Http\Requests\Records\ConfirmRecordRequest;
+use App\Http\Requests\Records\IndexRecordHistoryRequest;
 use App\Http\Requests\Records\IndexRecordsRequest;
 use App\Http\Requests\Records\StoreRecordRequest;
 use App\Http\Requests\Records\UpdateRecordRequest;
+use App\Http\Resources\HistoryResource;
 use App\Http\Resources\RecordResource;
 use App\Models\Company;
+use App\Models\History;
 use App\Models\Record;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -187,6 +191,21 @@ class RecordController extends Controller
         $result->loadSum('details as return_total', 'return_amount');
 
         return new RecordResource($result);
+    }
+
+    public function history(IndexRecordHistoryRequest $request, Record $record): AnonymousResourceCollection
+    {
+        $filters = $request->validated();
+
+        $history = History::query()
+            ->with('user')
+            ->where('record_id', $record->getKey())
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate($filters['per_page'] ?? 50)
+            ->appends($filters);
+
+        return HistoryResource::collection($history);
     }
 
     public function show(Record $record): RecordResource
