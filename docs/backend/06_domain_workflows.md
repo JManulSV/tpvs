@@ -96,7 +96,7 @@ Tests
 
 ## Record Change History
 
-**Status:** SPEC 10 / phase 8.11.
+**Status:** SPEC 10 / phase 8.11 implemented and verified (2026-10-26).
 
 **Purpose:** Expose the human audit trail of a Record with user, reason, previous/new values, and timestamp.
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. **Phase 8.11 / SPEC 10 adds record change history and audited editing of `CONFIRMED` records.** The checkpoint is recorded in the roadmap.
+**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. **Phase 8.11 / SPEC 10 is implemented and verified (2026-10-26):** record change history with user, reason, and before/after values, plus audited editing and reopening of `CONFIRMED` records. The checkpoint is recorded in the roadmap.
 
 ## Goal and Scope
 
@@ -87,10 +87,13 @@ Verified on 2026-10-22:
 
 ## Phase 8.11 Verification
 
+Verified on 2026-10-26:
+
 - History contract tests cover pagination, ordering, role access, and response shape.
 - `CONFIRMED` editing tests cover the reopen flow, the no-change `422`, and role visibility.
-- The browser checkpoint demonstrates manual and image creation, correction with diff, confirmation, reopening, reconfirmation, history display, and `VIEWER` read access.
-- Backend suite, Pint, Vitest, ESLint, TypeScript, and production build pass before marking the phase complete.
+- The browser checkpoint demonstrates manual and image creation, correction with diff, confirmation, reopening with preserved source/Image/AI evidence, reconfirmation, cancellation, history display and pagination, loading/error/empty states, and `VIEWER` read access. The evidence is recorded in [`../06_testing.md`](../06_testing.md).
+- Backend suite (149 tests, 922 assertions), Pint, Vitest (36 tests), ESLint, TypeScript, and production build pass.
+- The implementation checkpoint is recorded in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
 
 ## Related Documents
 

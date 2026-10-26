@@ -1,6 +1,6 @@
 # SPEC 10 — Historial de cambios de registros
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 04, SPEC 07, SPEC 08, SPEC 09
 > **Date:** 2026-10-23
 > **Objective:** Auditar y consultar, con usuario, motivo y valores anteriores/nuevos, cada cambio humano relevante de un registro, incluida la reapertura auditada de registros confirmados.
@@ -189,27 +189,27 @@ Respuesta:
 
 ## Acceptance criteria
 
-- [ ] No se agregan tablas ni migraciones.
-- [ ] La creación manual escribe un único `record_created` null -> `CONFIRMED`, con usuario y `Registro creado manualmente`, y no un evento `status` de creación.
-- [ ] La creación desde imagen escribe un único `record_created` null -> `PENDING`, con usuario y `Registro creado desde imagen`, en la misma transacción que Record, Image y AIProcessing.
-- [ ] Las transiciones AI y los retries no escriben filas en `History`.
-- [ ] Corregir un `NEEDS_REVIEW` escribe una fila por campo modificado con anterior, nuevo, usuario, motivo y `created_at`.
-- [ ] Los campos de detalle usan `details[N].campo` con `N` 1-based igual a `order`; un detalle agregado o eliminado produce null -> valores o valores -> null.
-- [ ] Corregir un `NEEDS_REVIEW` sin cambios escribe un único `record_updated` con el motivo y responde `200`.
-- [ ] `PUT` acepta `CONFIRMED`, exige motivo, escribe el diff y `status CONFIRMED -> NEEDS_REVIEW`, y deja el registro en `NEEDS_REVIEW`.
-- [ ] `PUT` sobre `CONFIRMED` sin cambios responde `422 RECORD_UPDATE_NO_CHANGES`, mantiene `CONFIRMED` y no escribe `History`.
-- [ ] La reapertura conserva `source`, `Image` y `AIProcessing`.
-- [ ] Confirmar escribe `status NEEDS_REVIEW -> CONFIRMED` con el motivo fijo según la fuente y el usuario.
-- [ ] Cancelar escribe `status` al estado anterior -> `CANCELED` con el motivo y el usuario.
-- [ ] Un fallo de persistencia revierte agregado, estado e History de creación, corrección, reapertura, confirmación o cancelación.
-- [ ] `GET /records/{id}/history` responde paginado, más reciente primero, con 50 por defecto y máximo 100, incluyendo usuario, campo, anterior, nuevo, motivo y fecha.
-- [ ] `EDITOR` y `VIEWER` pueden consultar el historial; anónimo recibe `401`, inexistente `404` y paginación inválida `422`.
-- [ ] El historial es solo de lectura; no existen endpoints de actualización o borrado.
-- [ ] El detalle muestra el panel de historial con etiquetas, formato, paginación y estados de carga/error/vacío.
-- [ ] `EDITOR` puede editar un `CONFIRMED` desde la UI; al guardar queda `NEEDS_REVIEW` y puede confirmarlo; `VIEWER` no ve la acción.
-- [ ] El panel se actualiza después de corregir, reabrir, confirmar o cancelar.
-- [ ] Suite backend, Vitest, ESLint, TypeScript, build y Pint pasan.
-- [ ] El checkpoint de navegador demuestra la trazabilidad completa y se documenta; 8.11 se marca completo solo entonces.
+- [x] No se agregan tablas ni migraciones.
+- [x] La creación manual escribe un único `record_created` null -> `CONFIRMED`, con usuario y `Registro creado manualmente`, y no un evento `status` de creación.
+- [x] La creación desde imagen escribe un único `record_created` null -> `PENDING`, con usuario y `Registro creado desde imagen`, en la misma transacción que Record, Image y AIProcessing.
+- [x] Las transiciones AI y los retries no escriben filas en `History`.
+- [x] Corregir un `NEEDS_REVIEW` escribe una fila por campo modificado con anterior, nuevo, usuario, motivo y `created_at`.
+- [x] Los campos de detalle usan `details[N].campo` con `N` 1-based igual a `order`; un detalle agregado o eliminado produce null -> valores o valores -> null.
+- [x] Corregir un `NEEDS_REVIEW` sin cambios escribe un único `record_updated` con el motivo y responde `200`.
+- [x] `PUT` acepta `CONFIRMED`, exige motivo, escribe el diff y `status CONFIRMED -> NEEDS_REVIEW`, y deja el registro en `NEEDS_REVIEW`.
+- [x] `PUT` sobre `CONFIRMED` sin cambios responde `422 RECORD_UPDATE_NO_CHANGES`, mantiene `CONFIRMED` y no escribe `History`.
+- [x] La reapertura conserva `source`, `Image` y `AIProcessing`.
+- [x] Confirmar escribe `status NEEDS_REVIEW -> CONFIRMED` con el motivo fijo según la fuente y el usuario.
+- [x] Cancelar escribe `status` al estado anterior -> `CANCELED` con el motivo y el usuario.
+- [x] Un fallo de persistencia revierte agregado, estado e History de creación, corrección, reapertura, confirmación o cancelación.
+- [x] `GET /records/{id}/history` responde paginado, más reciente primero, con 50 por defecto y máximo 100, incluyendo usuario, campo, anterior, nuevo, motivo y fecha.
+- [x] `EDITOR` y `VIEWER` pueden consultar el historial; anónimo recibe `401`, inexistente `404` y paginación inválida `422`.
+- [x] El historial es solo de lectura; no existen endpoints de actualización o borrado.
+- [x] El detalle muestra el panel de historial con etiquetas, formato, paginación y estados de carga/error/vacío.
+- [x] `EDITOR` puede editar un `CONFIRMED` desde la UI; al guardar queda `NEEDS_REVIEW` y puede confirmarlo; `VIEWER` no ve la acción.
+- [x] El panel se actualiza después de corregir, reabrir, confirmar o cancelar.
+- [x] Suite backend, Vitest, ESLint, TypeScript, build y Pint pasan.
+- [x] El checkpoint de navegador demuestra la trazabilidad completa y se documenta; 8.11 se marca completo solo entonces.
 
 ## Decisions
 
