@@ -23,6 +23,11 @@ class RecordPolicy
         return $this->view($user, $record);
     }
 
+    public function viewDelivery(User $user, Record $record): bool
+    {
+        return $this->view($user, $record);
+    }
+
     public function create(User $user): bool
     {
         return $user->role === UserRole::EDITOR;
@@ -34,6 +39,11 @@ class RecordPolicy
     }
 
     public function uploadImage(User $user, Record $record): bool
+    {
+        return $user->role === UserRole::EDITOR;
+    }
+
+    public function prepareDelivery(User $user, Record $record): bool
     {
         return $user->role === UserRole::EDITOR;
     }

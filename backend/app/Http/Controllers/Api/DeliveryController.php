@@ -13,11 +13,14 @@ use App\Models\Record;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class DeliveryController extends Controller
 {
     public function show(Record $record, DeliveryValidator $validator): JsonResource|JsonResponse
     {
+        Gate::authorize('viewDelivery', $record);
+
         $delivery = Delivery::query()
             ->with('cashDenominations')
             ->where('record_id', $record->getKey())
@@ -36,6 +39,8 @@ class DeliveryController extends Controller
         DeliveryValidator $validator,
         DeliveryHistoryService $history,
     ): JsonResource|JsonResponse {
+        Gate::authorize('prepareDelivery', $record);
+
         $validated = $request->validated();
         $denominations = $validator->canonicalizeDenominations($validated['denominations']);
         $userId = $request->user()->id;

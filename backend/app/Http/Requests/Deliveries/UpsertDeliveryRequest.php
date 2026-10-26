@@ -9,6 +9,11 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpsertDeliveryRequest extends FormRequest
 {
+    public function authorize(): bool
+    {
+        return $this->user()?->can('prepareDelivery', $this->route('record')) ?? false;
+    }
+
     protected function prepareForValidation(): void
     {
         if (is_string($this->input('delivered_by_name'))) {
