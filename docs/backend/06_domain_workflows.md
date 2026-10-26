@@ -137,4 +137,34 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 ## Delivery
 
-Delivery preparation is allowed only for a confirmed Record. Cash denomination totals must equal the current calculated return amount. Stale preparation must be detected before document generation.
+**Status:** SPEC 11 / phase 8.12 approved (2026-10-26); implementation in progress.
+
+**Purpose:** Persist the single editable delivery preparation for a confirmed Record, reconcile its cash breakdown against the current return, and audit changes without creating delivery versions or states.
+
+**Entry points:** `GET /api/records/{record}/delivery` and `PUT /api/records/{record}/delivery`.
+
+**Preconditions:** The user is authenticated. Reads require `EDITOR` or `VIEWER`; mutations require `EDITOR`, CSRF where applicable, and a Record in `CONFIRMED`.
+
+**Workflow:**
+
+1. The Editor opens the delivery preparation for a confirmed Record. The backend returns the existing Delivery or `data: null`, the current Record return total, and whether the preparation is stale.
+2. The Editor submits the complete preparation: delivery date, delivering person, optional receiving person, and the cash denominations with quantities.
+3. Laravel validates the request shape, official denominations, positive quantities, and prohibited client fields. Zero-quantity rows are ignored; an empty breakdown is valid only for a `0.00` return.
+4. In one transaction, Laravel locks the Record and any existing Delivery, rechecks that the Record is `CONFIRMED`, and derives the current return total from the Record details.
+5. Laravel compares the denomination sum with the current return total in integer cents. A mismatch returns `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=CASH_MISMATCH` and the expected, cash, and difference amounts.
+6. On a valid preparation, Laravel creates the Delivery or updates the existing row in place, replaces its positive denominations, sets `prepared_return_amount` to the current return total, and writes field-level History with `delivery_id` and a fixed creation/update reason.
+7. If the resulting preparation is identical to the stored one, Laravel returns `200` without writing History or changing `updated_at`.
+8. If the Record return later changes, the existing Delivery remains associated with the Record. Reads report `is_stale=true`; the Editor updates the same Delivery once the Record is confirmed again.
+9. Delivery preparation never changes the Record status, fields, movements, Image, or AIProcessing evidence. Word generation remains a separate phase and requires an associated Image.
+
+**Database changes:** Creates or updates one `Delivery` row and its positive `DeliveryCashDenomination` rows; appends field-level `History` rows with `delivery_id`.
+
+**Transaction boundary:** The Delivery, denomination replacement, and History rows commit atomically under a Record row lock. Any failure leaves the previous preparation intact.
+
+**Authorization:** `EDITOR` and `VIEWER` may read; only `EDITOR` may create or update, and only for a `CONFIRMED` Record.
+
+**Failure behavior:** Invalid input returns `422`; an unsupported Record state or cash mismatch returns `409` with `DELIVERY_PREPARATION_BLOCKED`; a Viewer mutation returns `403`; missing Records return `404`. No partial writes are allowed.
+
+**Jobs or events:** No jobs. Delivery changes produce History events only.
+
+**Tests:** Cover read access and null delivery, Editor/Viewer authorization, confirmed-only preparation, official denominations, zero quantities, empty breakdown for a zero return, duplicates, cash mismatch, stale updates, idempotent no-op, same-row updates, fixed-reason History with `delivery_id`, transactional rollback, and the absence of Record status changes.

@@ -190,7 +190,7 @@ Represents the single editable delivery preparation associated with a confirmed 
 | delivery_date | date | Yes | Planned or actual date of delivery |
 | delivered_by_name | string | Yes | Person who delivers the cash |
 | received_by_name | string | No | Person who receives the cash |
-| prepared_return_amount | decimal(12,2) | Yes | Return amount used when the cash breakdown was prepared |
+| prepared_return_amount | decimal(12,2) | Yes | Return amount derived from the current Record total when the preparation was saved; used to detect stale preparation |
 | created_at | datetime | Yes | Audit timestamp |
 | updated_at | datetime | Yes | Audit timestamp |
 
@@ -202,10 +202,13 @@ Relationships:
 Important rules:
 - A Delivery can only be prepared for a `CONFIRMED` Record.
 - The current Record return total is calculated from its details and is not duplicated as the source of truth.
+- The backend derives `prepared_return_amount` from the current Record return total on every successful create or update; clients cannot set it.
 - `prepared_return_amount` stores the amount the cash preparation was checked against. Compare it with the current Record return total to detect stale preparation.
 - Updating a stale preparation updates this same Delivery row; no delivery versions or delivery status enum are added in the MVP.
+- Preparing or updating a Delivery does not change the Record status, fields, or movements.
 - A valid associated Image is required to generate Word, but it is not required to create a manual Record or prepare its Delivery.
 - The generated Word file is ephemeral and is not stored in this entity.
+- Delivery changes write field-level `History` rows with `delivery_id`, the authenticated user, canonical values, and fixed reasons. See section 10.
 
 ## 10. History
 
@@ -215,8 +218,8 @@ Stores the human change history for the MVP. It uses the existing schema: this p
 | --- | --- | --- | --- |
 | id | UUID / bigint | Yes | Primary key |
 | record_id | FK | Yes | References `Record` |
-| record_detail_id | FK nullable | No | References `RecordDetail` when relevant; null in the current record-history phase |
-| delivery_id | FK nullable | No | References `Delivery` when a delivery-preparation field changed; null until delivery history is implemented |
+| record_detail_id | FK nullable | No | References `RecordDetail` when relevant; null because replacement recreates detail rows |
+| delivery_id | FK nullable | No | References `Delivery` when a delivery-preparation field changed; null for record-only events |
 | user_id | FK | Yes | Authenticated user who performed the action |
 | field_name | string | Yes | Canonical field name or event name |
 | previous_value | text / JSON | No | Canonical previous value |
@@ -241,12 +244,16 @@ Event conventions:
 | Reopen `CONFIRMED` | `status` | `CONFIRMED` | `NEEDS_REVIEW` | Editor's reason |
 | Confirmation | `status` | `NEEDS_REVIEW` | `CONFIRMED` | Fixed reason by source |
 | Cancellation | `status` | `NEEDS_REVIEW` or `ERROR` | `CANCELED` | Editor's reason |
+| Delivery creation | one row per persisted field | null | canonical value | `Preparación de entrega creada` |
+| Delivery update | one row per changed field | previous value | new value | `Preparación de entrega actualizada` |
 
 Value conventions:
 - Dates use `Y-m-d`; amounts and percentages use decimal text with two decimals.
 - `year`, `week`, and detail `order` use integer text; `status` and `source` use enum values.
 - Company changes store the company name, not its id.
 - Detail fields use `details[N].campo`, with `N` 1-based and equal to the movement `order`. Added details produce null-to-values rows; removed details produce values-to-null rows.
+- Delivery fields use `delivery_date`, `delivered_by_name`, `received_by_name`, `prepared_return_amount`, and `denominations[1000.00]`-style entries using the canonical denomination with two decimals; the stored value is the integer quantity.
+- Delivery creation writes one row per persisted field with a null previous value. Delivery updates write only changed fields; an identical update writes no History.
 - Values are canonicalized before comparison, so formatting-only differences do not create events.
 - AI transitions and retries are not written to `History`; `AIProcessing` remains their technical evidence.
 - The history is append-only: no update or delete endpoint exists, and event rows cannot be edited by clients.
@@ -268,11 +275,12 @@ Relationships:
 - `Delivery 1:N DeliveryCashDenomination`
 
 Important rules:
-- Only rows with `quantity > 0` are stored.
+- Only rows with `quantity > 0` are stored; zero-quantity input rows are ignored.
 - `UNIQUE(delivery_id, value)` must be enforced.
-- Database constraints should reject non-positive quantities and denominations outside the official MVP list.
-- `SUM(value × quantity)` must equal the current total `RecordDetail.return_amount` for the associated Record when preparing or updating a Delivery.
-- `0.50` is an official denomination in the MVP.
+- Database constraints reject non-positive quantities and denominations outside the official MVP list.
+- `SUM(value × quantity)` must equal the current total `RecordDetail.return_amount` for the associated Record when preparing or updating a Delivery, compared in integer cents.
+- An empty breakdown is valid only when the current Record return total is `0.00`.
+- The official MVP denominations are `1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, `2`, `1`, and `0.50`.
 
 ## 12. ERD Description
 
