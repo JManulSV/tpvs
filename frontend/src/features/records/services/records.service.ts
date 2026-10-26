@@ -4,6 +4,8 @@ import {
   type CancelRecordInput,
   type ManualRecordInput,
   type RecordDetailView,
+  type RecordHistoryParams,
+  type RecordHistoryResponse,
   type RecordListParams,
   type RecordListResponse,
   type RecordResponse,
@@ -53,6 +55,15 @@ export const recordsService = {
     try {
       const response = await apiClient.put<RecordResponse>(`records/${id}`, input);
       return response.data.data;
+    } catch (error) {
+      throw toRecordsApiError(error);
+    }
+  },
+
+  async getHistory(id: number, params: RecordHistoryParams = {}): Promise<RecordHistoryResponse> {
+    try {
+      const response = await apiClient.get<RecordHistoryResponse>(`records/${id}/history`, { params });
+      return response.data;
     } catch (error) {
       throw toRecordsApiError(error);
     }

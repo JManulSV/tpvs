@@ -33,9 +33,10 @@ Tests
 1. An Editor creates a manual Record with company, business year/week, period dates, and one or more ordered movement inputs. Each movement includes its own affiliation, branch, income, and one commission input.
 2. The backend validates that dates exist and that the start date is not after the end date. It does not impose ISO week rules or weekday boundaries.
 3. For each detail, the backend accepts exactly one commission input: percentage or fixed amount. It calculates the commission using decimal arithmetic and `ROUND_HALF_UP` for percentages, then calculates return as income minus commission.
-4. A transaction persists the Record as `source=MANUAL`, `status=CONFIRMED`, its RecordDetails, and a History event (`status`, null to `CONFIRMED`, authenticated user, reason `Registro manual confirmado`). No Image, AIProcessing, or AI job is created.
-5. An Editor may replace the full aggregate only while it is `MANUAL` and `NEEDS_REVIEW`. Replacement requires a reason; the Record, details, and one generic `record_updated` History event are committed together.
-6. The explicit confirmation endpoint remains for records from future workflows that start in `NEEDS_REVIEW`, such as AI-assisted capture. It is not an extra step for valid manual capture.
+4. A transaction persists the Record as `source=MANUAL`, `status=CONFIRMED`, its RecordDetails, and a single History event (`record_created`, null to `CONFIRMED`, authenticated user, reason `Registro creado manualmente`). No Image, AIProcessing, or AI job is created.
+5. An Editor may replace the full aggregate while it is `MANUAL` in `NEEDS_REVIEW` or `CONFIRMED`. Replacement requires a reason and writes one field-level History row per changed field; a no-change `NEEDS_REVIEW` replacement writes `record_updated` with null values.
+6. A `CONFIRMED` replacement with changes additionally writes `status` `CONFIRMED -> NEEDS_REVIEW` and leaves the record in `NEEDS_REVIEW`; a no-change `CONFIRMED` replacement returns `422 RECORD_UPDATE_NO_CHANGES` and writes nothing. The Record, details, status event, and field diff are committed together under a row lock.
+7. The explicit confirmation endpoint remains for records that start in `NEEDS_REVIEW`, such as AI-assisted capture or a reopened confirmed record. It is not an extra step for valid first-time manual capture.
 
 **Failure behavior:** Invalid request or business input returns `422`; an unsupported source/state transition returns `409`; a Viewer mutation returns `403`. Create, replace, and confirmation leave no partial writes on failure.
 
@@ -74,15 +75,16 @@ Tests
 1. An IMAGE Record reaches `NEEDS_REVIEW` after a usable extraction, or `ERROR` after a definitive failure.
 2. The Editor opens the Record, sees its status, authorized image, safe AI issues, and the currently persisted business data.
 3. To correct a `NEEDS_REVIEW` Record, the Editor submits the complete aggregate (`company_id`, business period, ordered movements, and a reason) through the existing replacement endpoint.
-4. Laravel rechecks state, validates the complete aggregate, recalculates financial values, replaces the details, and writes a generic `record_updated` History event. `source`, `status`, Image, and `AIProcessing` remain unchanged.
+4. Laravel rechecks state, validates the complete aggregate, recalculates financial values, replaces the details, and writes one field-level History row per changed field with the reason. A no-change replacement in `NEEDS_REVIEW` writes a single `record_updated` event with null values. `source`, `status`, Image, and `AIProcessing` remain unchanged.
 5. The Editor confirms a `NEEDS_REVIEW` Record only after backend validation succeeds. Confirmation transactionally sets `CONFIRMED` and writes the source-appropriate `status` History event. AI issues are review signals and do not block a complete, valid aggregate.
 6. The Editor may cancel a `NEEDS_REVIEW` or `ERROR` Record with a reason. Cancellation transactionally sets `CANCELED` and writes a `status` History event with the prior state and the reason. Image and AI evidence are preserved.
 7. For `ERROR`, the Editor may instead use the existing manual retry, which performs one provider call per request. Retry remains unavailable for other states.
-8. The UI never auto-confirms, never treats AI output as financial authority, and disables actions that are not valid for the current role or state.
+8. A `CONFIRMED` Record is not edited in place. The Editor replaces the aggregate with a reason; Laravel writes the field diff and `status` `CONFIRMED -> NEEDS_REVIEW` and leaves the Record in `NEEDS_REVIEW`. The Editor then confirms it again in a separate action. A no-change replacement is rejected with `422 RECORD_UPDATE_NO_CHANGES` and does not reopen the record.
+9. The UI never auto-confirms, never treats AI output as financial authority, and disables actions that are not valid for the current role or state.
 
-**Database changes:** Record status, replaced `record_details`, and a `History` row for correction, confirmation, or cancellation. Cancellation does not remove `Image`, private files, or `AIProcessing`.
+**Database changes:** Record status, replaced `record_details`, and History rows for creation, correction, reopening, confirmation, or cancellation. Reopening and correction preserve `Image`, private files, and `AIProcessing`. No tables or migrations are added for history.
 
-**Transaction boundary:** Each correction, confirmation, or cancellation locks/rechecks the Record and commits its Record/detail/status changes and History row atomically. Any failure leaves the prior state intact.
+**Transaction boundary:** Each creation, correction, reopening, confirmation, or cancellation locks/rechecks the Record where applicable and commits its Record/detail/status changes and History rows atomically. Any failure leaves the prior state intact.
 
 **Authorization:** `EDITOR` only for correction, confirmation, cancellation, and retry. `VIEWER` may read the Record, its authorized image, and safe AI diagnostics.
 
@@ -90,7 +92,36 @@ Tests
 
 **Jobs or events:** No new AI job is dispatched by correction or confirmation. The existing retry endpoint remains the only way to start a new single-call attempt from `ERROR`.
 
-**Tests:** Cover both sources, Editor/Viewer authorization, correction with preserved Image/AI, confirmation of complete and incomplete IMAGE records, unresolved AI issues, cancellation from `NEEDS_REVIEW` and `ERROR`, rejection for other states, transactional rollback, and image access after cancellation.
+**Tests:** Cover both sources, Editor/Viewer authorization, correction with preserved Image/AI, field-level diff and no-op behavior, reopening of `CONFIRMED`, confirmation of complete and incomplete IMAGE records, unresolved AI issues, cancellation from `NEEDS_REVIEW` and `ERROR`, rejection for other states, transactional rollback, and image access after cancellation.
+
+## Record Change History
+
+**Status:** SPEC 10 / phase 8.11 implemented and verified (2026-10-26).
+
+**Purpose:** Expose the human audit trail of a Record with user, reason, previous/new values, and timestamp.
+
+**Entry point:** `GET /api/records/{record}/history`.
+
+**Preconditions:** The user is authenticated as `EDITOR` or `VIEWER`; the Record exists.
+
+**Workflow:**
+
+1. Laravel returns the Record's History rows ordered by `created_at` descending and `id` descending.
+2. `page` defaults to 1 and `per_page` defaults to 50 with a maximum of 100.
+3. Each item exposes `field_name`, canonical `previous_value`/`new_value`, `reason`, `created_at`, and the acting user's public identity.
+4. Creation events use `record_created`; corrections and reopenings use field-level names such as `company`, `week_end_date`, or `details[1].income`; confirmation and cancellation use `status`.
+
+**Database changes:** None; the endpoint only reads existing `History` rows.
+
+**Transaction boundary:** Read-only.
+
+**Authorization:** `EDITOR` and `VIEWER` may read. Unauthenticated requests return `401`; missing Records return `404`; invalid pagination returns `422`.
+
+**Failure behavior:** No mutations and no partial reads. AIProcessing internals, raw provider responses, and private paths are never exposed.
+
+**Jobs or events:** None.
+
+**Tests:** Cover role access, pagination defaults and limits, ordering, response shape, 404/401/422, and absence of AI or private data.
 
 ## Confirmation
 
@@ -102,7 +133,7 @@ Confirmation requires an authorized human, valid business data, and the `NEEDS_R
 CONFIRMED -> NEEDS_REVIEW -> CONFIRMED
 ```
 
-The reason, user, and before/after values must be recorded.
+A replacement of a `CONFIRMED` Record requires a different aggregate and a reason. Laravel writes one History row per modified field plus a `status` `CONFIRMED -> NEEDS_REVIEW` row in the same transaction, preserving `source`, Image, and `AIProcessing`. The Record remains in `NEEDS_REVIEW` until the Editor confirms it again. A no-change replacement returns `422 RECORD_UPDATE_NO_CHANGES`, keeps `CONFIRMED`, and writes no History.
 
 ## Delivery
 

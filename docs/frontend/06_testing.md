@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md). Backend-only phase 8.7 image HTTP acceptance is recorded in [`../11_technical_roadmap.md`](../11_technical_roadmap.md) and its API contract in [`../backend/03_api_contract.md`](../backend/03_api_contract.md). Phase 8.10 / SPEC 09 adds the review, correction, confirmation, and cancellation acceptance flow described below; its evidence is recorded when the implementation checkpoint passes.
+The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md). Backend-only phase 8.7 image HTTP acceptance is recorded in [`../11_technical_roadmap.md`](../11_technical_roadmap.md) and its API contract in [`../backend/03_api_contract.md`](../backend/03_api_contract.md). Phase 8.10 / SPEC 09 adds the review, correction, confirmation, and cancellation acceptance flow described below. Phase 8.11 / SPEC 10 adds change-history and confirmed-record reopening checks; its browser evidence is recorded below.
 
 ## Verification Layers
 
@@ -35,6 +35,8 @@ Prioritize externally observable behavior that matters to each feature:
 - query keys and invalidation for important mutations;
 - role-aware actions and handling of `401`/`403` responses;
 - state labels and blocked actions for record workflows;
+- history query pagination/order, displayed labels, and invalidation after record mutations;
+- confirmed-record editing, reopening, and `422 RECORD_UPDATE_NO_CHANGES` handling;
 - delivery cash-entry feedback and stale-preparation indicators;
 - report filters and file-download behavior.
 
@@ -136,6 +138,36 @@ Sign in through the browser and verify:
 Use uniquely named QA records/companies and remove only the QA data in foreign-key order after acceptance. Do not remove unrelated data or the local test accounts.
 
 **Phase 8.10 browser verification (2026-10-22):** `EDITOR` uploaded `test-images/prueba1.jpeg` through `/records/new`; the BFF returned `202`, the screen showed `PENDING`/`PROCESSING` with polling, and the Record reached `ERROR` with safe AI diagnostics after the live provider completed. The AI provider was Ollama with `qwen2.5vl:3b`; the model returned confidence `0.5` for null values, so the documented SPEC 08 structural limitation produced `ERROR/INVALID_CONFIDENCE` instead of a reviewable proposal. Using a controlled IMAGE Record in `NEEDS_REVIEW`, the Editor saw the authorized image, status, safe issues, and persisted data without paths, raw responses, or numeric confidence. Correction changed the branch and income with a reason; the Record remained `NEEDS_REVIEW`, kept its `source`, image, and AI evidence, and wrote `record_updated` with calculated commission and return. Confirmation produced `CONFIRMED` and the source-specific reason `Registro de imagen confirmado`; review actions disappeared. The live `ERROR` Record exposed retry and cancellation; retry made one manual attempt, returned to `ERROR`, and cancellation with a reason produced `CANCELED` with previous state `ERROR`. Image and `AIProcessing` rows remained, while `GET /api/records/{record}/image` returned `409`. A `NEEDS_REVIEW` Record was also canceled with a reason. `VIEWER` could read the image, status, data, and issues with no mutation actions, and CSRF-valid direct correction, confirmation, and cancellation requests returned `403`. A stale-state cancellation returned `409`, refreshed the Record to its real `CONFIRMED` state, and displayed the backend message. Browser console errors were limited to the expected `403`/`409` HTTP responses. QA records and the QA company were removed; test accounts remain. The checkpoint also fixed `$NaN` totals for records without details, missing company preselection in the review form, and the review form remaining open after a successful correction.
+
+### Record change history browser acceptance (phase 8.11)
+
+Run the stack, the queue worker, and the local test accounts.
+
+```bash
+docker compose up -d
+docker compose exec -T tpvs-backend php artisan db:seed --class=TestUsersSeeder
+```
+
+Sign in through the browser and verify:
+
+1. As `EDITOR`, create a manual record and an image record. Confirm each History starts with a single `record_created` event (`CONFIRMED` or `PENDING`, as applicable) with the Editor's user and the fixed creation reason, and no creation `status` event.
+2. Open a `NEEDS_REVIEW` record, correct company, period, and movement values with a reason. Verify one History row per changed field, with canonical previous/new values, `details[N].campo` for movements, user, reason, and date.
+3. Submit the same `NEEDS_REVIEW` aggregate again without changes. Verify a single `record_updated` event with null values and a `200` response.
+4. Confirm the record and verify a `status` `NEEDS_REVIEW -> CONFIRMED` event with the source-appropriate reason and user.
+5. As `EDITOR`, choose `Editar registro` on the `CONFIRMED` record, change a field, and save with a reason. Verify the record becomes `NEEDS_REVIEW`, the field diff plus `status CONFIRMED -> NEEDS_REVIEW` appear, and `source`, Image, and AIProcessing are unchanged. Confirm again and verify a new confirmation event.
+6. Attempt to save a `CONFIRMED` record without changes. Verify `422 RECORD_UPDATE_NO_CHANGES`, the backend message is shown, the record stays `CONFIRMED`, and no History row is added.
+7. Cancel a `NEEDS_REVIEW` or `ERROR` record with a reason and verify the `status` event records the previous state, `CANCELED`, user, and reason.
+8. Verify the `Historial de cambios` panel shows date, user, translated field labels (`Movimiento N · Campo`, `Registro creado`, Spanish states), previous/new values, and reason; paginate when there are more than 50 rows; and show loading, error, and empty states.
+9. As `VIEWER`, open the same record and confirm the history is readable while all mutation actions, including `Editar registro`, are absent. Send a CSRF-valid direct `PUT` and confirm Laravel returns `403`.
+10. Confirm the history refreshes after correction, reopening, confirmation, and cancellation, and check the browser console for unexpected JavaScript exceptions.
+
+Use uniquely named QA records/companies and remove only the QA data in foreign-key order after acceptance.
+
+**Phase 8.11 browser verification (2026-10-26):** `EDITOR` created manual record `#69` and image record `#70` through the BFF. Manual History contained exactly one `record_created` `null -> CONFIRMED` row with the Editor, `Registro creado manualmente`, and no creation `status` event. The `prueba1.jpeg` upload returned `202` and wrote exactly one `record_created` `null -> PENDING` row with `Registro creado desde imagen`; Ollama `qwen2.5vl:3b` transitioned through `PROCESSING` to `COMPLETED` without any AI row in `History`, leaving a `COMPANY_NOT_FOUND` review issue that was resolved by selecting a company. Correcting a `NEEDS_REVIEW` aggregate changed company, week, and movement values and produced one row per changed field (`company`, `week`, `details[1].branch`, `details[1].income`, `details[1].commission_percentage`, calculated `commission`/`return_amount`) with canonical previous/new values, `details[1].*` names, Editor, reason, and timestamp. Re-submitting the same aggregate wrote a single `record_updated` with null values and returned `200`.
+
+Editing confirmed records `#69` and `#70` wrote the field diff plus `status CONFIRMED -> NEEDS_REVIEW`, left them in `NEEDS_REVIEW`, and preserved `source`, Image, and `AIProcessing`; confirming again wrote `NEEDS_REVIEW -> CONFIRMED` with the source-appropriate reason (`Registro manual confirmado` or `Registro de imagen confirmado`). A no-change `PUT` on confirmed `#69` returned `422 RECORD_UPDATE_NO_CHANGES`, displayed the backend message, kept `CONFIRMED`, and added no History. Cancelling `NEEDS_REVIEW` record `#71` with a reason wrote `status NEEDS_REVIEW -> CANCELED` with the Editor and reason.
+
+The `Historial de cambios` panel showed date, user, translated fields (`Movimiento 1 · …`, `Registro creado`, Spanish states), formatted previous/new values, and reasons. Its 25 event rows paginated at 20 per page (`1 de 2` and `2 de 2`); loading, error with retry, and empty states were verified with controlled network conditions. History refreshed after correction, reopening, confirmation, and cancellation through query invalidation. As `VIEWER`, the history was readable with no edit, confirm, cancel, or retry actions, and a CSRF-valid direct `PUT` returned `403`. API checks as `VIEWER` returned `200` with 25 entries, `422` for `per_page=101`, `404` for a missing record, and anonymous access returned `401`. Browser console errors were limited to the deliberately aborted history request and the expected `403`/`422`/`401` responses. QA records, histories, image, AI processing rows, companies, and the uploaded file were removed; the test accounts remain.
 
 ### Integration and end-to-end checks
 

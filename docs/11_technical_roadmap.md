@@ -253,7 +253,11 @@ Record the field, old value, new value, user, reason, and timestamp for meaningf
 
 **Checkpoint:** Changes to record fields and delivery preparation can be traced to the user and before/after values.
 
-**Commit:** `feat: implement record change history`
+**Status: COMPLETE for record history (2026-10-26); delivery history remains in 8.12.** Record creation, field-level correction diffs, the no-op `record_updated`, audited reopening of `CONFIRMED` records, confirmation/cancellation status events, and the paginated read API and panel are implemented. Backend suite: 149 tests, 922 assertions against a temporary PostgreSQL database. Pint, Vitest (36 tests), ESLint, TypeScript, and production build passed.
+
+Browser verification covered manual and image creation (`record_created` with fixed reasons and no creation `status` event), AI transitions without History, correction and no-op diffs, confirmation, reopening with preserved `source`/Image/`AIProcessing`, reconfirmation, the `CONFIRMED` no-change `422`, cancellation, history pagination/loading/error/empty states, `VIEWER` read access, and a forbidden direct `PUT`. The evidence is recorded in [`frontend/06_testing.md`](frontend/06_testing.md); QA data was removed and test accounts remain.
+
+**Commit:** `feat: complete record change history checkpoint`
 
 ### 8.12 - Delivery Preparation
 

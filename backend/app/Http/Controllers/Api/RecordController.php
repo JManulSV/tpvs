@@ -3,32 +3,40 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domain\Records\BusinessValidator;
+use App\Domain\Records\RecordHistoryService;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Records\CancelRecordRequest;
 use App\Http\Requests\Records\ConfirmRecordRequest;
+use App\Http\Requests\Records\IndexRecordHistoryRequest;
 use App\Http\Requests\Records\IndexRecordsRequest;
 use App\Http\Requests\Records\StoreRecordRequest;
 use App\Http\Requests\Records\UpdateRecordRequest;
+use App\Http\Resources\HistoryResource;
 use App\Http\Resources\RecordResource;
+use App\Models\Company;
 use App\Models\History;
 use App\Models\Record;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class RecordController extends Controller
 {
-    public function store(StoreRecordRequest $request, BusinessValidator $businessValidator): JsonResponse
-    {
+    public function store(
+        StoreRecordRequest $request,
+        BusinessValidator $businessValidator,
+        RecordHistoryService $recordHistory,
+    ): JsonResponse {
         $validated = $request->validated();
         $details = $businessValidator->validateAndCalculateManualDetails($validated);
         $userId = $request->user()->id;
 
-        $record = DB::transaction(function () use ($validated, $details, $userId): Record {
+        $record = DB::transaction(function () use ($validated, $details, $userId, $recordHistory): Record {
             $record = Record::query()->create([
                 'company_id' => $validated['company_id'],
                 'source' => RecordSource::MANUAL,
@@ -40,14 +48,12 @@ class RecordController extends Controller
             ]);
 
             $record->details()->createMany($details);
-            History::query()->create([
-                'record_id' => $record->id,
-                'user_id' => $userId,
-                'field_name' => 'status',
-                'previous_value' => null,
-                'new_value' => RecordStatus::CONFIRMED->value,
-                'reason' => 'Registro manual confirmado',
-            ]);
+            $recordHistory->writeRecordCreated(
+                $record,
+                $userId,
+                RecordStatus::CONFIRMED,
+                'Registro creado manualmente',
+            );
 
             return $record;
         });
@@ -107,14 +113,15 @@ class RecordController extends Controller
         UpdateRecordRequest $request,
         Record $record,
         BusinessValidator $businessValidator,
+        RecordHistoryService $recordHistory,
     ): RecordResource|JsonResponse {
-        $result = DB::transaction(function () use ($request, $record, $businessValidator): Record|JsonResponse {
+        $result = DB::transaction(function () use ($request, $record, $businessValidator, $recordHistory): Record|JsonResponse {
             $record = Record::query()
                 ->whereKey($record->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($record->status !== RecordStatus::NEEDS_REVIEW) {
+            if (! in_array($record->status, [RecordStatus::NEEDS_REVIEW, RecordStatus::CONFIRMED], true)) {
                 return response()->json([
                     'message' => 'The record cannot be updated in its current state.',
                     'code' => 'RECORD_UPDATE_BLOCKED',
@@ -122,27 +129,54 @@ class RecordController extends Controller
                 ], 409);
             }
 
+            $wasConfirmed = $record->status === RecordStatus::CONFIRMED;
+            $userId = $request->user()->id;
+            $before = $recordHistory->snapshot($record);
+
             $validated = $request->validated();
             $details = $businessValidator->validateAndCalculateManualDetails($validated);
+            $companyName = Company::query()->whereKey($validated['company_id'])->value('name');
+            $after = $recordHistory->snapshotFromValidated($validated, $details, $companyName);
+            $changes = $recordHistory->diff($before, $after);
 
-            $record->update([
+            if ($wasConfirmed && $changes === []) {
+                return response()->json([
+                    'message' => 'The record cannot be updated without changes.',
+                    'code' => 'RECORD_UPDATE_NO_CHANGES',
+                    'details' => ['reason' => 'NO_CHANGES'],
+                ], 422);
+            }
+
+            $attributes = [
                 'company_id' => $validated['company_id'],
                 'year' => $validated['year'],
                 'week' => $validated['week'],
                 'week_start_date' => CarbonImmutable::parse($validated['week_start_date'])->toDateString(),
                 'week_end_date' => CarbonImmutable::parse($validated['week_end_date'])->toDateString(),
-            ]);
+            ];
 
+            if ($wasConfirmed) {
+                $attributes['status'] = RecordStatus::NEEDS_REVIEW;
+            }
+
+            $record->update($attributes);
             $record->details()->delete();
             $record->details()->createMany($details);
 
-            $record->histories()->create([
-                'user_id' => $request->user()->id,
-                'field_name' => 'record_updated',
-                'previous_value' => null,
-                'new_value' => null,
-                'reason' => $validated['reason'],
-            ]);
+            if ($wasConfirmed) {
+                $recordHistory->writeFieldChanges($record, $before, $after, $userId, $validated['reason']);
+                $recordHistory->writeStatusChange(
+                    $record,
+                    RecordStatus::CONFIRMED,
+                    RecordStatus::NEEDS_REVIEW,
+                    $userId,
+                    $validated['reason'],
+                );
+            } elseif ($changes === []) {
+                $recordHistory->writeRecordUpdated($record, $userId, $validated['reason']);
+            } else {
+                $recordHistory->writeFieldChanges($record, $before, $after, $userId, $validated['reason']);
+            }
 
             return $record;
         });
@@ -157,6 +191,21 @@ class RecordController extends Controller
         $result->loadSum('details as return_total', 'return_amount');
 
         return new RecordResource($result);
+    }
+
+    public function history(IndexRecordHistoryRequest $request, Record $record): AnonymousResourceCollection
+    {
+        $filters = $request->validated();
+
+        $history = History::query()
+            ->with('user')
+            ->where('record_id', $record->getKey())
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate($filters['per_page'] ?? 50)
+            ->appends($filters);
+
+        return HistoryResource::collection($history);
     }
 
     public function show(Record $record): RecordResource

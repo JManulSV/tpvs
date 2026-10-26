@@ -177,7 +177,7 @@ Manual records still use:
 - `RecordDetail`
 - `History`
 
-and they follow the same validation and confirmation flow as image-based records. A `Delivery` and its cash denominations are created later during delivery preparation.
+and they follow the same validation and confirmation flow as image-based records. Manual creation writes one `record_created` History event with `new_value=CONFIRMED` and the fixed reason `Registro creado manualmente`. A `Delivery` and its cash denominations are created later during delivery preparation.
 
 ## 9. Delivery
 
@@ -209,26 +209,47 @@ Important rules:
 
 ## 10. History
 
-Stores the edit history for the MVP.
+Stores the human change history for the MVP. It uses the existing schema: this phase adds no tables and no migrations.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | id | UUID / bigint | Yes | Primary key |
 | record_id | FK | Yes | References `Record` |
-| record_detail_id | FK nullable | No | References `RecordDetail` when relevant |
-| delivery_id | FK nullable | No | References `Delivery` when a delivery-preparation field changed |
-| user_id | FK | Yes | References `User` |
-| field_name | string | Yes | Changed field name |
-| previous_value | text / JSON | No | Previous value |
-| new_value | text / JSON | No | New value |
-| reason | text | Yes | Why the change happened |
-| created_at | datetime | Yes | Audit timestamp |
+| record_detail_id | FK nullable | No | References `RecordDetail` when relevant; null in the current record-history phase |
+| delivery_id | FK nullable | No | References `Delivery` when a delivery-preparation field changed; null until delivery history is implemented |
+| user_id | FK | Yes | Authenticated user who performed the action |
+| field_name | string | Yes | Canonical field name or event name |
+| previous_value | text / JSON | No | Canonical previous value |
+| new_value | text / JSON | No | Canonical new value |
+| reason | text | Yes | Editor's reason or a fixed creation/confirmation reason |
+| created_at | datetime | Yes | Action timestamp; History has no `updated_at` |
 
 Relationships:
 - `User 1:N History`
 - `Record 1:N History`
 - `RecordDetail 1:N History`
 - `Delivery 1:N History` (optional delivery reference)
+
+Event conventions:
+
+| Action | `field_name` | `previous_value` | `new_value` | `reason` |
+| --- | --- | --- | --- | --- |
+| Manual creation | `record_created` | null | `CONFIRMED` | `Registro creado manualmente` |
+| Image creation | `record_created` | null | `PENDING` | `Registro creado desde imagen` |
+| Review correction/reopening | one row per field | previous value | new value | Editor's reason |
+| Review correction without differences | `record_updated` | null | null | Editor's reason |
+| Reopen `CONFIRMED` | `status` | `CONFIRMED` | `NEEDS_REVIEW` | Editor's reason |
+| Confirmation | `status` | `NEEDS_REVIEW` | `CONFIRMED` | Fixed reason by source |
+| Cancellation | `status` | `NEEDS_REVIEW` or `ERROR` | `CANCELED` | Editor's reason |
+
+Value conventions:
+- Dates use `Y-m-d`; amounts and percentages use decimal text with two decimals.
+- `year`, `week`, and detail `order` use integer text; `status` and `source` use enum values.
+- Company changes store the company name, not its id.
+- Detail fields use `details[N].campo`, with `N` 1-based and equal to the movement `order`. Added details produce null-to-values rows; removed details produce values-to-null rows.
+- Values are canonicalized before comparison, so formatting-only differences do not create events.
+- AI transitions and retries are not written to `History`; `AIProcessing` remains their technical evidence.
+- The history is append-only: no update or delete endpoint exists, and event rows cannot be edited by clients.
 
 ## 11. DeliveryCashDenomination
 

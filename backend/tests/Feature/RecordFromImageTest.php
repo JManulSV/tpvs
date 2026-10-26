@@ -9,6 +9,7 @@ use App\Enums\UserRole;
 use App\Jobs\ProcessImageJob;
 use App\Models\AiProcessing;
 use App\Models\Company;
+use App\Models\History;
 use App\Models\Image;
 use App\Models\Record;
 use App\Models\User;
@@ -38,7 +39,9 @@ class RecordFromImageTest extends TestCase
         Queue::fake();
         config(['queue.default' => 'database']);
 
-        $response = $this->actingAs(User::factory()->create(['role' => UserRole::EDITOR]), 'web')
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+
+        $response = $this->actingAs($editor, 'web')
             ->post('/api/records/from-image', ['image' => $this->pngUpload()]);
 
         $response->assertStatus(202)
@@ -56,6 +59,16 @@ class RecordFromImageTest extends TestCase
         $this->assertNull($record->company_id);
         Storage::disk('record_images')->assertExists($image->file_path);
         Queue::assertPushed(ProcessImageJob::class, fn (ProcessImageJob $job): bool => $job->aiProcessingId === $processing->id);
+
+        $this->assertDatabaseCount('histories', 1);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'record_created',
+            'previous_value' => null,
+            'new_value' => RecordStatus::PENDING->value,
+            'reason' => 'Registro creado desde imagen',
+        ]);
     }
 
     public function test_viewer_cannot_create_an_image_record(): void
@@ -148,6 +161,30 @@ class RecordFromImageTest extends TestCase
         $this->assertDatabaseCount('records', 0);
         $this->assertDatabaseCount('images', 0);
         $this->assertDatabaseCount('ai_processings', 0);
+        Storage::disk('record_images')->assertDirectoryEmpty('');
+        Queue::assertNothingPushed();
+    }
+
+    public function test_failed_creation_history_write_rolls_back_image_record_and_staged_file(): void
+    {
+        Storage::fake('record_images');
+        Queue::fake();
+        Event::listen('eloquent.creating: '.History::class, static function (): void {
+            throw new \RuntimeException('Simulated history persistence failure.');
+        });
+
+        try {
+            $this->actingAs(User::factory()->create(['role' => UserRole::EDITOR]), 'web')
+                ->postJson('/api/records/from-image', ['image' => $this->pngUpload()])
+                ->assertStatus(500);
+        } finally {
+            Event::forget('eloquent.creating: '.History::class);
+        }
+
+        $this->assertDatabaseCount('records', 0);
+        $this->assertDatabaseCount('images', 0);
+        $this->assertDatabaseCount('ai_processings', 0);
+        $this->assertDatabaseCount('histories', 0);
         Storage::disk('record_images')->assertDirectoryEmpty('');
         Queue::assertNothingPushed();
     }

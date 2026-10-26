@@ -13,11 +13,11 @@ class HealthCheckTest extends TestCase
     public function test_the_health_endpoint_returns_ok(): void
     {
         $this->getJson('api/health')
-             ->assertOk()
-             ->assertJson([
-                 'status' => 'ok',
-                 'service' => 'backend',
-              ]);
+            ->assertOk()
+            ->assertJson([
+                'status' => 'ok',
+                'service' => 'backend',
+            ]);
     }
 
     public function test_the_framework_health_endpoint_returns_ok(): void

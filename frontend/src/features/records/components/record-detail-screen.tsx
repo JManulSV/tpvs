@@ -10,6 +10,7 @@ import { recordsService } from "../services/records.service";
 import { RecordsApiError, type AiProcessingStatus, type RecordStatus } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
 import { RecordActionDialog } from "./record-action-dialog";
+import { RecordHistoryPanel } from "./record-history-panel";
 
 const statusLabels: Record<RecordStatus, string> = {
   PENDING: "Pendiente",
@@ -292,9 +293,11 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
         </div>
       </section>
 
-      {record.source === "MANUAL" && record.status === "CONFIRMED" && (
+      <RecordHistoryPanel recordId={record.id} />
+
+      {record.status === "CONFIRMED" && canEdit && (
         <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          Este registro fue capturado y confirmado por el Editor. La edición auditada de registros confirmados estará disponible en una fase posterior.
+          Este registro está confirmado. Si lo editas, volverá a necesitar revisión y deberás confirmarlo nuevamente.
         </p>
       )}
 

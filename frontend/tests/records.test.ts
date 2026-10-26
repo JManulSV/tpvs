@@ -39,6 +39,7 @@ const validRecord = {
 describe("manual record schemas", () => {
   it("accepts business periods and one commission mode", () => {
     expect(manualRecordFormSchema.safeParse(validRecord).success).toBe(true);
+    expect(updateManualRecordFormSchema.safeParse(validRecord).success).toBe(false);
     expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "Correction" }).success).toBe(true);
     expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "  " }).success).toBe(false);
     expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "x".repeat(2000) }).success).toBe(true);
@@ -185,6 +186,61 @@ describe("records service", () => {
       message: "No tienes permiso para realizar esta acción.",
     });
   });
+
+  it("requests paginated record history through the api client", async () => {
+    const historyResponse = {
+      data: [
+        {
+          id: 12,
+          field_name: "details[1].income",
+          previous_value: "100.00",
+          new_value: "120.00",
+          reason: "Se corrigió el ingreso",
+          created_at: "2026-10-23T18:00:00.000000Z",
+          user: { id: 1, name: "Editor", email: "editor@example.com" },
+        },
+      ],
+      links: { first: null, last: null, prev: null, next: null },
+      meta: {
+        current_page: 1,
+        from: 1,
+        last_page: 1,
+        links: [],
+        path: "/api/records/9/history",
+        per_page: 20,
+        to: 1,
+        total: 1,
+      },
+    };
+    apiClientMock.get.mockResolvedValueOnce({ data: historyResponse });
+
+    await expect(recordsService.getHistory(9, { page: 1, per_page: 20 })).resolves.toEqual(historyResponse);
+    expect(apiClientMock.get).toHaveBeenCalledWith("records/9/history", {
+      params: { page: 1, per_page: 20 },
+    });
+  });
+
+  it("preserves code and domain details on 422 update without changes", async () => {
+    apiClientMock.put.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        status: 422,
+        data: {
+          message: "The record cannot be updated without changes.",
+          code: "RECORD_UPDATE_NO_CHANGES",
+          details: { reason: "NO_CHANGES" },
+        },
+      },
+    });
+
+    const updateInput = { ...validRecord, reason: "Correction" };
+    await expect(recordsService.update(9, updateInput)).rejects.toMatchObject({
+      status: 422,
+      code: "RECORD_UPDATE_NO_CHANGES",
+      reason: "NO_CHANGES",
+      message: "The record cannot be updated without changes.",
+    });
+  });
 });
 
 describe("record action permissions", () => {
@@ -219,7 +275,16 @@ describe("record action permissions", () => {
     });
   });
 
-  it.each<RecordStatus>(["PENDING", "PROCESSING", "CONFIRMED", "CANCELED"])(
+  it("lets an editor edit a confirmed record to reopen it for review", () => {
+    expect(getRecordActionPermissions(record("CONFIRMED"), true)).toEqual({
+      canCorrect: true,
+      canConfirm: false,
+      canCancel: false,
+      canRetryAiProcessing: false,
+    });
+  });
+
+  it.each<RecordStatus>(["PENDING", "PROCESSING", "CANCELED"])(
     "offers no mutations for an editor when the record is %s",
     (status) => {
       expect(getRecordActionPermissions(record(status), true)).toEqual({
