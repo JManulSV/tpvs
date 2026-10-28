@@ -36,7 +36,7 @@ class UpsertDeliveryRequest extends FormRequest
             'delivery_date' => ['required', 'date'],
             'delivered_by_name' => ['required', 'string', 'max:255'],
             'received_by_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'denominations' => ['required', 'array'],
+            'denominations' => ['present', 'array'],
             'denominations.*' => ['required', 'array'],
             'denominations.*.value' => ['required', 'string', 'regex:/^\d{1,4}(?:\.\d{1,2})?$/'],
             'denominations.*.quantity' => ['required', 'integer', 'min:0'],

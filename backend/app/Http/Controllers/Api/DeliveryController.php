@@ -141,7 +141,9 @@ class DeliveryController extends Controller
             return $result;
         }
 
-        return new DeliveryResource($this->decorate($result, $record, $validator));
+        return (new DeliveryResource($this->decorate($result, $record, $validator)))
+            ->response()
+            ->setStatusCode(200);
     }
 
     private function decorate(Delivery $delivery, Record $record, DeliveryValidator $validator): Delivery
