@@ -7,6 +7,7 @@ import type { RecordStatus } from "@/features/records/types";
 import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";
 import { centsToAmount, formatMoney, denominationsTotalCents, toCents } from "../utils";
+import { DeliveryDocumentAction } from "./delivery-document-action";
 import { DeliveryForm } from "./delivery-form";
 
 const statusLabels: Record<RecordStatus, string> = {
@@ -123,9 +124,14 @@ export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; record
         </p>
       )}
 
-      <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-        La generación del documento Word no forma parte de esta fase.
-      </p>
+      {canEdit && (
+        <DeliveryDocumentAction
+          delivery={delivery}
+          hasImage={record.image !== null}
+          onBlocked={handleInvalidRecordState}
+          recordStatus={record.status}
+        />
+      )}
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recordKeys } from "@/features/records/hooks/use-records";
 import { deliveriesService } from "../services/deliveries.service";
 import type { UpsertDeliveryInput } from "../types";
+import { downloadBlob } from "../utils";
 
 export const deliveryKeys = {
   all: ["deliveries"] as const,
@@ -28,6 +29,20 @@ export function useUpsertDelivery() {
         queryClient.invalidateQueries({ queryKey: deliveryKeys.record(delivery.record_id) }),
         queryClient.invalidateQueries({ queryKey: recordKeys.histories(delivery.record_id) }),
       ]);
+    },
+  });
+}
+
+export function useGenerateDeliveryDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ deliveryId }: { deliveryId: number; recordId: number }) =>
+      deliveriesService.generateDocument(deliveryId),
+    retry: false,
+    onSuccess: async (document, { recordId }) => {
+      downloadBlob(document.blob, document.fileName);
+      await queryClient.invalidateQueries({ queryKey: recordKeys.histories(recordId) });
     },
   });
 }

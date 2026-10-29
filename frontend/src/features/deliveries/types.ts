@@ -53,6 +53,21 @@ export type DeliveryErrorDetails = {
   expected_amount?: string;
   cash_amount?: string;
   difference?: string;
+  prepared_amount?: string;
+  current_amount?: string;
+};
+
+export type DeliveryDocument = {
+  blob: Blob;
+  fileName: string;
+};
+
+export const documentBlockedMessages: Record<string, string> = {
+  INVALID_RECORD_STATE: "El registro debe estar confirmado para generar el documento.",
+  MISSING_IMAGE: "Adjunta una imagen al registro para generar el documento.",
+  STALE_DELIVERY: "La entrega usa un importe anterior; actualízala antes de generar el documento.",
+  CASH_MISMATCH: "El desglose de efectivo no coincide con el retorno actual.",
+  IMAGE_UNAVAILABLE: "No se pudo leer la imagen del registro.",
 };
 
 type LaravelErrorResponse = {
@@ -95,6 +110,16 @@ export function toDeliveryApiError(error: unknown): DeliveryApiError {
     case 404:
       return new DeliveryApiError("No se encontró el registro solicitado.", status);
     case 409:
+      if (response?.code === "DOCUMENT_GENERATION_BLOCKED") {
+        return new DeliveryApiError(
+          documentBlockedMessages[response.details?.reason ?? ""] ?? "No se puede generar el documento.",
+          status,
+          {},
+          response.code,
+          response.details ?? {},
+        );
+      }
+
       return new DeliveryApiError(
         response?.message ?? "La preparación de entrega está bloqueada.",
         status,
