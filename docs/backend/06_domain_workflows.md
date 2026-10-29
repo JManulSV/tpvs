@@ -155,7 +155,7 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 6. On a valid preparation, Laravel creates the Delivery or updates the existing row in place, replaces its positive denominations, sets `prepared_return_amount` to the current return total, and writes field-level History with `delivery_id` and a fixed creation/update reason.
 7. If the resulting preparation is identical to the stored one, Laravel returns `200` without writing History or changing `updated_at`.
 8. If the Record return later changes, the existing Delivery remains associated with the Record. Reads report `is_stale=true`; the Editor updates the same Delivery once the Record is confirmed again.
-9. Delivery preparation never changes the Record status, fields, movements, Image, or AIProcessing evidence. Word generation remains a separate phase and requires an associated Image.
+9. Delivery preparation never changes the Record status, fields, movements, Image, or AIProcessing evidence. Word generation is a separate workflow (see Delivery Document) and requires an associated Image.
 
 **Database changes:** Creates or updates one `Delivery` row and its positive `DeliveryCashDenomination` rows; appends field-level `History` rows with `delivery_id`.
 
@@ -168,3 +168,35 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 **Jobs or events:** No jobs. Delivery changes produce History events only.
 
 **Tests:** Cover read access and null delivery, Editor/Viewer authorization, confirmed-only preparation, official denominations, zero quantities, empty breakdown for a zero return, duplicates, cash mismatch, stale updates, idempotent no-op, same-row updates, fixed-reason History with `delivery_id`, transactional rollback, and the absence of Record status changes.
+
+## Delivery Document
+
+**Status:** SPEC 12 / phase 8.13 approved (2026-10-29); implementation in progress.
+
+**Purpose:** Generate the Word delivery receipt on demand from the persisted Delivery, its Record, the Record Image, and the cash denominations, without storing the file.
+
+**Entry point:** `POST /api/deliveries/{delivery}/document`.
+
+**Preconditions:** The user is authenticated as `EDITOR` with valid CSRF. The Delivery exists.
+
+**Workflow:**
+
+1. The Editor requests the document from the delivery preparation screen.
+2. In one transaction, Laravel locks the Record and Delivery.
+3. Laravel checks, in order, that the Record is `CONFIRMED`, has an Image, the Delivery is not stale, the cash sum matches the current return in integer cents, and the private image file is readable. The first failure returns `409 DOCUMENT_GENERATION_BLOCKED` with its `details.reason`.
+4. `MoneyToWordsService` converts the current return to `... PESOS CC/100 M.N.`.
+5. `DeliveryDocumentBuilder` builds the office format with PHPWord into a temporary file. A WebP image is converted to a temporary PNG; the original private file is never modified.
+6. Laravel writes one `document_generated` History row with `delivery_id` and commits.
+7. Laravel streams the file as an attachment and deletes the temporary files.
+
+**Database changes:** One `History` row per successful generation. No Record, Delivery, denomination, or Image changes.
+
+**Transaction boundary:** Validation, construction, and the History row share one transaction. A blocked or failed generation writes nothing and removes temporary files.
+
+**Authorization:** Only `EDITOR` may generate. Viewers receive `403`.
+
+**Failure behavior:** `409 DOCUMENT_GENERATION_BLOCKED` with `INVALID_RECORD_STATE`, `MISSING_IMAGE`, `STALE_DELIVERY`, `CASH_MISMATCH`, or `IMAGE_UNAVAILABLE`; `404` for a missing Delivery; a generic `500` if construction fails. No private paths are disclosed.
+
+**Jobs or events:** None. Generation is synchronous.
+
+**Tests:** Cover amount-in-words cases, Spanish date formatting, document content (text, 11 table rows, totals, signatures, image), JPEG/PNG/WebP insertion, response headers, temporary-file cleanup, Editor/Viewer/anonymous access, each blocking reason, History only on success, and the absence of data changes.

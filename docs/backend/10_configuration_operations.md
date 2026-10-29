@@ -131,6 +131,12 @@ The image contract accepts JPEG, PNG, and WebP up to 10 MiB. PHP's Docker runtim
 
 Docker Compose currently persists Laravel's complete `backend/storage` directory in `tpvs-backend-storage`; keep that volume for uploaded private images. Backups and recovery must cover both PostgreSQL Image metadata and private image files. Restoring only one side can leave dangling metadata or orphaned files.
 
+### Word Delivery Documents (SPEC 12)
+
+Word generation uses `phpoffice/phpword`. The backend PHP runtime requires the `zip` extension to write `.docx` files and the `gd` extension, built with JPEG, PNG, and WebP support, to read image dimensions and convert WebP images to PNG. The Docker image installs both; host-based PHP deployments must install them and verify with `php -m`.
+
+Generated documents are written to the system temporary directory and deleted after the response is sent. They are not stored and need no backup.
+
 ## Operational Checks
 
 - Verify `GET /api/health`.
