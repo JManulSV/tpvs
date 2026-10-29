@@ -166,11 +166,17 @@ Both sources use the same financial business validation rules. Image-derived rec
 
 - A Delivery can only be prepared for a `CONFIRMED` Record.
 - There is at most one Delivery row per Record in the MVP. Preparing again updates that row; delivery versions are not stored.
-- The official return total is calculated from the Record's details. Delivery stores `prepared_return_amount` so the system can detect whether the cash preparation is based on an older total.
+- The official return total is calculated from the Record's details. The backend derives `prepared_return_amount` from that current total on every successful preparation; clients cannot set it.
+- `prepared_return_amount` stores the amount the cash preparation was checked against. Compare it with the current Record return total to detect stale preparation.
+- Updating a stale preparation updates this same Delivery row; no delivery versions or delivery status enum are added in the MVP.
 - Cash denominations belong to Delivery, not directly to Record.
-- A delivery is valid when `SUM(denomination.value × denomination.quantity)` equals the current Record return total.
-- Only denomination rows with `quantity > 0` are stored.
+- A delivery is valid when `SUM(denomination.value × denomination.quantity)` equals the current Record return total, compared in integer cents.
+- Only denomination rows with `quantity > 0` are stored. Zero-quantity rows are ignored.
+- An empty denomination breakdown is valid only when the current Record return total is `0.00`.
+- The official MVP denominations are `1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, `2`, `1`, and `0.50`.
 - A mismatch blocks successful preparation and Word generation.
+- Preparing or updating a Delivery does not change the Record status, fields, or movements.
+- Delivery preparation changes are audited in `History` with `delivery_id`, the authenticated user, canonical previous/new values, and the fixed reasons `Preparación de entrega creada` or `Preparación de entrega actualizada`.
 - Word generation additionally requires the Record's associated Image.
 - A manual Record may be created and confirmed without an Image; an Image must be attached before Word generation.
 
@@ -199,6 +205,7 @@ Both sources use the same financial business validation rules. Image-derived rec
 - Dates use `Y-m-d`; amounts and percentages use decimal text with two decimals (for example `100.00`).
 - `year`, `week`, and detail `order` use integer text. `status` and `source` use the enum value. A company change uses the company name, not its id.
 - Detail fields use `details[N].campo`, where `N` is 1-based and matches the movement's `order`. Adding or removing a movement writes null to values or values to null.
-- `record_detail_id` and `delivery_id` remain null in this phase because replacement recreates detail rows and `Delivery` history belongs to a later phase.
+- `record_detail_id` remains null because replacement recreates detail rows.
+- `delivery_id` is set for delivery-preparation events. Delivery fields use `delivery_date`, `delivered_by_name`, `received_by_name`, `prepared_return_amount`, and `denominations[1000.00]`-style entries using the canonical denomination with two decimals. Denomination values store the quantity as integer text.
 - Values are canonicalized before comparison, so changes in formatting alone do not create events.
 - AI transitions, retries, and internal pipeline changes are not written to `History`; `AIProcessing` remains their technical evidence.

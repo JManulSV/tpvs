@@ -2,7 +2,7 @@
 
 ## Status
 
-The health, authentication, Companies, and Records endpoints are implemented and covered by backend feature tests. Image endpoints described below for phase 8.7 remain planned until implemented and verified.
+The health, authentication, Companies, Records, image, and AI pipeline endpoints are implemented and covered by backend feature tests. The Delivery Preparation contract for SPEC 11 / phase 8.12 is documented below and is implemented incrementally under that spec.
 
 ## Base Path
 
@@ -279,6 +279,89 @@ Results are ordered by `created_at` descending and `id` descending and use Larav
 ```
 
 Both `EDITOR` and `VIEWER` may read history. Unauthenticated requests return `401`, a missing record returns `404`, and invalid pagination returns `422`. The endpoint never exposes `raw_response`, private storage paths, tokens, stack traces, or AIProcessing data. History is read-only: no update or delete endpoint exists.
+
+## Delivery Preparation Contract — SPEC 11 (Phase 8.12)
+
+The delivery contract below is approved for phase 8.12 and is implemented incrementally under SPEC 11. It requires Laravel's authenticated Sanctum session. State-changing browser requests require valid CSRF.
+
+| Method | Path | Purpose | Authentication / authorization |
+| --- | --- | --- | --- |
+| `GET` | `/api/records/{record}/delivery` | Return the record's single delivery or `data: null`. | Authenticated `EDITOR` or `VIEWER` |
+| `PUT` | `/api/records/{record}/delivery` | Create or replace the single delivery for a `CONFIRMED` record. | Authenticated `EDITOR` only |
+
+### Delivery Read
+
+`GET /api/records/{record}/delivery` returns `200` with `{ "data": ... }` or `{ "data": null }`. The resource contains `id`, `record_id`, `delivery_date`, `delivered_by_name`, `received_by_name`, `prepared_return_amount`, `current_return_amount`, `is_stale`, ordered `denominations`, `created_at`, and `updated_at`.
+
+```json
+{
+  "data": {
+    "id": 3,
+    "record_id": 12,
+    "delivery_date": "2026-09-18",
+    "delivered_by_name": "Maria Lopez",
+    "received_by_name": "Juan Perez",
+    "prepared_return_amount": "9800.00",
+    "current_return_amount": "10000.00",
+    "is_stale": true,
+    "denominations": [
+      { "value": "1000.00", "quantity": 5 },
+      { "value": "500.00", "quantity": 5 }
+    ],
+    "created_at": "2026-09-18T12:00:00.000000Z",
+    "updated_at": "2026-09-18T12:00:00.000000Z"
+  }
+}
+```
+
+`current_return_amount` is calculated from the Record's current details. `is_stale` is `true` when `prepared_return_amount` differs from `current_return_amount`. Denominations are ordered from highest to lowest value. The endpoint never exposes private paths, image bytes, tokens, or AIProcessing data. Unauthenticated requests return `401`; missing records return `404`. A record in any state may be read; mutation remains restricted to `CONFIRMED`.
+
+### Delivery Create or Replace
+
+`PUT /api/records/{record}/delivery` accepts the complete preparation and responds `200` with the same resource shape for both creation and update.
+
+```json
+{
+  "delivery_date": "2026-09-18",
+  "delivered_by_name": "Maria Lopez",
+  "received_by_name": "Juan Perez",
+  "denominations": [
+    { "value": "1000.00", "quantity": 5 },
+    { "value": "500.00", "quantity": 5 },
+    { "value": "200.00", "quantity": 10 },
+    { "value": "100.00", "quantity": 3 }
+  ]
+}
+```
+
+Rules:
+
+- `delivery_date` is required and must be a valid date.
+- `delivered_by_name` is required, trimmed, non-empty, and at most 255 characters.
+- `received_by_name` is optional and nullable, trimmed, and at most 255 characters; an empty value is normalized to `null`.
+- `denominations` is required and may be empty only when the current Record return total is `0.00`.
+- `denominations.*.value` is a required decimal string with at most two decimals and must be one of `1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, `2`, `1`, or `0.50`.
+- `denominations.*.quantity` is a required integer greater than or equal to `0`.
+- Rows with `quantity = 0` are ignored before duplicate validation and persistence.
+- Two positive rows with the same normalized denomination return `422`.
+- `prepared_return_amount`, `record_id`, `status`, `source`, `reason`, and aggregate totals are prohibited client fields.
+- Only a `CONFIRMED` Record may be prepared. Other states return `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=INVALID_RECORD_STATE`.
+- Laravel derives `prepared_return_amount` from the current Record return total and compares the denomination sum with it in integer cents.
+- A mismatch returns `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=CASH_MISMATCH`, `expected_amount`, `cash_amount`, and `difference`.
+- An existing Delivery is updated in place; no new row, version, or delivery status is created.
+- A stale Delivery may be updated with a new breakdown that matches the current return total.
+- An identical preparation returns `200` without writing History or changing `updated_at`.
+- Delivery, denominations, and History are written in one transaction under a Record row lock; a failure rolls back all of them.
+
+### Delivery History
+
+Delivery creation and updates write field-level History rows with `record_id`, `delivery_id`, the authenticated user, canonical previous/new values, and fixed reasons `Preparación de entrega creada` or `Preparación de entrega actualizada`. Audited fields are `delivery_date`, `delivered_by_name`, `received_by_name`, `prepared_return_amount`, and `denominations[1000.00]`-style entries using the canonical denomination with two decimals. Delivery events appear in the existing `GET /api/records/{id}/history` response.
+
+### Delivery Errors
+
+- `401` unauthenticated; `403` Viewer mutation; `404` missing Record; `419` invalid CSRF.
+- `422` for invalid shape, date, names, unsupported denomination, duplicate positive denomination, or invalid quantity.
+- `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=INVALID_RECORD_STATE` or `CASH_MISMATCH`.
 
 ## Record Images Contract — Phase 8.7 (Implemented)
 

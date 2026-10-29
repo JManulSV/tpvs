@@ -92,7 +92,7 @@ Use decimal arithmetic, not binary floating-point arithmetic, for financial calc
 
 A valid new manual aggregate is created with `source=MANUAL` and status `CONFIRMED`, because the Editor enters and reviews the data in one operation. Create a single History `record_created` event with null previous value, new value `CONFIRMED`, authenticated actor, and fixed reason `Registro creado manualmente`. Do not create a creation `status` event, an Image, AIProcessing, or an AI job. A Record, its details, and History are persisted in one transaction. Image creation follows the same rule with new value `PENDING` and fixed reason `Registro creado desde imagen`.
 
-Replacement is full-aggregate rather than partial: validate all fields and details, require a non-empty reason, and allow only `MANUAL` or `IMAGE` in `NEEDS_REVIEW` or `CONFIRMED`. Update the Record, replace its details in submitted order, and write the field-level History diff in one transaction under a Record row lock. Canonicalize values before comparison: dates `Y-m-d`; amounts and percentages with two decimals; integers as text; enum values for status/source; company name instead of id; and `details[N].campo` for detail fields, with `N` 1-based and equal to `order`. Write one row per changed field; added details produce null-to-values rows and removed details produce values-to-null rows. Leave `record_detail_id` and `delivery_id` null in this phase.
+Replacement is full-aggregate rather than partial: validate all fields and details, require a non-empty reason, and allow only `MANUAL` or `IMAGE` in `NEEDS_REVIEW` or `CONFIRMED`. Update the Record, replace its details in submitted order, and write the field-level History diff in one transaction under a Record row lock. Canonicalize values before comparison: dates `Y-m-d`; amounts and percentages with two decimals; integers as text; enum values for status/source; company name instead of id; and `details[N].campo` for detail fields, with `N` 1-based and equal to `order`. Write one row per changed field; added details produce null-to-values rows and removed details produce values-to-null rows. Leave `record_detail_id` null because replacement recreates detail rows; `delivery_id` is set only by delivery-preparation events.
 
 For `NEEDS_REVIEW`, if no field differs, write a single `record_updated` event with null before/after values and the supplied reason, and respond `200` without changing state. For `CONFIRMED`, a different aggregate additionally writes `status` `CONFIRMED -> NEEDS_REVIEW` with the supplied reason and returns the record in `NEEDS_REVIEW`; a no-change replacement returns `422 RECORD_UPDATE_NO_CHANGES` with `details.reason=NO_CHANGES` and writes nothing. Reopening requires a separate confirmation afterward. `PENDING`, `PROCESSING`, `ERROR`, and `CANCELED` records return `409 RECORD_UPDATE_BLOCKED` with `details.reason=INVALID_STATE`. Do not allow the endpoint to change source/status directly. For IMAGE records, the associated Image and `AIProcessing` row/result must remain unchanged; correction or reopening must not re-run AI, replace the image, or alter AI evidence.
 
@@ -107,3 +107,31 @@ Confirmation requires `NEEDS_REVIEW` and a complete, business-valid aggregate. R
 Cancellation requires a non-empty reason and allows only `NEEDS_REVIEW` or `ERROR`. Lock the Record, recheck its state, transactionally set `CANCELED`, and create a History `status` event with the previous state, the authenticated actor, and the supplied reason. Do not accept client-controlled `status` or `source`. Cancellation must preserve the Image, private file, and `AIProcessing` evidence. `CONFIRMED`, `PENDING`, `PROCESSING`, and already canceled records return `409` with a stable business code.
 
 The list's `month` filter uses `week_end_date`, consistent with the product reporting convention. Search is a case-insensitive substring over company name and any detail's affiliation or branch. All calculated totals are derived from details and are never persisted as the financial source of truth. Schema nullability supports provisional IMAGE records; create/replace requests and confirmation validation continue to require complete company, period, and movement data.
+
+## Delivery — SPEC 11 Contract Decisions
+
+The delivery contract is documented in [`03_api_contract.md`](03_api_contract.md) and is implemented incrementally under SPEC 11. Keep this validation guidance aligned with the verified implementation.
+
+### Authorization and Allowed Operations
+
+| Operation | `EDITOR` | `VIEWER` |
+| --- | --- | --- |
+| Read a Record's delivery | Yes | Yes |
+| Create or update a Record's delivery | Yes, only when the Record is `CONFIRMED` | No (`403`) |
+| Prepare a delivery for another Record state | No (`409`) | No (`403`) |
+
+Require `auth:sanctum` on both routes. Authorize reads through the parent Record Policy for both roles and mutations for `EDITOR` only. Do not rely on frontend visibility.
+
+### HTTP and Business Validation
+
+`PUT /api/records/{record}/delivery` replaces the complete preparation. Validate a required valid `delivery_date`, a required trimmed `delivered_by_name`, an optional nullable `received_by_name`, and a required `denominations` array. A denomination value must be a decimal string with at most two decimals from the official set `1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, `2`, `1`, and `0.50`. Quantity must be an integer greater than or equal to zero. Reject prohibited client fields such as `prepared_return_amount`, `record_id`, `status`, `source`, `reason`, or aggregate totals.
+
+Discard zero-quantity rows before duplicate validation and persistence. Two positive rows with the same normalized denomination return `422`. An empty breakdown is valid only when the current Record return total is `0.00`.
+
+Only a `CONFIRMED` Record may be prepared. Lock the Record and any existing Delivery, recheck the state, and derive `prepared_return_amount` from the current sum of `RecordDetail.return_amount`. Compare the denomination sum with that total in integer cents; never use binary floating-point arithmetic. A mismatch returns `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=CASH_MISMATCH`, `expected_amount`, `cash_amount`, and `difference`. Another Record state returns `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=INVALID_RECORD_STATE`.
+
+An existing Delivery is updated in place; do not create a version, a second row, or a delivery status. A stale Delivery may be updated with a new breakdown that matches the current return total. An identical preparation returns `200` without History or `updated_at` changes.
+
+Persist the Delivery, its positive denominations, and the field-level History rows in one transaction under the Record lock. Delivery events use `record_id`, `delivery_id`, the authenticated user, canonical values, and the fixed reasons `Preparación de entrega creada` or `Preparación de entrega actualizada`. Audited fields are `delivery_date`, `delivered_by_name`, `received_by_name`, `prepared_return_amount`, and `denominations[1000.00]`-style entries using the canonical denomination with two decimals. A persistence failure rolls back all delivery, denomination, and History changes.
+
+Preparing a Delivery must not change the Record status, fields, movements, Image, or AIProcessing evidence.

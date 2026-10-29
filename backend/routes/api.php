@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\RecordController;
 use App\Http\Controllers\Api\RecordFromImageController;
 use App\Http\Controllers\Api\RecordImageController;
@@ -32,6 +33,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/records/from-image', [RecordFromImageController::class, 'store'])->middleware('editor');
     Route::post('/records/{record}/ai-processing/retry', [RetryAiProcessingController::class, 'store'])->middleware('editor');
     Route::get('/records/{record}/history', [RecordController::class, 'history']);
+    Route::get('/records/{record}/delivery', [DeliveryController::class, 'show']);
+    Route::put('/records/{record}/delivery', [DeliveryController::class, 'upsert']);
     Route::get('/records/{record}', [RecordController::class, 'show']);
     Route::put('/records/{record}', [RecordController::class, 'update']);
     Route::post('/records/{record}/confirm', [RecordController::class, 'confirm']);

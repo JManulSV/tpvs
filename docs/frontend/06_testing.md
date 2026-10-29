@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md). Backend-only phase 8.7 image HTTP acceptance is recorded in [`../11_technical_roadmap.md`](../11_technical_roadmap.md) and its API contract in [`../backend/03_api_contract.md`](../backend/03_api_contract.md). Phase 8.10 / SPEC 09 adds the review, correction, confirmation, and cancellation acceptance flow described below. Phase 8.11 / SPEC 10 adds change-history and confirmed-record reopening checks; its browser evidence is recorded below.
+The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md). Backend-only phase 8.7 image HTTP acceptance is recorded in [`../11_technical_roadmap.md`](../11_technical_roadmap.md) and its API contract in [`../backend/03_api_contract.md`](../backend/03_api_contract.md). Phase 8.10 / SPEC 09 adds the review, correction, confirmation, and cancellation acceptance flow described below. Phase 8.11 / SPEC 10 adds change-history and confirmed-record reopening checks; its browser evidence is recorded below. Phase 8.12 / SPEC 11 adds delivery preparation checks; its browser evidence is recorded below, and the phase is complete once the frontend build and backend checks pass.
 
 ## Verification Layers
 
@@ -37,7 +37,7 @@ Prioritize externally observable behavior that matters to each feature:
 - state labels and blocked actions for record workflows;
 - history query pagination/order, displayed labels, and invalidation after record mutations;
 - confirmed-record editing, reopening, and `422 RECORD_UPDATE_NO_CHANGES` handling;
-- delivery cash-entry feedback and stale-preparation indicators;
+- delivery cash-entry feedback, official denominations, stale-preparation indicators, mismatch errors, and no-op saves;
 - report filters and file-download behavior.
 
 Test externally observable behavior instead of implementation details such as component state names or internal hook layout.
@@ -169,6 +169,36 @@ Editing confirmed records `#69` and `#70` wrote the field diff plus `status CONF
 
 The `Historial de cambios` panel showed date, user, translated fields (`Movimiento 1 · …`, `Registro creado`, Spanish states), formatted previous/new values, and reasons. Its 25 event rows paginated at 20 per page (`1 de 2` and `2 de 2`); loading, error with retry, and empty states were verified with controlled network conditions. History refreshed after correction, reopening, confirmation, and cancellation through query invalidation. As `VIEWER`, the history was readable with no edit, confirm, cancel, or retry actions, and a CSRF-valid direct `PUT` returned `403`. API checks as `VIEWER` returned `200` with 25 entries, `422` for `per_page=101`, `404` for a missing record, and anonymous access returned `401`. Browser console errors were limited to the deliberately aborted history request and the expected `403`/`422`/`401` responses. QA records, histories, image, AI processing rows, companies, and the uploaded file were removed; the test accounts remain.
 
+### Delivery preparation browser acceptance (phase 8.12)
+
+Run the stack, the queue worker, and the local test accounts.
+
+```bash
+docker compose up -d
+docker compose exec -T tpvs-backend php artisan db:seed --class=TestUsersSeeder
+```
+
+Sign in through the browser and verify:
+
+1. As `EDITOR`, open a `CONFIRMED` record and confirm `Preparación de entrega` links to `/records/{id}/delivery`.
+2. Confirm the empty state when no Delivery exists and that the screen shows the current return and the official denominations (`1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, `2`, `1`, `0.50`).
+3. Enter a breakdown whose cash total matches the current return, save, and verify the success state, persisted values, `prepared_return_amount`, and a new `Preparación de entrega creada` History entry with `delivery_id`.
+4. Update the breakdown with a different valid combination and verify the same Delivery row is updated, `prepared_return_amount` is refreshed, and `Preparación de entrega actualizada` History rows appear only for changed fields.
+5. Submit the identical preparation again and verify `200`, no new History, and no visible timestamp change.
+6. Submit a cash mismatch and verify `409 DELIVERY_PREPARATION_BLOCKED` with `CASH_MISMATCH`, expected/cash/difference values, and no persisted change.
+7. Verify zero-quantity rows are ignored, duplicate positive denominations return `422`, and an empty breakdown is accepted only for a `0.00` return.
+8. Verify an unsupported denomination and invalid date/name values return `422` with field-level messages.
+9. Reopen the confirmed record, change its return, confirm again, and verify the delivery screen shows `is_stale=true` and the stale warning. Update the same Delivery to the new return and verify the warning clears.
+10. As `VIEWER`, open the same delivery route and confirm values are readable with no save action. Send a CSRF-valid direct `PUT` and confirm `403`.
+11. Attempt delivery preparation for a non-`CONFIRMED` record without a Delivery and confirm the UI explains the blocked state. Verify a direct `PUT` returns `409 INVALID_RECORD_STATE`.
+12. Verify the history panel formats delivery fields, including `denominations[1000.00]`-style entries, and refreshes after a successful save.
+13. Confirm the screen never sends `prepared_return_amount` and does not offer Word generation in this phase.
+14. Check the browser console for unexpected JavaScript exceptions.
+
+Use uniquely named QA records/companies and remove only the QA data in foreign-key order after acceptance.
+
+**Phase 8.12 browser verification (2026-10-29):** Playwright MCP drove the local stack as `EDITOR` and `VIEWER`. QA data was a manual company-`eventos` Record `#3` (week 20, 2026, one movement `10000.00` at 2%, return `9800.00`), created through `/records/new` with the form fields and then through the same BFF `POST` used by the form because the browser form submit did not register on that page. `#3` detail showed `Preparación de entrega` with `Preparar entrega`. The empty delivery screen showed the official return `$9,800.00` and the 11 denominations. Five `1000.00` bills (`$5,000.00`) returned `409 CASH_MISMATCH`; the screen showed expected `$9,800.00`, cash `$5,000.00`, and difference `-$4,800.00`, and nothing was persisted. The valid breakdown `1000×5, 500×5, 200×10, 100×3` returned `200` with the success message and persisted one Delivery row with `prepared_return_amount` `9800.00`, four denomination rows (zeros not stored), and seven `Preparación de entrega creada` History rows with `delivery_id` and `record_detail_id` null. Editing the Record to income `11000.00` with a reason reopened it (`Necesita revisión`), and reconfirmation produced `CONFIRMED`. The delivery screen then showed `La preparación está obsoleta`, current return `$10,780.00`, `Actualizar entrega`, and the calculated difference `-$980.00`. The breakdown `1000×10, 500×1, 200×1, 50×1, 20×1, 10×1` (`10780.00`) updated the same Delivery row, replaced denominations (`100.00` removed), refreshed `prepared_return_amount` to `10780.00`, and wrote eight `Preparación de entrega actualizada` rows only for changed fields. Repeating the identical save returned `200` with no new History and unchanged `updated_at`. The history panel showed `Fecha de entrega`, `Entrega realizada por`, `Importe preparado $9,800.00`, and `Denominación $1,000.00`. `VIEWER` saw `Ver entrega` on the detail and a read-only delivery screen with no buttons or inputs; a CSRF-valid direct `PUT` returned `403` and the stored values were unchanged. Console errors were limited to the expected `409` and `403`. QA Record `#3` with its History, denominations, Delivery, and details was removed in a single transaction. **Incident after this run:** running `php artisan test` from the backend container emptied the shared `tpvs` database, because `backend/phpunit.xml` sets `DB_DATABASE=tpvs` and the suite refreshes the schema. Records `#1`/`#2`, the existing Delivery, and the earlier QA companies were lost, with no backup; the test accounts were restored with `TestUsersSeeder`. Backend tests must not run against `tpvs` until `phpunit.xml` points to a dedicated test database. **Not repeated in the browser:** steps 7, 8, and 11 (zero, duplicate, and unofficial-value `422` cases, and `INVALID_RECORD_STATE` `409`); these are covered by `tests/Feature/DeliveryApiTest.php`. After the checkpoint, Next.js was upgraded to 16.4.3 (the build passes) and the backend suite (181 tests) and Pint pass against `tpvs_test`. Phase 8.12 is marked complete in the roadmap.
+
 ### Integration and end-to-end checks
 
 Verify important user journeys against a running backend once their API contracts are implemented. Cover at least the accepted MVP flows in [`../11_technical_roadmap.md`](../11_technical_roadmap.md), including failure and authorization paths. Backend feature tests remain responsible for proving persistence, business validation, and authorization enforcement.
@@ -193,4 +223,6 @@ Before marking a frontend feature implemented:
 - `04_data_fetching_and_forms.md`
 - [`../10_ui_ux.md`](../10_ui_ux.md)
 - [`../11_technical_roadmap.md`](../11_technical_roadmap.md)
+- [`features/deliveries.md`](features/deliveries.md)
 - [`../backend/09_testing.md`](../backend/09_testing.md)
+- [`../../specs/11-delivery-preparation.md`](../../specs/11-delivery-preparation.md)

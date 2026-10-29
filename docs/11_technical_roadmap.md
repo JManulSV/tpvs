@@ -274,6 +274,8 @@ Only positive quantities are persisted. A mismatch blocks successful preparation
 
 **Checkpoint:** A valid delivery is saved and its cash total equals the confirmed record return; a mismatch is rejected.
 
+**Status: COMPLETE (2026-10-29).** Delivery preparation is implemented: one editable `Delivery` per confirmed `Record`, cash denominations, stale detection, field-level history with `delivery_id`, and the `/records/[recordId]/delivery` screen linked from the confirmed record detail. Verification: backend suite 181 tests (1126 assertions) against `tpvs_test`, Pint, Vitest 61, ESLint, TypeScript, and production build (Next.js 16.4.3). Browser checkpoint evidence is recorded in [`frontend/06_testing.md`](frontend/06_testing.md).
+
 **Commit:** `feat: implement delivery preparation`
 
 ### 8.13 - Word Document

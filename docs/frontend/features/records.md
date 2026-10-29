@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. **Phase 8.11 / SPEC 10 is implemented and verified (2026-10-26):** record change history with user, reason, and before/after values, plus audited editing and reopening of `CONFIRMED` records. The checkpoint is recorded in the roadmap.
+**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. **Phase 8.11 / SPEC 10 is implemented and verified (2026-10-26):** record change history with user, reason, and before/after values, plus audited editing and reopening of `CONFIRMED` records. **SPEC 11 / phase 8.12 is approved (2026-10-26); delivery preparation UI is in progress.** The checkpoint is recorded in the roadmap.
 
 ## Goal and Scope
 
@@ -14,9 +14,10 @@ Support record consultation, manual capture, and the human review workflow. Phas
 /records
 /records/new
 /records/[recordId]
+/records/[recordId]/delivery
 ```
 
-The list supports case-insensitive substring search by company, affiliation, and branch (searching every movement); filters include company, business year, month, week, status, and source. Provisional IMAGE records may lack company, period, movements, or movement values; the list and detail screens render these as unavailable. Pagination uses `page` and `per_page` (default 15, maximum 100), sorted by `updated_at` descending. Month filtering uses the month containing `week_end_date`. The detail/review screen presents period, company, each movement's affiliation/branch, backend-calculated amounts, current backend status, the authorized image, and safe AI diagnostics. `/records/new` allows choosing manual capture or image upload. The same `/records/{id}` screen acts as detail and as the review workspace for `NEEDS_REVIEW` and `ERROR` records.
+The list supports case-insensitive substring search by company, affiliation, and branch (searching every movement); filters include company, business year, month, week, status, and source. Provisional IMAGE records may lack company, period, movements, or movement values; the list and detail screens render these as unavailable. Pagination uses `page` and `per_page` (default 15, maximum 100), sorted by `updated_at` descending. Month filtering uses the month containing `week_end_date`. The detail/review screen presents period, company, each movement's affiliation/branch, backend-calculated amounts, current backend status, the authorized image, and safe AI diagnostics. `/records/new` allows choosing manual capture or image upload. The same `/records/{id}` screen acts as detail and as the review workspace for `NEEDS_REVIEW` and `ERROR` records. Confirmed records also link to `/records/{id}/delivery` for delivery preparation.
 
 ## Capture and Review Flows
 
@@ -32,6 +33,7 @@ The list supports case-insensitive substring search by company, affiliation, and
 - **Failed processing:** for `ERROR`, show a safe diagnostic summary and offer the existing retry action and cancellation. Retry uses `POST /api/records/{record}/ai-processing/retry` and performs one provider call per request.
 - **Confirmed-record editing/reopening:** show `Editar registro` to `EDITOR` for `CONFIRMED` records. Reuse the current edit form with a required reason and explain that saving reopens the record to `NEEDS_REVIEW`. After a successful save, show the reopened state and offer `Confirmar registro`; a `422 RECORD_UPDATE_NO_CHANGES` keeps `CONFIRMED` and shows the backend message. Do not expose the action to `VIEWER` or for other states.
 - **Change history:** `/records/{id}` shows a `Historial de cambios` panel for `EDITOR` and `VIEWER` with loading, error, empty, and pagination states. Each row shows date, user, field, previous value, new value, and reason. Translate fields to readable labels; render `details[N].campo` as `Movimiento N · Campo` and `record_created` as `Registro creado`. Use Spanish labels for states. Format amounts, percentages, and dates for display while keeping backend values authoritative.
+- **Delivery preparation:** for `CONFIRMED` records, show `Preparación de entrega` to both roles. `EDITOR` opens `/records/{id}/delivery` to create or update the single Delivery; `VIEWER` sees the same route read-only. The screen shows the current return, official denominations, cash total, stale warning, and backend mismatch details. It does not generate Word in this phase.
 - **Role and state:** `EDITOR` may create, upload, review, correct, reopen, confirm, cancel, and retry where the state allows, and may read history. `VIEWER` may list, view, and read history only. Do not show mutation actions for `VIEWER` or for states that do not allow the operation; the backend remains authoritative.
 
 Do not calculate official commission, return, totals, or state transitions as client authority. The UI may display backend-provided calculated results, validation explanations, and safe AI diagnostics.
@@ -43,6 +45,8 @@ The implemented phase 8.6, SPEC 09, and SPEC 10 contracts are documented in [`..
 The list query uses `search`, `company_id`, `year`, `month`, `week`, `status`, `source`, `page`, and `per_page`. Search spans company name, affiliation, and branch across any movement. A week filter is scoped by business `year`, not ISO; month filters by `week_end_date`. The create payload requires company, business period identifiers and valid date range, and non-empty ordered `details`. Each detail includes `affiliation`, `branch`, `income`, and exactly one of `commission_percentage` or fixed `commission`. Affiliation and branch are not accepted at the Record root. Laravel calculates `commission` and `return_amount`. Replacement submits the full aggregate plus required `reason` and accepts `MANUAL` or `IMAGE` records in `NEEDS_REVIEW` or `CONFIRMED`; a changed `CONFIRMED` replacement returns `NEEDS_REVIEW`, while a no-change replacement returns `422 RECORD_UPDATE_NO_CHANGES`. Confirmation accepts no client state or reason. Cancellation requires `reason` and accepts `NEEDS_REVIEW` or `ERROR`. IMAGE records may expose nullable company, period, and provisional detail fields; this does not relax MANUAL capture or confirmation validation.
 
 History uses `GET /api/records/{id}/history?page=&per_page=` with `per_page` defaulting to 50 and capped at 100, ordered newest first. Each item exposes `field_name`, `previous_value`, `new_value`, `reason`, `created_at`, and `user`. The panel must preserve backend values and never infer changes client-side.
+
+Delivery preparation uses `GET` and `PUT /api/records/{record}/delivery`. `GET` returns `{ "data": null }` or the delivery with `prepared_return_amount`, `current_return_amount`, `is_stale`, and ordered denominations; both roles may read. `PUT` requires `delivery_date`, `delivered_by_name`, optional `received_by_name`, and `denominations`, and is `EDITOR`-only for `CONFIRMED` records. The backend derives `prepared_return_amount`, ignores zero quantities, requires official denominations, and returns `409 DELIVERY_PREPARATION_BLOCKED` for `INVALID_RECORD_STATE` or `CASH_MISMATCH`. Delivery events appear in the record history.
 
 Mutation errors are handled from the backend response: `RECORD_UPDATE_BLOCKED`, `RECORD_CONFIRMATION_BLOCKED`, and `RECORD_CANCELLATION_BLOCKED` for invalid states or failed business validation; `RECORD_UPDATE_NO_CHANGES` for a no-change `CONFIRMED` edit; `IMAGE_UPLOAD_BLOCKED`/`IMAGE_ACCESS_BLOCKED` for image rules; and the existing AI retry errors. On `409`, refresh the Record so the UI reflects the current backend state. On `422`, preserve and display `code` and `details` when present.
 
@@ -61,7 +65,11 @@ Mutation errors are handled from the backend response: `RECORD_UPDATE_BLOCKED`, 
 - Editing a `CONFIRMED` record is available to `EDITOR` only, reopens it to `NEEDS_REVIEW`, and offers confirmation afterward; `VIEWER` never sees the action.
 - A `422 RECORD_UPDATE_NO_CHANGES` keeps the record `CONFIRMED` and displays the backend message without reopening it.
 - The `Historial de cambios` panel is available to `EDITOR` and `VIEWER`, shows loading/error/empty/pagination states, and displays date, user, translated field, previous value, new value, and reason.
-- The history panel refreshes after correction, reopening, confirmation, or cancellation.
+- The history panel refreshes after correction, reopening, confirmation, cancellation, or delivery preparation.
+- A `CONFIRMED` record shows the delivery preparation link to `EDITOR` and `VIEWER`; the route remains directly accessible for read-only states and explains when preparation requires confirmation.
+- The delivery screen displays the current return, cash total, stale warning, and backend `CASH_MISMATCH` details.
+- Delivery preparation is editable by `EDITOR` and read-only for `VIEWER`; the UI never sends `prepared_return_amount`.
+- Delivery history entries use readable labels, including `denominations[1000.00]`-style entries, and appear in the existing history panel.
 - Confirmation is available only for `NEEDS_REVIEW`; it revalidates on the backend and shows the resulting state. Unresolved AI issues do not block a complete, valid aggregate.
 - Cancellation requires a reason, is available only for `NEEDS_REVIEW` or `ERROR`, and results in `CANCELED` with image access no longer available.
 - `ERROR` records offer the existing retry action and cancellation, with safe diagnostics.
@@ -104,6 +112,8 @@ Verified on 2026-10-26:
 - `../06_testing.md`
 - [`../../02_business_rules_and_states.md`](../../02_business_rules_and_states.md)
 - [`../../03_data_model.md`](../../03_data_model.md)
+- [`deliveries.md`](deliveries.md)
+- [`../../../specs/11-delivery-preparation.md`](../../../specs/11-delivery-preparation.md)
 - [`../../09_manual_capture.md`](../../09_manual_capture.md)
 - [`../../10_ui_ux.md`](../../10_ui_ux.md) (Records and Review)
 - [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md)
