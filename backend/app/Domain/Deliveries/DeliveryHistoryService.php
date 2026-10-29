@@ -114,9 +114,6 @@ class DeliveryHistoryService
 
     /**
      * Record that the Word document was generated; no field values change.
-     * @param  Delivery  $delivery
-     * @param  int  $userId
-     * @return History
      */
     public function writeDocumentGenerated(Delivery $delivery, int $userId): History
     {
