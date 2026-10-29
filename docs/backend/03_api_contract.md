@@ -365,7 +365,7 @@ Delivery creation and updates write field-level History rows with `record_id`, `
 
 ## Delivery Document Contract — SPEC 12 (Phase 8.13)
 
-The Word delivery document contract is approved for phase 8.13 and is implemented under SPEC 12. It requires Laravel's authenticated Sanctum session and valid CSRF.
+The Word delivery document contract is implemented for phase 8.13 under SPEC 12. It requires Laravel's authenticated Sanctum session and valid CSRF.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |

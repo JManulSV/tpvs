@@ -2,7 +2,7 @@
 
 ## Status
 
-**SPEC 11 / phase 8.12 complete (2026-10-29). SPEC 12 / phase 8.13 approved (2026-10-29); implementation in progress.** The delivery preparation API, the minimum frontend workflow, and the Word document download action are defined below.
+**SPEC 11 / phase 8.12 complete (2026-10-29). SPEC 12 / phase 8.13 complete (2026-10-29).** The delivery preparation API, the minimum frontend workflow, and the Word document download action are defined below.
 
 ## Goal and Scope
 

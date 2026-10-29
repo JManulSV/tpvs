@@ -284,6 +284,8 @@ Generate `.docx` from the current `Delivery`, its `Record`, the associated `Imag
 
 **Checkpoint:** A valid prepared delivery with an image generates a Word document; a missing image or invalid delivery blocks generation.
 
+**Status: COMPLETE (2026-10-29).** `POST /api/deliveries/{delivery}/document` generates the delivery `.docx` with PHPWord for `EDITOR`: office-format layout, amount in words from `MoneyToWordsService`, the associated Image (WebP converted to a temporary PNG), the 11 denominations, and signature names. Generation is blocked with `409 DOCUMENT_GENERATION_BLOCKED` (`INVALID_RECORD_STATE`, `MISSING_IMAGE`, `STALE_DELIVERY`, `CASH_MISMATCH`, `IMAGE_UNAVAILABLE`), the file is temporary and not stored, and each successful generation writes a `document_generated` History event. The delivery screen has the `Generar documento Word` action. Verification: backend suite 265 tests (1320 assertions) against `tpvs_test`, Pint, Vitest 81, ESLint, TypeScript, and production build. Browser checkpoint evidence, including the Word file approved by the Editor, is recorded in [`frontend/06_testing.md`](frontend/06_testing.md).
+
 **Commit:** `feat: implement delivery document generation`
 
 ### 8.14 - Reports and Excel

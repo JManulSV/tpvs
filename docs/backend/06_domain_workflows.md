@@ -171,7 +171,7 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 ## Delivery Document
 
-**Status:** SPEC 12 / phase 8.13 approved (2026-10-29); implementation in progress.
+**Status:** SPEC 12 / phase 8.13 complete (2026-10-29).
 
 **Purpose:** Generate the Word delivery receipt on demand from the persisted Delivery, its Record, the Record Image, and the cash denominations, without storing the file.
 

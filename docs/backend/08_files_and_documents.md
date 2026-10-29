@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Laravel local filesystem configuration and Record image upload, replacement, private viewing, authorization, and feature tests are implemented for phase 8.7. Word delivery document generation is approved for phase 8.13 under SPEC 12.
+Laravel local filesystem configuration and Record image upload, replacement, private viewing, authorization, and feature tests are implemented for phase 8.7. Word delivery document generation is implemented for phase 8.13 under SPEC 12.
 
 ## Private Images
 
