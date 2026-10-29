@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Laravel local filesystem configuration and Record image upload, replacement, private viewing, authorization, and feature tests are implemented for phase 8.7. Document generation remains planned for phase 8.13.
+Laravel local filesystem configuration and Record image upload, replacement, private viewing, authorization, and feature tests are implemented for phase 8.7. Word delivery document generation is implemented for phase 8.13 under SPEC 12.
 
 ## Private Images
 
@@ -24,5 +24,15 @@ Laravel local filesystem configuration and Record image upload, replacement, pri
 Word and Excel files are outputs, not sources of truth. They should be generated from validated database data and returned as temporary output in the MVP rather than stored as delivery versions.
 
 Word generation requires a confirmed Record, valid Delivery preparation, cash reconciliation, and an associated Image.
+
+Word delivery documents (SPEC 12):
+
+- Read the Record Image from the private disk only inside the authorized generation request. Never copy it to public storage.
+- Insert JPEG and PNG bytes as stored. Convert WebP to a temporary PNG with GD for insertion; never modify or replace the original file.
+- If Image metadata exists but the file is missing or unreadable, return `409 DOCUMENT_GENERATION_BLOCKED` with `details.reason=IMAGE_UNAVAILABLE`, log the Image id, and never expose the storage key or path.
+- Write the `.docx` to the system temporary directory, send it with `Content-Disposition: attachment` and `Cache-Control: private, no-store`, and delete it after sending. Delete temporary files on every failure path as well.
+- Do not store, version, or index generated documents.
+
+See [`../08_document_generation.md`](../08_document_generation.md) for the office format and data mapping.
 
 The phase 8.7 API contract is implemented in Laravel and documented in [`03_api_contract.md`](03_api_contract.md). The roadmap checkpoint is recorded only after the integrated HTTP acceptance flow passes.

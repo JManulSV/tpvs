@@ -363,6 +363,44 @@ Delivery creation and updates write field-level History rows with `record_id`, `
 - `422` for invalid shape, date, names, unsupported denomination, duplicate positive denomination, or invalid quantity.
 - `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=INVALID_RECORD_STATE` or `CASH_MISMATCH`.
 
+## Delivery Document Contract — SPEC 12 (Phase 8.13)
+
+The Word delivery document contract is implemented for phase 8.13 under SPEC 12. It requires Laravel's authenticated Sanctum session and valid CSRF.
+
+| Method | Path | Purpose | Authentication / authorization |
+| --- | --- | --- | --- |
+| `POST` | `/api/deliveries/{delivery}/document` | Validate the Delivery and return a generated `.docx` download. | Authenticated `EDITOR` only |
+
+The request has no body. Delivery data is read from the persisted `Delivery`, its `Record`, the Record's `Image`, and the cash denominations.
+
+A successful response is `200` with a binary body and:
+
+- `Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+- `Content-Disposition: attachment; filename="entrega-registro-{record_id}-semana-{week}-{year}.docx"`
+- `Cache-Control: private, no-store`
+
+Laravel locks the Record and Delivery and checks, in order:
+
+1. The Record is `CONFIRMED`; otherwise `details.reason=INVALID_RECORD_STATE`.
+2. The Record has an Image; otherwise `details.reason=MISSING_IMAGE`.
+3. `prepared_return_amount` equals the current Record return total; otherwise `details.reason=STALE_DELIVERY` with `prepared_amount` and `current_amount`.
+4. The denomination sum equals the current Record return total in integer cents; otherwise `details.reason=CASH_MISMATCH` with `expected_amount`, `cash_amount`, and `difference`.
+5. The private image file is readable; otherwise `details.reason=IMAGE_UNAVAILABLE`. The response never includes paths; the condition is logged.
+
+Each blocked case returns `409` with `code=DOCUMENT_GENERATION_BLOCKED`:
+
+```json
+{
+  "message": "The delivery document cannot be generated.",
+  "code": "DOCUMENT_GENERATION_BLOCKED",
+  "details": { "reason": "MISSING_IMAGE" }
+}
+```
+
+A successful generation writes one `document_generated` History row with `delivery_id`, null values, and the reason `Documento Word generado`. Generation never modifies the Record, Delivery, denominations, or Image. The file is not stored; the temporary copy is deleted after it is sent.
+
+Errors: `401` unauthenticated; `403` Viewer; `404` missing Delivery; `419` invalid CSRF; `409 DOCUMENT_GENERATION_BLOCKED`; a generic safe `500` if document construction fails, with no History written.
+
 ## Record Images Contract — Phase 8.7 (Implemented)
 
 The endpoints below implement private Record image handling. Uploading an image stores and associates the file only; it does not create an AI processing attempt or dispatch a job.

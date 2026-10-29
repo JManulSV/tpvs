@@ -1,3 +1,6 @@
+import type { RecordStatus } from "@/features/records/types";
+import type { Delivery } from "./types";
+
 const currencyFormatter = new Intl.NumberFormat("es-MX", {
   style: "currency",
   currency: "MXN",
@@ -44,4 +47,33 @@ export function denominationsTotalCents(
 
     return total + toCents(denomination.value) * Math.max(quantity, 0);
   }, 0);
+}
+
+export function downloadBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function documentBlockedReason({
+  delivery,
+  hasImage,
+  recordStatus,
+}: {
+  delivery: Delivery | null;
+  hasImage: boolean;
+  recordStatus: RecordStatus;
+}): string | null {
+  if (delivery === null) return "Prepara la entrega para generar el documento.";
+  if (recordStatus !== "CONFIRMED") return "El registro debe estar confirmado para generar el documento.";
+  if (!hasImage) return "Adjunta una imagen al registro para generar el documento.";
+  if (delivery.is_stale) return "La entrega usa un importe anterior; actualízala antes de generar el documento.";
+
+  return null;
 }

@@ -19,6 +19,7 @@ const statusLabels: Record<RecordStatus, string> = {
 const eventLabels: Record<string, string> = {
   record_created: "Registro creado",
   record_updated: "Registro actualizado",
+  document_generated: "Documento Word generado",
 };
 
 const recordFieldLabels: Record<string, string> = {
@@ -49,7 +50,7 @@ const deliveryFieldLabels: Record<string, string> = {
 
 const denominationPattern = /^denominations\[(\d+(?:\.\d{1,2})?)\]$/;
 
-function fieldLabel(fieldName: string): string {
+export function fieldLabel(fieldName: string): string {
   if (deliveryFieldLabels[fieldName] !== undefined) return deliveryFieldLabels[fieldName];
 
   const denominationMatch = denominationPattern.exec(fieldName);

@@ -1,6 +1,6 @@
 # SPEC 12 — Documento Word de entrega
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 05, SPEC 10, SPEC 11
 > **Date:** 2026-10-29
 > **Objective:** Generar y descargar bajo demanda el documento Word de una entrega válida, con el formato de constancia de la oficina, bloqueándolo cuando falte la imagen o la entrega no sea válida.
@@ -159,22 +159,22 @@ El BFF ya reenvía `content-type`, `content-disposition` y el cuerpo binario; no
 
 ## Acceptance criteria
 
-- [ ] No se agregan tablas ni migraciones.
-- [ ] La imagen del backend incluye `zip` y `gd`, y `phpoffice/phpword` está en `composer.json`.
-- [ ] `MoneyToWordsService` devuelve `NOVECIENTOS VEINTE PESOS 00/100 M.N.` para `920.00` y pasa todos los casos unitarios.
-- [ ] `POST /api/deliveries/{delivery}/document` devuelve `200` con el tipo MIME de Word, `attachment` y el nombre `entrega-registro-{id}-semana-{week}-{year}.docx`.
-- [ ] El `.docx` contiene encabezado con día y fecha en español, nombre del entregador, importe, importe en letra, concepto fijo, rango de semana, imagen, tabla de 11 filas, dos totales y nombres de firma.
-- [ ] Una imagen WebP se inserta convertida a PNG y el archivo original no cambia.
-- [ ] `VIEWER` recibe `403`; sin sesión `401`; entrega inexistente `404`.
-- [ ] Registro no confirmado, sin imagen, entrega obsoleta, efectivo descuadrado e imagen ilegible devuelven `409 DOCUMENT_GENERATION_BLOCKED` con la razón correcta.
-- [ ] Una generación exitosa escribe exactamente un evento `document_generated` con `delivery_id`; un bloqueo o fallo no escribe historial.
-- [ ] Generar no modifica `Record`, `Delivery`, denominaciones ni `Image`.
-- [ ] No queda archivo temporal tras la respuesta.
-- [ ] El botón aparece solo para `EDITOR`, se deshabilita con motivo en los casos bloqueados y descarga el archivo a través del BFF.
-- [ ] El panel de historial muestra `Documento Word generado`.
-- [ ] `docs/08_document_generation.md` incluye el mockup del formato.
-- [ ] Suite backend, Pint, Vitest, ESLint, TypeScript y build pasan.
-- [ ] El checkpoint de navegador se documenta y 8.13 se marca completo solo entonces.
+- [x] No se agregan tablas ni migraciones.
+- [x] La imagen del backend incluye `zip` y `gd`, y `phpoffice/phpword` está en `composer.json`.
+- [x] `MoneyToWordsService` devuelve `NOVECIENTOS VEINTE PESOS 00/100 M.N.` para `920.00` y pasa todos los casos unitarios.
+- [x] `POST /api/deliveries/{delivery}/document` devuelve `200` con el tipo MIME de Word, `attachment` y el nombre `entrega-registro-{id}-semana-{week}-{year}.docx`.
+- [x] El `.docx` contiene encabezado con día y fecha en español, nombre del entregador, importe, importe en letra, concepto fijo, rango de semana, imagen, tabla de 11 filas, dos totales y nombres de firma.
+- [x] Una imagen WebP se inserta convertida a PNG y el archivo original no cambia.
+- [x] `VIEWER` recibe `403`; sin sesión `401`; entrega inexistente `404`.
+- [x] Registro no confirmado, sin imagen, entrega obsoleta, efectivo descuadrado e imagen ilegible devuelven `409 DOCUMENT_GENERATION_BLOCKED` con la razón correcta.
+- [x] Una generación exitosa escribe exactamente un evento `document_generated` con `delivery_id`; un bloqueo o fallo no escribe historial.
+- [x] Generar no modifica `Record`, `Delivery`, denominaciones ni `Image`.
+- [x] No queda archivo temporal tras la respuesta.
+- [x] El botón aparece solo para `EDITOR`, se deshabilita con motivo en los casos bloqueados y descarga el archivo a través del BFF.
+- [x] El panel de historial muestra `Documento Word generado`.
+- [x] `docs/08_document_generation.md` incluye el mockup del formato.
+- [x] Suite backend, Pint, Vitest, ESLint, TypeScript y build pasan.
+- [x] El checkpoint de navegador se documenta y 8.13 se marca completo solo entonces.
 
 ## Decisions
 

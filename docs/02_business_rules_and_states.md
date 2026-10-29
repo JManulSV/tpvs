@@ -180,6 +180,15 @@ Both sources use the same financial business validation rules. Image-derived rec
 - Word generation additionally requires the Record's associated Image.
 - A manual Record may be created and confirmed without an Image; an Image must be attached before Word generation.
 
+## 11a. Word Delivery Document Rules
+
+- Only `EDITOR` may generate the Word delivery document.
+- Generation requires a `CONFIRMED` Record, an associated Image with a readable file, a Delivery whose `prepared_return_amount` equals the current Record return total, and a cash breakdown that matches that total in integer cents.
+- A stale Delivery blocks generation; the Editor must update the Delivery first. The document never uses an older amount.
+- The amount in words is produced deterministically by `MoneyToWordsService` in the format `... PESOS CC/100 M.N.`; AI is never used.
+- Each successful generation writes one `History` row with `field_name=document_generated`, `delivery_id`, and the reason `Documento Word generado`. Blocked or failed generation writes no History.
+- Generation never changes the Record, Delivery, denominations, or Image. The generated file is not stored.
+
 ## 12. Review, Correction, Confirmation, and Cancellation Rules
 
 - Only an authenticated `EDITOR` may correct, reopen, confirm, cancel, or retry a record. `VIEWER` may read records, images, AI diagnostics, and change history but cannot mutate them.
