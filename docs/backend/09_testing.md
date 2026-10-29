@@ -4,6 +4,14 @@
 
 The backend has feature coverage for health, authentication/authorization, Companies and Records API behavior, database relationships, schema constraints, and AI extraction/retry behavior. Run the full suite with `php artisan test` (or `docker compose exec -T tpvs-backend php artisan test`). Configure an isolated PostgreSQL test database before running `RefreshDatabase` tests; do not point test runs at a database whose data must be retained.
 
+In the Compose stack the backend container already exports `DB_DATABASE=tpvs`, and the `phpunit.xml` `<env>` entry does not replace it. Run the suite with the test database set explicitly:
+
+```bash
+docker compose exec -T -e DB_DATABASE=tpvs_test tpvs-backend php artisan test
+```
+
+The `tpvs_test` database must exist (`CREATE DATABASE tpvs_test OWNER tpvs`). On 2026-10-29 an unscoped run emptied the shared `tpvs` database; the explicit variable was verified to keep `tpvs` unchanged.
+
 ## Test Types
 
 ### Unit Tests
