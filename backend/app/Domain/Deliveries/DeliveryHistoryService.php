@@ -3,6 +3,7 @@
 namespace App\Domain\Deliveries;
 
 use App\Models\Delivery;
+use App\Models\History;
 
 class DeliveryHistoryService
 {
@@ -109,6 +110,24 @@ class DeliveryHistoryService
         }
 
         return $changes;
+    }
+
+    /**
+     * Record that the Word document was generated; no field values change.
+     * @param  Delivery  $delivery
+     * @param  int  $userId
+     * @return History
+     */
+    public function writeDocumentGenerated(Delivery $delivery, int $userId): History
+    {
+        return $delivery->histories()->create([
+            'record_id' => $delivery->record_id,
+            'user_id' => $userId,
+            'field_name' => 'document_generated',
+            'previous_value' => null,
+            'new_value' => null,
+            'reason' => 'Documento Word generado',
+        ]);
     }
 
     /**

@@ -39,6 +39,36 @@ class DeliveryDocumentApiTest extends TestCase
         $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
     }
 
+    public function test_a_successful_generation_writes_one_document_generated_event(): void
+    {
+        $delivery = $this->preparedDelivery();
+        $editor = $this->user(UserRole::EDITOR);
+
+        $this->actingAs($editor, 'web')->post('/api/deliveries/'.$delivery->id.'/document')->assertOk();
+
+        $this->assertDatabaseCount('histories', 1);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $delivery->record_id,
+            'delivery_id' => $delivery->id,
+            'user_id' => $editor->id,
+            'field_name' => 'document_generated',
+            'previous_value' => null,
+            'new_value' => null,
+            'reason' => 'Documento Word generado',
+        ]);
+    }
+
+    public function test_a_blocked_generation_writes_no_history(): void
+    {
+        $delivery = $this->preparedDelivery(withImage: false);
+
+        $this->actingAs($this->user(UserRole::EDITOR), 'web')
+            ->postJson('/api/deliveries/'.$delivery->id.'/document')
+            ->assertStatus(409);
+
+        $this->assertDatabaseCount('histories', 0);
+    }
+
     public function test_requires_authentication_and_an_editor_role(): void
     {
         $delivery = $this->preparedDelivery();
