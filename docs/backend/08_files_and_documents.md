@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Laravel local filesystem configuration and Record image upload, replacement, private viewing, authorization, and feature tests are implemented for phase 8.7. Word delivery document generation is implemented for phase 8.13 under SPEC 12.
+Laravel local filesystem configuration and Record image upload, replacement, private viewing, authorization, and feature tests are implemented for phase 8.7. Word delivery document generation is implemented for phase 8.13 under SPEC 12. Excel report generation is approved for phase 8.14 under SPEC 13.
 
 ## Private Images
 
@@ -33,6 +33,13 @@ Word delivery documents (SPEC 12):
 - Write the `.docx` to the system temporary directory, send it with `Content-Disposition: attachment` and `Cache-Control: private, no-store`, and delete it after sending. Delete temporary files on every failure path as well.
 - Do not store, version, or index generated documents.
 
-See [`../08_document_generation.md`](../08_document_generation.md) for the office format and data mapping.
+Excel reports (SPEC 13):
+
+- Build the workbook with `phpoffice/phpspreadsheet` from the same `ReportQuery` that feeds `GET /api/reports`; never from AI output.
+- Include only `CONFIRMED` Records. The export always contains the full filtered set.
+- Write the `.xlsx` to the system temporary directory, send it with `Content-Disposition: attachment` and `Cache-Control: private, no-store`, and delete it after sending. Delete temporary files on every failure path as well.
+- Do not store, version, or index generated workbooks, and do not write `History` for exports.
+
+See [`../08_document_generation.md`](../08_document_generation.md) for the office format, workbook layout, file names, and data mapping.
 
 The phase 8.7 API contract is implemented in Laravel and documented in [`03_api_contract.md`](03_api_contract.md). The roadmap checkpoint is recorded only after the integrated HTTP acceptance flow passes.

@@ -251,13 +251,13 @@ Core resource groups:
 /api/documents
 ```
 
-### Weekly Reports
+### Reports
 
 ```text
-GET /api/reports/weekly?year=2026&week=38&month=9&company_id=7
+GET /api/reports?year=2026&month=9&week=38&company_id=7&page=1&per_page=15
 ```
 
-Reports only consider records with status `CONFIRMED`. Optional filters include year, month, week, and company; month filtering uses the month containing `Record.week_end_date`.
+Reports only consider records with status `CONFIRMED`. `year` is required; month, week, and company are optional. Month filtering uses the month containing `Record.week_end_date`. The response carries the filters, the resulting period, official totals, a breakdown by company, and a paginated list of included records; totals and the breakdown always cover the full filtered set. A single query service feeds both this endpoint and the Excel export.
 
 ### Delivery Preparation and Document
 
@@ -269,10 +269,10 @@ POST /api/deliveries/{delivery}/document
 
 Delivery preparation is stored as a single editable `Delivery` per confirmed Record. Word output is generated on demand from that Delivery and requires a valid cash breakdown and an associated Image.
 
-### Weekly Excel Report
+### Excel Report
 
 ```text
-GET /api/documents/excel?year=2026&week=38&month=9&company_id=7
+GET /api/documents/excel?year=2026&month=9&week=38&company_id=7
 ```
 
-The Excel file is generated from confirmed records only and is not stored permanently.
+The Excel file is generated on demand from confirmed records only, using the same filters and query as the reports endpoint, and is not stored permanently. It is built with `phpoffice/phpspreadsheet`.

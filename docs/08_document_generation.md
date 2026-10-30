@@ -8,86 +8,90 @@ Document generation is a derived output. PostgreSQL remains the source of truth.
 
 ## 2. Excel Report
 
-The Excel file is generated on demand.
+The Excel file is generated on demand from the same query that feeds the reports screen. It is implemented under SPEC 13 / phase 8.14 with `phpoffice/phpspreadsheet`; the sheet and file names are in Spanish.
 
 Endpoint:
 
 ```text
-GET /api/documents/excel?year=2026&week=32&month=9&company_id=7
+GET /api/documents/excel?year=2026&month=9&week=38&company_id=7
 ```
 
 Rules:
 - Only include `Record` rows with status `CONFIRMED`.
-- Support filters for `year`, `month`, `week`, and `company_id`.
-- For month filtering, use the month containing `Record.week_end_date`.
+- `year` is required. `month`, `week`, and `company_id` are optional and combine with `AND`.
+- For month filtering, use the month containing `Record.week_end_date`. A week-53 record whose `week_end_date` falls in January of the next year is still reported under its business `year`, and under month `1`.
 - When no company filter is provided, include all matching companies.
-- PostgreSQL is the source of truth.
-- The Excel is generated when requested.
-- The Excel is not stored permanently as a document.
+- The export always contains the full filtered set; `page` and `per_page` do not apply.
+- `EDITOR` and `VIEWER` may export.
+- PostgreSQL is the source of truth. Totals use decimal arithmetic and are converted to numbers only when a cell is written.
+- The Excel is generated when requested, written to a temporary file, and deleted after it is sent. It is not stored permanently as a document.
+- Exporting does not write `History`.
+- An empty result still returns a workbook with the four sheets and headers; `Resumen` shows only the `TOTAL` row at `0.00`.
+
+Order: companies by name; records by company name, `year`, `week`, `week_start_date`, and `id`; movements follow their record, then `RecordDetail.order`.
+
+Amounts are numeric cells formatted `$#,##0.00`; dates are date cells formatted `dd/mm/yyyy`. Headers are in the first row of every sheet.
 
 ### Excel Sheets
 
-#### 1. Summary
+#### 1. `Resumen`
 
-Grouped totals by company:
+Grouped totals by company, with a final `TOTAL` row:
 
-| Company | Income | Commission | Return |
+| Empresa | Ingreso | Comisión | Retorno |
 | --- | ---: | ---: | ---: |
 
-Include a grand total as well.
+The `TOTAL` row equals the `totals` returned by `GET /api/reports` for the same filters.
 
-#### 2. Records
+#### 2. `Registros`
 
-General information for each `Record`:
+One row per included `Record`:
 
-- Company
-- Year
-- Week
-- Start date
-- End date
-- Affiliation
-- Branch
-- Delivery date from `Delivery`, when a `Delivery` exists
-- Status, if needed for context
+| ID registro | Empresa | Año | Semana | Inicio | Fin | Movimientos | Ingreso | Comisión | Retorno | Fecha de entrega |
+| --- | --- | ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | --- |
 
-#### 3. Details
+`Fecha de entrega` comes from `Delivery.delivery_date` and is empty when no Delivery exists. There is no status column because every row is `CONFIRMED`. Affiliation and branch belong to movements and appear only in `Detalles`.
 
-All movements for the selected records:
+#### 3. `Detalles`
 
-- Record
-- Income
-- Commission percentage
-- Commission
-- Return
-- Order
+One row per movement of the included records:
 
-This sheet makes each individual movement visible.
+| ID registro | Orden | Afiliación | Sucursal | Ingreso | % Comisión | Comisión | Retorno |
+| --- | ---: | --- | --- | ---: | ---: | ---: | ---: |
 
-#### 4. Cash
+`% Comisión` is empty when the commission was captured as a fixed amount.
 
-Cash breakdown by `Delivery` for each included `Record`, when a Delivery exists.
+#### 4. `Efectivo`
 
-Official MVP denominations:
+One row per `Delivery` of the included records; records without a Delivery do not appear:
 
-- `1000`
-- `500`
-- `200`
-- `100`
-- `50`
-- `20`
-- `10`
-- `5`
-- `2`
-- `1`
-- `0.50`
+| ID registro | Empresa | Semana | Fecha de entrega | Entrega | Recibe | Importe preparado | 1000 | 500 | 200 | 100 | 50 | 20 | 10 | 5 | 2 | 1 | 0.50 | Total efectivo | Desactualizada |
+| --- | --- | ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 
-Only rows with quantity greater than `0` are stored or generated.
+Official MVP denominations: `1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, `2`, `1`, and `0.50`.
 
-Backend validation:
+- Each denomination column shows the quantity, and `0` when no row is persisted. Only rows with quantity greater than `0` are stored.
+- `Total efectivo` is `Σ(denomination × quantity)`.
+- `Desactualizada` is `Sí` when `prepared_return_amount` differs from the current Record return total, and `No` otherwise.
+
+Backend validation when preparing the Delivery:
 
 ```text
 Σ(denomination × quantity) = current Record return total
 ```
+
+There is no AI extraction sheet.
+
+### File Name
+
+| Filters | File name |
+| --- | --- |
+| `year` | `Reporte_2026.xlsx` |
+| `year` + `month` | `Reporte_2026_Mes_09.xlsx` |
+| `year` + `week` (with or without `month`) | `Reporte_Semana_38_2026.xlsx` |
+| Any of the above + `company_id` | `_Empresa_{id}` is added before `.xlsx` |
+
+Company names are never used in the file name. The response carries `Content-Disposition: attachment` and `Cache-Control: private, no-store`.
 
 ## 3. Word Delivery Document
 

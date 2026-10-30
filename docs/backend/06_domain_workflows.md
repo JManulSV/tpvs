@@ -200,3 +200,34 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 **Jobs or events:** None. Generation is synchronous.
 
 **Tests:** Cover amount-in-words cases, Spanish date formatting, document content (text, 11 table rows, totals, signatures, image), JPEG/PNG/WebP insertion, response headers, temporary-file cleanup, Editor/Viewer/anonymous access, each blocking reason, History only on success, and the absence of data changes.
+
+## Reports and Excel
+
+**Status:** SPEC 13 / phase 8.14 approved (2026-10-30); implementation in progress.
+
+**Purpose:** Let users review official totals of confirmed Records and export the same data to an on-demand Excel file, without storing the file.
+
+**Entry point:** `GET /api/reports` and `GET /api/documents/excel`.
+
+**Preconditions:** The user is authenticated as `EDITOR` or `VIEWER`. The request has a valid `year`.
+
+**Workflow:**
+
+1. The user chooses year, optional month, week, and company on `/reports`.
+2. `ReportQuery` selects only `CONFIRMED` Records that match the filters; the month is the month of `week_end_date`.
+3. For the screen, Laravel returns the filters, period, global totals, the company breakdown, and one page of included Records. Totals and the breakdown cover the full filtered set.
+4. For the export, the same query provides every included Record with its movements, Delivery, and cash denominations.
+5. `ReportWorkbookBuilder` writes `Resumen`, `Registros`, `Detalles`, and `Efectivo` with PhpSpreadsheet into a temporary file.
+6. Laravel streams the file as an attachment named from the filters and deletes the temporary file.
+
+**Database changes:** None. Reports and exports are read-only; no `History` row is written.
+
+**Transaction boundary:** None. Both operations are read-only.
+
+**Authorization:** `EDITOR` and `VIEWER` may read reports and export Excel.
+
+**Failure behavior:** `401` unauthenticated; `422` for invalid filters, including a missing `year` or a non-existent company; a generic `500` if workbook construction fails. The temporary file is removed on every failure path. An empty result is not an error: the report is empty and the workbook is generated with headers and zero totals.
+
+**Jobs or events:** None. Generation is synchronous.
+
+**Tests:** Cover inclusion by status, the month rule for weeks that cross months, filter combinations, ordering, decimal precision, totals independent of pagination, `422` validation, Editor/Viewer/anonymous access, workbook sheets, headers, rows, number and date formats, the `Resumen` total matching the API, the cash columns and `Desactualizada` flag, an empty workbook, response headers, file names, temporary-file cleanup, and the absence of `History`.
