@@ -89,23 +89,20 @@ class ReportQuery
      */
     public function paginate(ReportFilters $filters, int $page, int $perPage): LengthAwarePaginator
     {
-        return $this->ordered($this->base($filters))
+        return $this->withAggregates($this->ordered($this->base($filters)))
             ->with(['company', 'delivery'])
-            ->withCount('details')
-            ->withSum('details as income_total', 'income')
-            ->withSum('details as commission_total', 'commission')
-            ->withSum('details as return_total', 'return_amount')
             ->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**
-     * Every included Record with its ordered movements and its Delivery with cash denominations.
+     * Every included Record with its ordered movements, its Delivery with cash denominations,
+     * and the `details_count`, `income_total`, `commission_total`, and `return_total` aggregates.
      *
      * @return Collection<int, Record>
      */
     public function export(ReportFilters $filters): Collection
     {
-        return $this->ordered($this->base($filters))
+        return $this->withAggregates($this->ordered($this->base($filters)))
             ->with(['company', 'details', 'delivery.cashDenominations'])
             ->get();
     }
@@ -124,6 +121,19 @@ class ReportQuery
                 ->where('records.week', $filters->week))
             ->when($filters->companyId !== null, static fn (Builder $query) => $query
                 ->where('records.company_id', $filters->companyId));
+    }
+
+    /**
+     * @param  Builder<Record>  $query
+     * @return Builder<Record>
+     */
+    private function withAggregates(Builder $query): Builder
+    {
+        return $query
+            ->withCount('details')
+            ->withSum('details as income_total', 'income')
+            ->withSum('details as commission_total', 'commission')
+            ->withSum('details as return_total', 'return_amount');
     }
 
     /**
