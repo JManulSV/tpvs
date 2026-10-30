@@ -54,6 +54,25 @@ class ReportWorkbookBuilder
         }
     }
 
+    /**
+     * `Reporte_2026`, `Reporte_2026_Mes_09`, or `Reporte_Semana_38_2026` (a week wins over a month),
+     * with `_Empresa_{id}` appended when filtered by company. Company names are never used.
+     */
+    public function fileName(ReportFilters $filters): string
+    {
+        $name = match (true) {
+            $filters->week !== null => sprintf('Reporte_Semana_%d_%d', $filters->week, $filters->year),
+            $filters->month !== null => sprintf('Reporte_%d_Mes_%02d', $filters->year, $filters->month),
+            default => sprintf('Reporte_%d', $filters->year),
+        };
+
+        if ($filters->companyId !== null) {
+            $name .= '_Empresa_'.$filters->companyId;
+        }
+
+        return $name.'.xlsx';
+    }
+
     private function compose(ReportFilters $filters): Spreadsheet
     {
         $records = $this->reports->export($filters);
