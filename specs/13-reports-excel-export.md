@@ -1,6 +1,6 @@
 # SPEC 13 — Reportes y exportación Excel
 
-> **Status:** Draft
+> **Status:** Implemented
 > **Depends on:** SPEC 03, SPEC 04, SPEC 11
 > **Date:** 2026-10-29
 > **Objective:** Consultar los totales oficiales de registros `CONFIRMED` filtrados por año, mes, semana y empresa, y exportarlos bajo demanda a un Excel con las hojas Resumen, Registros, Detalles y Efectivo.
