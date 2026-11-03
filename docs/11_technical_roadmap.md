@@ -294,6 +294,8 @@ Implement reports and Excel using `CONFIRMED` records only. Support filters for 
 
 **Checkpoint:** Filters, totals, company breakdowns, included records, and all four sheets agree with confirmed database data.
 
+**Status: COMPLETE (2026-11-03).** `GET /api/reports` and `GET /api/documents/excel` serve `EDITOR` and `VIEWER` from `CONFIRMED` records only, filtered by year (required), month (by `week_end_date`), week, and company. Totals are summed in SQL `numeric` and returned as two-decimal strings; the on-demand `.xlsx` (PhpSpreadsheet) has the sheets `Resumen`, `Registros`, `Detalles`, and `Efectivo`, is not stored, and writes no History. The minimum `/reports` screen has URL filters, totals, a per-company table, a paginated records list, and `Generar Excel`. Verification: backend suite 344 tests (1602 assertions) against `tpvs_test`, Pint, Vitest 105, ESLint, TypeScript, and production build. Browser checkpoint evidence is recorded in [`frontend/06_testing.md`](frontend/06_testing.md).
+
 **Commit:** `feat: implement reports and Excel export`
 
 ### 8.15 - Frontend

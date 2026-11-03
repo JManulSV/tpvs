@@ -44,6 +44,9 @@ async function AuthenticatedLayout({ children }: { children: ReactNode }) {
             <Link className="underline-offset-4 hover:underline" href="/companies">
               Empresas
             </Link>
+            <Link className="underline-offset-4 hover:underline" href="/reports">
+              Reportes
+            </Link>
           </nav>
         </div>
         <LogoutButton />

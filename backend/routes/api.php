@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\DeliveryDocumentController;
 use App\Http\Controllers\Api\RecordController;
 use App\Http\Controllers\Api\RecordFromImageController;
 use App\Http\Controllers\Api\RecordImageController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ReportExcelController;
 use App\Http\Controllers\Api\RetryAiProcessingController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +39,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/records/{record}/delivery', [DeliveryController::class, 'show']);
     Route::put('/records/{record}/delivery', [DeliveryController::class, 'upsert']);
     Route::post('/deliveries/{delivery}/document', [DeliveryDocumentController::class, 'store']);
+    Route::get('/reports', [ReportController::class, 'index']);
+    Route::get('/documents/excel', [ReportExcelController::class, 'show']);
     Route::get('/records/{record}', [RecordController::class, 'show']);
     Route::put('/records/{record}', [RecordController::class, 'update']);
     Route::post('/records/{record}/confirm', [RecordController::class, 'confirm']);

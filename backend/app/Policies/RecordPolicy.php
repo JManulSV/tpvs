@@ -28,6 +28,11 @@ class RecordPolicy
         return $this->view($user, $record);
     }
 
+    public function viewReports(User $user): bool
+    {
+        return in_array($user->role, [UserRole::EDITOR, UserRole::VIEWER], true);
+    }
+
     public function create(User $user): bool
     {
         return $user->role === UserRole::EDITOR;

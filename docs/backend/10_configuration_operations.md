@@ -137,6 +137,10 @@ Word generation uses `phpoffice/phpword`. The backend PHP runtime requires the `
 
 Generated documents are written to the system temporary directory and deleted after the response is sent. They are not stored and need no backup.
 
+### Excel Reports (SPEC 13)
+
+Excel generation uses `phpoffice/phpspreadsheet`. It needs the `zip` extension to write `.xlsx` files and no extension beyond those already installed for Word documents. Workbooks are written to the system temporary directory and deleted after the response is sent. They are not stored and need no backup.
+
 ## Operational Checks
 
 - Verify `GET /api/health`.

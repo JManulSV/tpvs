@@ -2,7 +2,7 @@
 
 ## Status
 
-The health, authentication, Companies, Records, image, and AI pipeline endpoints are implemented and covered by backend feature tests. The Delivery Preparation contract for SPEC 11 / phase 8.12 is documented below and is implemented incrementally under that spec.
+The health, authentication, Companies, Records, image, and AI pipeline endpoints are implemented and covered by backend feature tests. The Delivery Preparation contract for SPEC 11 / phase 8.12 is documented below and is implemented incrementally under that spec. The Reports and Excel contract for SPEC 13 / phase 8.14 is approved and documented below; it is implemented incrementally under that spec.
 
 ## Base Path
 
@@ -400,6 +400,94 @@ Each blocked case returns `409` with `code=DOCUMENT_GENERATION_BLOCKED`:
 A successful generation writes one `document_generated` History row with `delivery_id`, null values, and the reason `Documento Word generado`. Generation never modifies the Record, Delivery, denominations, or Image. The file is not stored; the temporary copy is deleted after it is sent.
 
 Errors: `401` unauthenticated; `403` Viewer; `404` missing Delivery; `419` invalid CSRF; `409 DOCUMENT_GENERATION_BLOCKED`; a generic safe `500` if document construction fails, with no History written.
+
+## Reports and Excel Contract — SPEC 13 (Phase 8.14)
+
+The reports and Excel contract is approved for phase 8.14 and is implemented incrementally under SPEC 13. Both routes require Laravel's authenticated Sanctum session. They are read-only `GET` requests, so they need no CSRF token. `EDITOR` and `VIEWER` may call both.
+
+| Method | Path | Purpose | Authentication / authorization |
+| --- | --- | --- | --- |
+| `GET` | `/api/reports` | Official totals, company breakdown, and paginated included records. | Authenticated `EDITOR` or `VIEWER` |
+| `GET` | `/api/documents/excel` | Generate and return the `.xlsx` for the same filters. | Authenticated `EDITOR` or `VIEWER` |
+
+### Filters
+
+| Parameter | Rule | Applies to |
+| --- | --- | --- |
+| `year` | Required, integer `1..9999` | `Record.year` |
+| `month` | Optional, integer `1..12` | Month of `Record.week_end_date` |
+| `week` | Optional, integer `1..53` | `Record.week` |
+| `company_id` | Optional, existing company id | `Record.company_id` |
+| `page` | Optional, integer `>= 1`, default `1` | Included-records list only |
+| `per_page` | Optional, `1..100`, default `15` | Included-records list only |
+
+- `Record.status = CONFIRMED` is always applied; no parameter can include other statuses.
+- Filters combine with `AND`; `month` and `week` may be sent together.
+- Invalid filters return Laravel's standard `422`.
+- `GET /api/documents/excel` ignores `page` and `per_page` and always exports the full filtered set.
+
+### `GET /api/reports`
+
+A successful response is `200`:
+
+```json
+{
+  "data": {
+    "filters": { "year": 2026, "month": 9, "week": 38, "company_id": 7 },
+    "period": { "week_start_date": "2026-08-28", "week_end_date": "2026-09-15" },
+    "totals": {
+      "records_count": 16,
+      "income_total": "150000.00",
+      "commission_total": "3000.00",
+      "return_total": "147000.00"
+    },
+    "companies": [
+      {
+        "company": { "id": 7, "name": "Empresa A" },
+        "records_count": 8,
+        "income_total": "50000.00",
+        "commission_total": "1000.00",
+        "return_total": "49000.00"
+      }
+    ],
+    "records": [
+      {
+        "id": 42,
+        "company": { "id": 7, "name": "Empresa A" },
+        "year": 2026,
+        "week": 38,
+        "week_start_date": "2026-09-07",
+        "week_end_date": "2026-09-13",
+        "details_count": 2,
+        "income_total": "10000.00",
+        "commission_total": "200.00",
+        "return_total": "9800.00",
+        "delivery_date": "2026-09-15"
+      }
+    ]
+  },
+  "meta": { "current_page": 1, "per_page": 15, "total": 16, "last_page": 2 }
+}
+```
+
+- Filters that were not sent are `null` in `filters`.
+- `period` is the earliest `week_start_date` and the latest `week_end_date` of the included records, and `null` when there are none.
+- `totals` and `companies` always cover the full filtered set, not only the requested page.
+- Amounts are decimal strings with two decimals. With no results, totals are `"0.00"`, `companies` is `[]`, and `records` is `[]`.
+- `delivery_date` is `null` when the Record has no Delivery.
+- Companies are ordered by name. Records are ordered by company name, `year`, `week`, `week_start_date`, and `id`.
+
+### `GET /api/documents/excel`
+
+A successful response is `200` with a binary body and:
+
+- `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+- `Content-Disposition: attachment; filename="Reporte_Semana_38_2026.xlsx"`
+- `Cache-Control: private, no-store`
+
+The workbook has the sheets `Resumen`, `Registros`, `Detalles`, and `Efectivo`, and no AI extraction sheet. Sheet columns, number formats, and the file-name rules are defined in [`../08_document_generation.md`](../08_document_generation.md). An empty result still returns `200` with the four sheets. The file is written to a temporary location and deleted after it is sent; the export writes no `History`.
+
+Errors for both routes: `401` unauthenticated; `422` invalid filters, including a missing `year` or a non-existent `company_id`. A generic, safe `500` is returned if workbook construction fails, with no private details and no temporary file left behind.
 
 ## Record Images Contract — Phase 8.7 (Implemented)
 
