@@ -1,6 +1,6 @@
 # SPEC 13 — Reportes y exportación Excel
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 03, SPEC 04, SPEC 11
 > **Date:** 2026-10-29
 > **Objective:** Consultar los totales oficiales de registros `CONFIRMED` filtrados por año, mes, semana y empresa, y exportarlos bajo demanda a un Excel con las hojas Resumen, Registros, Detalles y Efectivo.
@@ -208,27 +208,27 @@ El BFF ya reenvía `content-type`, `content-disposition` y el cuerpo binario; no
 
 ## Acceptance criteria
 
-- [ ] No se agregan tablas ni migraciones.
-- [ ] `phpoffice/phpspreadsheet` está en `composer.json` y carga en el contenedor.
-- [ ] `GET /api/reports` sin `year` devuelve `422`; con `company_id` inexistente devuelve `422`.
-- [ ] Solo se incluyen registros `CONFIRMED`; registros `PENDING`, `PROCESSING`, `NEEDS_REVIEW`, `ERROR` y `CANCELED` no afectan totales, empresas, lista ni Excel.
-- [ ] Un registro con `week_start_date` en agosto y `week_end_date` en septiembre aparece con `month=9` y no con `month=8`.
-- [ ] `totals` y `companies` coinciden con la suma SQL de `RecordDetail` del conjunto filtrado completo, independientemente de la página.
-- [ ] La lista paginada usa `per_page=15` por defecto, acepta hasta `100` y respeta el orden definido.
-- [ ] `EDITOR` y `VIEWER` reciben `200` en ambas rutas; sin sesión `401`.
-- [ ] `GET /api/documents/excel` devuelve el MIME de `.xlsx`, `attachment`, `Cache-Control: private, no-store` y el nombre según la tabla de nombres.
-- [ ] El `.xlsx` contiene exactamente las hojas `Resumen`, `Registros`, `Detalles` y `Efectivo`, sin hoja de AI.
-- [ ] `Resumen` tiene una fila por empresa y una fila `TOTAL` igual a los totales de `GET /api/reports` con los mismos filtros.
-- [ ] `Registros` y `Detalles` tienen una fila por registro y por movimiento incluidos; afiliación y sucursal solo aparecen en `Detalles`.
-- [ ] `Efectivo` tiene una fila por entrega, 11 columnas de denominación con `0` donde no hay fila, total de efectivo y `Desactualizada` correcta.
-- [ ] Filtros sin resultados generan un Excel `200` con las cuatro hojas y totales en `0.00`.
-- [ ] Montos del Excel son numéricos con formato moneda y fechas son celdas de fecha.
-- [ ] No queda archivo temporal tras la respuesta y no se escribe `History`.
-- [ ] `/reports` muestra filtros en la URL, periodo, totales, tabla por empresa y lista paginada para ambos roles, con estado vacío distinto del error.
-- [ ] `Generar Excel` descarga el archivo a través del BFF con el nombre del servidor y se deshabilita con resultado vacío.
-- [ ] La navegación incluye `Reportes`.
-- [ ] Suite backend, Pint, Vitest, ESLint, TypeScript y build pasan.
-- [ ] El checkpoint de navegador se documenta y 8.14 se marca completo solo entonces.
+- [x] No se agregan tablas ni migraciones.
+- [x] `phpoffice/phpspreadsheet` está en `composer.json` y carga en el contenedor.
+- [x] `GET /api/reports` sin `year` devuelve `422`; con `company_id` inexistente devuelve `422`.
+- [x] Solo se incluyen registros `CONFIRMED`; registros `PENDING`, `PROCESSING`, `NEEDS_REVIEW`, `ERROR` y `CANCELED` no afectan totales, empresas, lista ni Excel.
+- [x] Un registro con `week_start_date` en agosto y `week_end_date` en septiembre aparece con `month=9` y no con `month=8`.
+- [x] `totals` y `companies` coinciden con la suma SQL de `RecordDetail` del conjunto filtrado completo, independientemente de la página.
+- [x] La lista paginada usa `per_page=15` por defecto, acepta hasta `100` y respeta el orden definido.
+- [x] `EDITOR` y `VIEWER` reciben `200` en ambas rutas; sin sesión `401`.
+- [x] `GET /api/documents/excel` devuelve el MIME de `.xlsx`, `attachment`, `Cache-Control: private, no-store` y el nombre según la tabla de nombres.
+- [x] El `.xlsx` contiene exactamente las hojas `Resumen`, `Registros`, `Detalles` y `Efectivo`, sin hoja de AI.
+- [x] `Resumen` tiene una fila por empresa y una fila `TOTAL` igual a los totales de `GET /api/reports` con los mismos filtros.
+- [x] `Registros` y `Detalles` tienen una fila por registro y por movimiento incluidos; afiliación y sucursal solo aparecen en `Detalles`.
+- [x] `Efectivo` tiene una fila por entrega, 11 columnas de denominación con `0` donde no hay fila, total de efectivo y `Desactualizada` correcta.
+- [x] Filtros sin resultados generan un Excel `200` con las cuatro hojas y totales en `0.00`.
+- [x] Montos del Excel son numéricos con formato moneda y fechas son celdas de fecha.
+- [x] No queda archivo temporal tras la respuesta y no se escribe `History`.
+- [x] `/reports` muestra filtros en la URL, periodo, totales, tabla por empresa y lista paginada para ambos roles, con estado vacío distinto del error.
+- [x] `Generar Excel` descarga el archivo a través del BFF con el nombre del servidor y se deshabilita con resultado vacío.
+- [x] La navegación incluye `Reportes`.
+- [x] Suite backend, Pint, Vitest, ESLint, TypeScript y build pasan.
+- [x] El checkpoint de navegador se documenta y 8.14 se marca completo solo entonces.
 
 ## Decisions
 

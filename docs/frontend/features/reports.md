@@ -2,7 +2,7 @@
 
 ## Status
 
-**SPEC 13 / phase 8.14 approved (2026-10-30); implementation in progress.** The reports read endpoint, the Excel endpoint, and the minimum `/reports` screen are defined below.
+**SPEC 13 / phase 8.14 complete (2026-11-03).** The reports read endpoint, the Excel endpoint, and the minimum `/reports` screen are defined below.
 
 ## Goal and Scope
 

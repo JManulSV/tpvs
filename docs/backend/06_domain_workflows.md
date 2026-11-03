@@ -203,7 +203,7 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 ## Reports and Excel
 
-**Status:** SPEC 13 / phase 8.14 approved (2026-10-30); implementation in progress.
+**Status:** SPEC 13 / phase 8.14 complete (2026-11-03).
 
 **Purpose:** Let users review official totals of confirmed Records and export the same data to an on-demand Excel file, without storing the file.
 
