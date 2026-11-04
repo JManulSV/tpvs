@@ -42,6 +42,8 @@ class DeliveryDocumentBuilderTest extends TestCase
         $this->assertStringContainsString('uso de la terminal bancaria', $text);
         $this->assertStringContainsString('07 DE SEPTIEMBRE AL 13 DE SEPTIEMBRE DE 2026', $text);
         $this->assertStringContainsString('Mismos que se entregan de la siguiente manera:', $text);
+        $this->assertStringContainsString('Efectivo bruto: $920.00', $text);
+        $this->assertStringContainsString('Importe de entrega: $920.00', $text);
         $this->assertStringContainsString('ENTREGA', $text);
         $this->assertStringContainsString('RECIBE', $text);
     }
@@ -71,17 +73,37 @@ class DeliveryDocumentBuilderTest extends TestCase
         );
     }
 
-    public function test_cash_and_return_totals_appear_twice_below_the_table_and_signatures_carry_names(): void
+    public function test_cash_and_document_totals_are_labelled_below_the_table_and_signatures_carry_names(): void
     {
         $path = $this->build($this->delivery(), $this->image('jpeg'));
         $text = $this->documentText($path);
 
         $belowTable = substr($text, strpos($text, 'DENOMINACION'));
-        $this->assertSame(2, substr_count($belowTable, '$920.00'));
+        $this->assertStringContainsString('Efectivo bruto: $920.00', $belowTable);
+        $this->assertStringContainsString('Importe de entrega: $920.00', $belowTable);
 
         $signatures = $this->tableRows($path, 1);
         $this->assertSame(['ENTREGA', 'RECIBE'], $signatures[0]);
         $this->assertSame(['SOL QUEZAL FLORES GÓMEZ', 'JUAN PÉREZ'], $signatures[2]);
+    }
+
+    public function test_document_uses_the_adjusted_amount_in_numbers_and_words_and_prints_customer_change(): void
+    {
+        $path = $this->build(
+            $this->delivery(),
+            $this->image('jpeg'),
+            '900.50',
+            true,
+        );
+        $text = $this->documentText($path);
+
+        $this->assertStringContainsString(
+            'la cantidad de $900.50 (NOVECIENTOS PESOS 50/100 M.N.)',
+            $text,
+        );
+        $this->assertStringContainsString('Efectivo bruto: $920.00', $text);
+        $this->assertStringContainsString('Importe de entrega: $900.50', $text);
+        $this->assertStringContainsString('Cambio que dará el cliente: $19.50', $text);
     }
 
     public function test_receiver_name_is_blank_when_not_provided(): void
@@ -160,7 +182,7 @@ class DeliveryDocumentBuilderTest extends TestCase
         file_put_contents($broken, 'not an image');
 
         try {
-            $this->builder()->build($this->delivery(), $broken);
+            $this->builder()->build($this->delivery(), $broken, '920.00', false);
             $this->fail('A RuntimeException was expected.');
         } catch (RuntimeException) {
             $this->assertSame($before, glob(sys_get_temp_dir().'/tpvs-delivery-*') ?: []);
@@ -225,9 +247,13 @@ class DeliveryDocumentBuilderTest extends TestCase
         return $this->app->make(DeliveryDocumentBuilder::class);
     }
 
-    private function build(Delivery $delivery, string $imagePath): string
-    {
-        $path = $this->builder()->build($delivery, $imagePath);
+    private function build(
+        Delivery $delivery,
+        string $imagePath,
+        string $documentReturnAmount = '920.00',
+        bool $customerWillGiveChange = false,
+    ): string {
+        $path = $this->builder()->build($delivery, $imagePath, $documentReturnAmount, $customerWillGiveChange);
         $this->cleanup[] = $path;
 
         return $path;

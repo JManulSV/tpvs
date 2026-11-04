@@ -45,7 +45,12 @@ class DeliveryDocumentController extends Controller
                     $input['document_return_amount'],
                     filter_var($input['customer_will_give_change'], FILTER_VALIDATE_BOOL),
                 );
-                $documentPath = $builder->build($locked, $imagePath);
+                $documentPath = $builder->build(
+                    $locked,
+                    $imagePath,
+                    $input['document_return_amount'],
+                    filter_var($input['customer_will_give_change'], FILTER_VALIDATE_BOOL),
+                );
 
                 $history->writeDocumentGenerated($locked, $request->user()->getKey());
             });
