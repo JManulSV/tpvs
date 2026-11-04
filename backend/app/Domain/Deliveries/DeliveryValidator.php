@@ -176,6 +176,32 @@ class DeliveryValidator
     }
 
     /**
+     * At preparation time, allow up to one peso of missing cash and any excess.
+     * Preserve the existing rule that an empty normalized breakdown is valid
+     * only for a zero return.
+     *
+     * @param  array<int, array{value?: mixed, quantity?: mixed}>  $denominations
+     * @return array{expected_amount: string, cash_amount: string, difference: string}|null
+     */
+    public function preparationCashShortfall(string $expectedAmount, array $denominations): ?array
+    {
+        $expectedCents = $this->amountCents($expectedAmount);
+        $cashCents = $this->cashTotalCents($denominations);
+        $differenceCents = $cashCents - $expectedCents;
+
+        if ($differenceCents >= -self::DOCUMENT_CASH_TOLERANCE_CENTS
+            && ! ($expectedCents > 0 && $this->canonicalizeDenominations($denominations) === [])) {
+            return null;
+        }
+
+        return [
+            'expected_amount' => $this->fromCents($expectedCents),
+            'cash_amount' => $this->fromCents($cashCents),
+            'difference' => $this->fromCents($differenceCents),
+        ];
+    }
+
+    /**
      * Compare gross cash with the selected document amount and determine
      * whether change is required or may be printed.
      *
