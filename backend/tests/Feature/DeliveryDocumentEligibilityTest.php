@@ -13,6 +13,7 @@ use App\Models\RecordDetail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class DeliveryDocumentEligibilityTest extends TestCase
@@ -30,7 +31,7 @@ class DeliveryDocumentEligibilityTest extends TestCase
     {
         $delivery = $this->delivery();
 
-        $path = $this->eligibility()->check($delivery, $delivery->record);
+        $path = $this->eligibility()->check($delivery, $delivery->record, '920.00', false);
 
         $this->assertSame(Storage::disk('record_images')->path('sample.jpg'), $path);
         $this->assertFileExists($path);
@@ -68,7 +69,7 @@ class DeliveryDocumentEligibilityTest extends TestCase
     {
         $delivery = $this->delivery(denominations: [['500.00', 1], ['200.00', 2]]);
 
-        $blocked = $this->assertBlocked(DocumentGenerationBlockedException::CASH_MISMATCH, $delivery);
+        $blocked = $this->assertBlocked(DocumentGenerationBlockedException::CASH_MISMATCH, $delivery, '920.00');
 
         $this->assertSame(
             [
@@ -79,6 +80,18 @@ class DeliveryDocumentEligibilityTest extends TestCase
             ],
             $blocked->responseDetails(),
         );
+    }
+
+    public function test_an_unsupported_document_adjustment_is_a_validation_error(): void
+    {
+        $delivery = $this->delivery();
+
+        try {
+            $this->eligibility()->check($delivery, $delivery->record, '920.25', false);
+            $this->fail('Expected the unsupported document amount to fail validation.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('document_return_amount', $exception->errors());
+        }
     }
 
     public function test_a_missing_image_file_is_blocked_without_leaking_the_path(): void
@@ -110,7 +123,12 @@ class DeliveryDocumentEligibilityTest extends TestCase
         $this->assertBlocked(DocumentGenerationBlockedException::STALE_DELIVERY, $delivery->fresh());
 
         $delivery->update(['prepared_return_amount' => '920.00']);
-        $this->assertBlocked(DocumentGenerationBlockedException::CASH_MISMATCH, $delivery->fresh());
+        $this->assertBlocked(
+            DocumentGenerationBlockedException::CASH_MISMATCH,
+            $delivery->fresh(),
+            '920.00',
+            false,
+        );
 
         DeliveryCashDenomination::query()->where('delivery_id', $delivery->getKey())->delete();
         foreach ([['500.00', 1], ['200.00', 2], ['10.00', 2]] as [$value, $quantity]) {
@@ -128,16 +146,25 @@ class DeliveryDocumentEligibilityTest extends TestCase
         $delivery = $this->delivery();
         $updatedAt = $delivery->fresh()->updated_at;
 
-        $this->eligibility()->check($delivery, $delivery->record);
+        $this->eligibility()->check($delivery, $delivery->record, '920.00', false);
 
         $this->assertEquals($updatedAt, $delivery->fresh()->updated_at);
         $this->assertSame(3, DeliveryCashDenomination::query()->count());
     }
 
-    private function assertBlocked(string $reason, Delivery $delivery): DocumentGenerationBlockedException
-    {
+    private function assertBlocked(
+        string $reason,
+        Delivery $delivery,
+        string $documentReturnAmount = '920.00',
+        bool $customerWillGiveChange = false,
+    ): DocumentGenerationBlockedException {
         try {
-            $this->eligibility()->check($delivery, $delivery->record()->first());
+            $this->eligibility()->check(
+                $delivery,
+                $delivery->record()->first(),
+                $documentReturnAmount,
+                $customerWillGiveChange,
+            );
         } catch (DocumentGenerationBlockedException $blocked) {
             $this->assertSame($reason, $blocked->reason);
 

@@ -6,6 +6,7 @@ use App\Domain\Documents\Exceptions\DocumentGenerationBlockedException;
 use App\Models\Record;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class DeliveryValidator
@@ -235,6 +236,44 @@ class DeliveryValidator
             'difference' => $this->fromCents($differenceCents),
             'change_amount' => $changeAmount,
             'reason' => $reason,
+        ];
+    }
+
+    /**
+     * @param  array<int, array{value?: mixed, quantity?: mixed}>  $denominations
+     * @return array{expected_amount: string, cash_amount: string, difference: string, change_amount: ?string}
+     */
+    public function validateDocumentCashReconciliation(
+        string $officialReturnAmount,
+        string $documentReturnAmount,
+        array $denominations,
+        bool $customerWillGiveChange,
+    ): array {
+        if (! $this->isDocumentReturnOption($officialReturnAmount, $documentReturnAmount)) {
+            throw ValidationException::withMessages([
+                'document_return_amount' => ['The document return amount is not an allowed adjustment for the current return.'],
+            ]);
+        }
+
+        $reconciliation = $this->documentCashReconciliation(
+            $documentReturnAmount,
+            $denominations,
+            $customerWillGiveChange,
+        );
+
+        if ($reconciliation['reason'] !== null) {
+            throw new DocumentGenerationBlockedException($reconciliation['reason'], [
+                'expected_amount' => $reconciliation['expected_amount'],
+                'cash_amount' => $reconciliation['cash_amount'],
+                'difference' => $reconciliation['difference'],
+            ]);
+        }
+
+        return [
+            'expected_amount' => $reconciliation['expected_amount'],
+            'cash_amount' => $reconciliation['cash_amount'],
+            'difference' => $reconciliation['difference'],
+            'change_amount' => $reconciliation['change_amount'],
         ];
     }
 

@@ -23,8 +23,12 @@ class DeliveryDocumentEligibility
      *
      * @throws Blocked
      */
-    public function check(Delivery $delivery, Record $record): string
-    {
+    public function check(
+        Delivery $delivery,
+        Record $record,
+        string $documentReturnAmount,
+        bool $customerWillGiveChange,
+    ): string {
         if ($record->status !== RecordStatus::CONFIRMED) {
             throw new Blocked(Blocked::INVALID_RECORD_STATE);
         }
@@ -50,11 +54,12 @@ class DeliveryDocumentEligibility
             ->map(fn ($row): array => ['value' => (string) $row->value, 'quantity' => (int) $row->quantity])
             ->all();
 
-        $mismatch = $this->validator->cashMismatch($currentAmount, $denominations);
-
-        if ($mismatch !== null) {
-            throw new Blocked(Blocked::CASH_MISMATCH, $mismatch);
-        }
+        $this->validator->validateDocumentCashReconciliation(
+            $currentAmount,
+            $documentReturnAmount,
+            $denominations,
+            $customerWillGiveChange,
+        );
 
         return $this->readableImagePath($image->getKey(), (string) $image->file_path);
     }

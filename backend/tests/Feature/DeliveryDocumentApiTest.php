@@ -39,7 +39,7 @@ class DeliveryDocumentApiTest extends TestCase
         $delivery = $this->preparedDelivery();
 
         $response = $this->actingAs($this->user(UserRole::EDITOR), 'web')
-            ->post('/api/deliveries/'.$delivery->id.'/document');
+            ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload());
 
         $response->assertOk();
         $this->assertSame(self::DOCX_MIME, $response->headers->get('Content-Type'));
@@ -64,7 +64,7 @@ class DeliveryDocumentApiTest extends TestCase
             $delivery = $this->preparedDelivery(imageType: $type);
 
             $response = $this->actingAs($this->user(UserRole::EDITOR), 'web')
-                ->post('/api/deliveries/'.$delivery->id.'/document');
+                ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload());
 
             $response->assertOk();
             $media = $this->mediaEntries($response->streamedContent());
@@ -81,7 +81,7 @@ class DeliveryDocumentApiTest extends TestCase
         $before = $this->snapshot($delivery);
 
         $this->actingAs($this->user(UserRole::EDITOR), 'web')
-            ->post('/api/deliveries/'.$delivery->id.'/document')
+            ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload())
             ->assertOk()
             ->streamedContent();
 
@@ -95,7 +95,7 @@ class DeliveryDocumentApiTest extends TestCase
         $before = $this->temporaryDocuments();
 
         $response = $this->actingAs($this->user(UserRole::EDITOR), 'web')
-            ->post('/api/deliveries/'.$delivery->id.'/document');
+            ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload());
 
         $path = $response->baseResponse->getFile()->getPathname();
         $this->assertFileExists($path);
@@ -111,7 +111,9 @@ class DeliveryDocumentApiTest extends TestCase
         $delivery = $this->preparedDelivery();
         $editor = $this->user(UserRole::EDITOR);
 
-        $this->actingAs($editor, 'web')->post('/api/deliveries/'.$delivery->id.'/document')->assertOk();
+        $this->actingAs($editor, 'web')
+            ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload())
+            ->assertOk();
 
         $this->assertDatabaseCount('histories', 1);
         $this->assertDatabaseHas('histories', [
@@ -131,7 +133,9 @@ class DeliveryDocumentApiTest extends TestCase
         $editor = $this->user(UserRole::EDITOR);
 
         foreach (range(1, 2) as $_) {
-            $this->actingAs($editor, 'web')->post('/api/deliveries/'.$delivery->id.'/document')->assertOk();
+            $this->actingAs($editor, 'web')
+                ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload())
+                ->assertOk();
         }
 
         $this->assertSame(2, History::query()->where('field_name', 'document_generated')->count());
@@ -158,7 +162,7 @@ class DeliveryDocumentApiTest extends TestCase
         $delivery = $this->preparedDelivery();
 
         $this->actingAs($this->user(UserRole::VIEWER), 'web')
-            ->postJson('/api/deliveries/'.$delivery->id.'/document')
+            ->postJson('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload())
             ->assertForbidden();
 
         $this->assertDatabaseCount('histories', 0);
@@ -178,7 +182,7 @@ class DeliveryDocumentApiTest extends TestCase
 
         $this->withSession(['_token' => 'expected-csrf-token'])
             ->actingAs($this->user(UserRole::EDITOR), 'web')
-            ->post('/api/deliveries/'.$delivery->id.'/document', [], [
+            ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload(), [
                 'Origin' => 'http://localhost:3000',
                 'X-CSRF-TOKEN' => 'invalid-csrf-token',
             ])
@@ -231,6 +235,103 @@ class DeliveryDocumentApiTest extends TestCase
         ]);
     }
 
+    public function test_document_amount_options_are_validated_and_missing_or_invalid_fields_return_422(): void
+    {
+        $delivery = $this->preparedDelivery();
+        $editor = $this->user(UserRole::EDITOR);
+
+        foreach ([
+            'missing document amount' => ['customer_will_give_change' => false],
+            'malformed document amount' => ['document_return_amount' => '920.001', 'customer_will_give_change' => false],
+            'unsupported document amount' => ['document_return_amount' => '920.25', 'customer_will_give_change' => false],
+            'missing change declaration' => ['document_return_amount' => '920.00'],
+            'invalid change declaration' => ['document_return_amount' => '920.00', 'customer_will_give_change' => 'sometimes'],
+            'client supplied change amount' => ['document_return_amount' => '920.00', 'customer_will_give_change' => false, 'change_amount' => '30.00'],
+        ] as $case => $payload) {
+            $this->actingAs($editor, 'web')
+                ->postJson('/api/deliveries/'.$delivery->id.'/document', $payload)
+                ->assertUnprocessable();
+        }
+
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_cash_difference_of_exactly_one_peso_is_accepted_against_selected_document_amount(): void
+    {
+        $delivery = $this->preparedDelivery();
+
+        $response = $this->actingAs($this->user(UserRole::EDITOR), 'web')
+            ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload([
+                'document_return_amount' => '921.00',
+                'customer_will_give_change' => false,
+            ]));
+
+        $response->assertOk();
+        $this->assertDatabaseCount('histories', 1);
+    }
+
+    public function test_shortfall_greater_than_one_peso_is_blocked_without_history(): void
+    {
+        $delivery = $this->preparedDelivery();
+        DeliveryCashDenomination::query()
+            ->where('delivery_id', $delivery->id)
+            ->where('value', '10.00')
+            ->delete();
+
+        $this->assertBlocked($delivery, [
+            'reason' => 'CASH_MISMATCH',
+            'expected_amount' => '920.00',
+            'cash_amount' => '900.00',
+            'difference' => '-20.00',
+        ]);
+    }
+
+    public function test_excess_greater_than_one_peso_requires_customer_change_declaration(): void
+    {
+        $delivery = $this->preparedDelivery();
+        DeliveryCashDenomination::query()->where('delivery_id', $delivery->id)->delete();
+        foreach ([['500.00', 1], ['200.00', 2], ['50.00', 1]] as [$value, $quantity]) {
+            DeliveryCashDenomination::factory()->create([
+                'delivery_id' => $delivery->id,
+                'value' => $value,
+                'quantity' => $quantity,
+            ]);
+        }
+
+        $this->assertBlocked($delivery, [
+            'reason' => 'CHANGE_REQUIRED',
+            'expected_amount' => '920.00',
+            'cash_amount' => '950.00',
+            'difference' => '30.00',
+        ]);
+    }
+
+    public function test_declared_customer_change_allows_gross_cash_excess_without_persisting_the_declaration(): void
+    {
+        $delivery = $this->preparedDelivery();
+        $before = $this->snapshot($delivery);
+        DeliveryCashDenomination::query()->where('delivery_id', $delivery->id)->delete();
+        foreach ([['500.00', 1], ['200.00', 2], ['50.00', 1]] as [$value, $quantity]) {
+            DeliveryCashDenomination::factory()->create([
+                'delivery_id' => $delivery->id,
+                'value' => $value,
+                'quantity' => $quantity,
+            ]);
+        }
+
+        $this->actingAs($this->user(UserRole::EDITOR), 'web')
+            ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload([
+                'customer_will_give_change' => true,
+            ]))
+            ->assertOk();
+
+        $this->assertDatabaseCount('histories', 1);
+        $after = $this->snapshot($delivery);
+        $this->assertSame($before['record'], $after['record']);
+        $this->assertSame($before['delivery'], $after['delivery']);
+        $this->assertSame('920.00', $after['delivery']['prepared_return_amount']);
+    }
+
     public function test_an_unreadable_image_file_is_blocked_without_exposing_its_path(): void
     {
         $delivery = $this->preparedDelivery();
@@ -251,7 +352,7 @@ class DeliveryDocumentApiTest extends TestCase
             ->andThrow(new RuntimeException('failure at /secret/storage/path'));
 
         $response = $this->actingAs($this->user(UserRole::EDITOR), 'web')
-            ->postJson('/api/deliveries/'.$delivery->id.'/document');
+            ->postJson('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload());
 
         $response->assertStatus(500)
             ->assertExactJson(['message' => 'The delivery document could not be generated.']);
@@ -269,7 +370,7 @@ class DeliveryDocumentApiTest extends TestCase
         });
 
         $this->actingAs($this->user(UserRole::EDITOR), 'web')
-            ->postJson('/api/deliveries/'.$delivery->id.'/document')
+            ->postJson('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload())
             ->assertStatus(500);
 
         $this->assertDatabaseCount('histories', 0);
@@ -283,7 +384,7 @@ class DeliveryDocumentApiTest extends TestCase
         $temporary = $this->temporaryDocuments();
 
         $response = $this->actingAs($this->user(UserRole::EDITOR), 'web')
-            ->postJson('/api/deliveries/'.$delivery->id.'/document');
+            ->postJson('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload());
 
         $response->assertStatus(409)->assertExactJson([
             'message' => 'The delivery document cannot be generated.',
@@ -301,6 +402,15 @@ class DeliveryDocumentApiTest extends TestCase
     private function user(UserRole $role): User
     {
         return User::factory()->create(['role' => $role]);
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function validDocumentPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'document_return_amount' => '920.00',
+            'customer_will_give_change' => false,
+        ], $overrides);
     }
 
     private function preparedDelivery(
