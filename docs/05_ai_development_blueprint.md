@@ -165,7 +165,7 @@ Do not store generated documents permanently.
 ```text
 Implement DeliveryCashDenomination handling for official denominations including 0.50.
 Store only rows with quantity > 0.
-Validate that the sum of denomination times quantity equals the current Record return amount before completing Delivery preparation or generating Word.
+At Delivery save, allow gross denominations up to `$1.00` below the official Record return or any excess; block larger shortfalls. For Word, reconcile gross cash against the selected document return amount with `±$1.00` tolerance, and require a transient customer-change declaration for larger excesses.
 ```
 
 ### Prompt: Money To Words

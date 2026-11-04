@@ -38,6 +38,7 @@ Prioritize externally observable behavior that matters to each feature:
 - history query pagination/order, displayed labels, and invalidation after record mutations;
 - confirmed-record editing, reopening, and `422 RECORD_UPDATE_NO_CHANGES` handling;
 - delivery cash-entry feedback, official denominations, stale-preparation indicators, mismatch errors, and no-op saves;
+- delivery document amount choices, gross cash reconciliation within `±$1.00`, conditional customer-change declaration, and Word content;
 - report filters and file-download behavior.
 
 Test externally observable behavior instead of implementation details such as component state names or internal hook layout.

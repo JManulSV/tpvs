@@ -204,6 +204,8 @@ Important rules:
 - The current Record return total is calculated from its details and is not duplicated as the source of truth.
 - The backend derives `prepared_return_amount` from the current Record return total on every successful create or update; clients cannot set it.
 - `prepared_return_amount` stores the amount the cash preparation was checked against. Compare it with the current Record return total to detect stale preparation.
+- At save time, gross denominations may total up to `$1.00` below the official return or any amount above it; a larger shortfall blocks preparation. The empty-breakdown rule for a zero return remains in effect.
+- `prepared_return_amount` remains the official Record return and is not changed to the gross denomination sum or the later document adjustment.
 - Updating a stale preparation updates this same Delivery row; no delivery versions or delivery status enum are added in the MVP.
 - Preparing or updating a Delivery does not change the Record status, fields, or movements.
 - A valid associated Image is required to generate Word, but it is not required to create a manual Record or prepare its Delivery.
@@ -278,8 +280,9 @@ Important rules:
 - Only rows with `quantity > 0` are stored; zero-quantity input rows are ignored.
 - `UNIQUE(delivery_id, value)` must be enforced.
 - Database constraints reject non-positive quantities and denominations outside the official MVP list.
-- `SUM(value × quantity)` must equal the current total `RecordDetail.return_amount` for the associated Record when preparing or updating a Delivery, compared in integer cents.
+- At save time, `SUM(value × quantity)` may be up to `$1.00` below the current total `RecordDetail.return_amount` or any amount above it, compared in integer cents.
 - An empty breakdown is valid only when the current Record return total is `0.00`.
+- The request-time document adjustment and customer-change declaration are not fields of `Delivery` or `DeliveryCashDenomination` and are not persisted.
 - The official MVP denominations are `1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, `2`, `1`, and `0.50`.
 
 ## 12. ERD Description

@@ -170,11 +170,15 @@ Both sources use the same financial business validation rules. Image-derived rec
 - `prepared_return_amount` stores the amount the cash preparation was checked against. Compare it with the current Record return total to detect stale preparation.
 - Updating a stale preparation updates this same Delivery row; no delivery versions or delivery status enum are added in the MVP.
 - Cash denominations belong to Delivery, not directly to Record.
-- A delivery is valid when `SUM(denomination.value × denomination.quantity)` equals the current Record return total, compared in integer cents.
+- At preparation save, the gross denomination sum may be up to `$1.00` below the current Record return total or any amount above it. A larger shortfall blocks the save. Comparisons use integer cents.
 - Only denomination rows with `quantity > 0` are stored. Zero-quantity rows are ignored.
-- An empty denomination breakdown is valid only when the current Record return total is `0.00`.
+- An empty denomination breakdown is valid only when the current Record return total is `0.00`; the save-time `$1.00` shortfall allowance does not remove this existing constraint.
 - The official MVP denominations are `1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, `2`, `1`, and `0.50`.
-- A mismatch blocks successful preparation and Word generation.
+- `prepared_return_amount` always remains the current official Record return total; denomination excess is gross cash and does not change the official Record or return.
+- Word generation uses one of three ephemeral document amounts derived from the current official return: the same whole-peso amount ending in `.00`, the same whole-peso amount ending in `.50`, or the next whole peso ending in `.00`. For example, `$1,298.57` offers `$1,298.00`, `$1,298.50`, and `$1,299.00`.
+- For Word reconciliation, compare gross cash with the selected document amount. A difference from `$1.00` below through `$1.00` above is accepted without a change line. A shortfall greater than `$1.00` blocks generation with `CASH_MISMATCH`.
+- A gross excess greater than `$1.00` requires the Editor to declare that the customer will give change; otherwise generation is blocked with `CHANGE_REQUIRED`. Laravel calculates change as gross cash minus the selected document amount. Excesses of `$1.00` or less do not print a change line.
+- The selected document amount and customer-change declaration are request-time values only. They are not persisted or audited. The Word amount and amount in words use the selected document amount; the denomination table continues to show gross cash.
 - Preparing or updating a Delivery does not change the Record status, fields, or movements.
 - Delivery preparation changes are audited in `History` with `delivery_id`, the authenticated user, canonical previous/new values, and the fixed reasons `Preparación de entrega creada` or `Preparación de entrega actualizada`.
 - Word generation additionally requires the Record's associated Image.
@@ -183,7 +187,7 @@ Both sources use the same financial business validation rules. Image-derived rec
 ## 11a. Word Delivery Document Rules
 
 - Only `EDITOR` may generate the Word delivery document.
-- Generation requires a `CONFIRMED` Record, an associated Image with a readable file, a Delivery whose `prepared_return_amount` equals the current Record return total, and a cash breakdown that matches that total in integer cents.
+- Generation requires a `CONFIRMED` Record, an associated Image with a readable file, a Delivery whose `prepared_return_amount` equals the current Record return total, a valid selected document amount, and cash reconciliation against that selected amount.
 - A stale Delivery blocks generation; the Editor must update the Delivery first. The document never uses an older amount.
 - The amount in words is produced deterministically by `MoneyToWordsService` in the format `... PESOS CC/100 M.N.`; AI is never used.
 - Each successful generation writes one `History` row with `field_name=document_generated`, `delivery_id`, and the reason `Documento Word generado`. Blocked or failed generation writes no History.

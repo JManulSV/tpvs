@@ -149,12 +149,12 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 1. The Editor opens the delivery preparation for a confirmed Record. The backend returns the existing Delivery or `data: null`, the current Record return total, and whether the preparation is stale.
 2. The Editor submits the complete preparation: delivery date, delivering person, optional receiving person, and the cash denominations with quantities.
-3. Laravel validates the request shape, official denominations, positive quantities, and prohibited client fields. Zero-quantity rows are ignored; an empty breakdown is valid only for a `0.00` return.
+3. Laravel validates the request shape, official denominations, positive quantities, and prohibited client fields. Zero-quantity rows are ignored; an empty breakdown remains valid only for a `0.00` return.
 4. In one transaction, Laravel locks the Record and any existing Delivery, rechecks that the Record is `CONFIRMED`, and derives the current return total from the Record details.
-5. Laravel compares the denomination sum with the current return total in integer cents. A mismatch returns `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=CASH_MISMATCH` and the expected, cash, and difference amounts.
+5. Laravel compares gross cash with the current return in integer cents. It accepts a shortfall up to `$1.00` and any excess. A larger shortfall returns `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=CASH_MISMATCH` and the expected, cash, and difference amounts.
 6. On a valid preparation, Laravel creates the Delivery or updates the existing row in place, replaces its positive denominations, sets `prepared_return_amount` to the current return total, and writes field-level History with `delivery_id` and a fixed creation/update reason.
 7. If the resulting preparation is identical to the stored one, Laravel returns `200` without writing History or changing `updated_at`.
-8. If the Record return later changes, the existing Delivery remains associated with the Record. Reads report `is_stale=true`; the Editor updates the same Delivery once the Record is confirmed again.
+8. If the Record return later changes, the existing Delivery remains associated with the Record. Reads report `is_stale=true`; the Editor updates the same Delivery once the Record is confirmed again, with gross cash within the save-time tolerance.
 9. Delivery preparation never changes the Record status, fields, movements, Image, or AIProcessing evidence. Word generation is a separate workflow (see Delivery Document) and requires an associated Image.
 
 **Database changes:** Creates or updates one `Delivery` row and its positive `DeliveryCashDenomination` rows; appends field-level `History` rows with `delivery_id`.
@@ -163,7 +163,7 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 **Authorization:** `EDITOR` and `VIEWER` may read; only `EDITOR` may create or update, and only for a `CONFIRMED` Record.
 
-**Failure behavior:** Invalid input returns `422`; an unsupported Record state or cash mismatch returns `409` with `DELIVERY_PREPARATION_BLOCKED`; a Viewer mutation returns `403`; missing Records return `404`. No partial writes are allowed.
+**Failure behavior:** Invalid input returns `422`; an unsupported Record state or cash shortfall greater than `$1.00` returns `409` with `DELIVERY_PREPARATION_BLOCKED`; a Viewer mutation returns `403`; missing Records return `404`. No partial writes are allowed.
 
 **Jobs or events:** No jobs. Delivery changes produce History events only.
 
@@ -181,10 +181,10 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 **Workflow:**
 
-1. The Editor requests the document from the delivery preparation screen.
+1. The Editor requests the document from the delivery preparation screen, sending the selected ephemeral document amount and the customer-change declaration.
 2. In one transaction, Laravel locks the Record and Delivery.
-3. Laravel checks, in order, that the Record is `CONFIRMED`, has an Image, the Delivery is not stale, the cash sum matches the current return in integer cents, and the private image file is readable. The first failure returns `409 DOCUMENT_GENERATION_BLOCKED` with its `details.reason`.
-4. `MoneyToWordsService` converts the current return to `... PESOS CC/100 M.N.`.
+3. Laravel checks that the Record is `CONFIRMED`, has an Image, the Delivery is not stale against the official return, the document amount is one of the three allowed choices, and gross cash reconciles against that amount. A shortfall greater than `$1.00` returns `CASH_MISMATCH`; an excess greater than `$1.00` without declared change returns `CHANGE_REQUIRED`. The private image file must be readable.
+4. `MoneyToWordsService` converts the selected document amount to `... PESOS CC/100 M.N.`.
 5. `DeliveryDocumentBuilder` builds the office format with PHPWord into a temporary file. A WebP image is converted to a temporary PNG; the original private file is never modified.
 6. Laravel writes one `document_generated` History row with `delivery_id` and commits.
 7. Laravel streams the file as an attachment and deletes the temporary files.
@@ -195,7 +195,7 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 **Authorization:** Only `EDITOR` may generate. Viewers receive `403`.
 
-**Failure behavior:** `409 DOCUMENT_GENERATION_BLOCKED` with `INVALID_RECORD_STATE`, `MISSING_IMAGE`, `STALE_DELIVERY`, `CASH_MISMATCH`, or `IMAGE_UNAVAILABLE`; `404` for a missing Delivery; a generic `500` if construction fails. No private paths are disclosed.
+**Failure behavior:** `409 DOCUMENT_GENERATION_BLOCKED` with `INVALID_RECORD_STATE`, `MISSING_IMAGE`, `STALE_DELIVERY`, `CASH_MISMATCH`, `CHANGE_REQUIRED`, or `IMAGE_UNAVAILABLE`; `422` for malformed or unsupported document adjustments; `404` for a missing Delivery; a generic `500` if construction fails. No private paths are disclosed.
 
 **Jobs or events:** None. Generation is synchronous.
 

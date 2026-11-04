@@ -74,11 +74,13 @@ Official MVP denominations: `1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, 
 - `Total efectivo` is `Σ(denomination × quantity)`.
 - `Desactualizada` is `Sí` when `prepared_return_amount` differs from the current Record return total, and `No` otherwise.
 
-Backend validation when preparing the Delivery:
+Backend validation when saving the Delivery preparation:
 
 ```text
-Σ(denomination × quantity) = current Record return total
+Σ(denomination × quantity) >= current Record return total - $1.00
 ```
+
+Any excess is accepted at preparation time. The exact reconciliation and customer-change declaration are validated against the selected document amount during Word generation.
 
 There is no AI extraction sheet.
 
@@ -103,7 +105,16 @@ Endpoint:
 POST /api/deliveries/{delivery}/document
 ```
 
-Delivery information and names are read from the persisted `Delivery`; no delivery fields are submitted again during document generation.
+Delivery information and names are read from the persisted `Delivery`. The request also supplies the ephemeral document amount and whether the customer will give change; neither value is stored.
+
+```json
+{
+  "document_return_amount": "1298.50",
+  "customer_will_give_change": true
+}
+```
+
+`document_return_amount` must be one of the three options derived from the current official Record return: the same whole-peso amount ending in `.00`, the same whole-peso amount ending in `.50`, or the next whole-peso amount ending in `.00`. For an official return of `$1,298.57`, the options are `$1,298.00`, `$1,298.50`, and `$1,299.00`.
 
 ### Delivery and Record Requirements
 
@@ -117,7 +128,7 @@ The associated `Record` must:
 The `Delivery` must:
 - exist and be associated with the requested Record;
 - have valid delivery data;
-- have a cash breakdown whose total equals the current Record return total;
+- have a cash breakdown that reconciles with the selected document amount under the rules below;
 - have `prepared_return_amount` equal to the current Record return total.
 
 Manual records without an image cannot generate Word until an image is attached. A Record may have at most one editable Delivery preparation in the MVP; preparing again updates it rather than creating a version.
@@ -129,10 +140,11 @@ Generation is restricted to `EDITOR`. Blocked generation returns `409 DOCUMENT_G
 | `INVALID_RECORD_STATE` | The Record is not `CONFIRMED`. |
 | `MISSING_IMAGE` | The Record has no associated Image. |
 | `STALE_DELIVERY` | `prepared_return_amount` differs from the current Record return total. |
-| `CASH_MISMATCH` | The denomination sum differs from the current Record return total. |
+| `CASH_MISMATCH` | Gross cash is more than `$1.00` below the selected document amount. |
+| `CHANGE_REQUIRED` | Gross cash exceeds the selected document amount by more than `$1.00`, but the request did not declare customer change. |
 | `IMAGE_UNAVAILABLE` | The Image metadata exists but its private file cannot be read. |
 
-Checks run in that order, inside a transaction that locks the Record and Delivery. A blocked or failed generation writes no History.
+Checks run in that order, inside a transaction that locks the Record and Delivery. Compare amounts in integer cents. Gross cash from `$1.00` below through `$1.00` above the selected document amount is accepted without a change line. If gross cash exceeds the selected document amount by more than `$1.00`, `customer_will_give_change=true` is required. Laravel calculates the change as gross cash minus the selected amount; the client never sends a change amount. A blocked or failed generation writes no History.
 
 ### Document Content
 
@@ -143,8 +155,10 @@ The document includes:
 - fixed location text: `GUADALAJARA JALISCO`;
 - delivering person's name;
 - receiving person's name, when provided;
-- total return;
-- total return in words;
+- selected document amount;
+- selected document amount in words;
+- gross cash total;
+- calculated customer change when the excess exceeds `$1.00` and was declared;
 - week start date;
 - week end date;
 - year;
@@ -211,8 +225,8 @@ The table contains:
            |                  1 |      0     |         $0.00  |
            |                0.5 |      0     |         $0.00  |
            +--------------------+------------+----------------+
-                                             $920.00
-                                             $920.00
+                                      Efectivo bruto: $920.00
+                                      Importe de entrega: $920.00
 
 
              ENTREGA                                  RECIBE
@@ -228,14 +242,17 @@ The table contains:
 | --- | --- | --- |
 | Heading | `Delivery.delivery_date` and the fixed text `GUADALAJARA, JALISCO.` | Spanish weekday and month, uppercase with accents: `MIÉRCOLES 08 DE JULIO DE 2026` |
 | `C. {name}` | `Delivery.delivered_by_name` | Uppercase |
-| Amount | Current Record return total (equal to `prepared_return_amount`) | `$9,800.00` |
-| Amount in words | `MoneyToWordsService` | `NUEVE MIL OCHOCIENTOS PESOS 00/100 M.N.`, in parentheses |
+| Official return used for staleness | Current Record return total (equal to `prepared_return_amount`) | Persisted and not adjusted |
+| Document amount | Valid `document_return_amount` selected by Editor | `$1,298.50` |
+| Amount in words | `MoneyToWordsService` applied to `document_return_amount` | `MIL DOSCIENTOS NOVENTA Y OCHO PESOS 50/100 M.N.`, in parentheses |
 | Concept | Fixed text | `uso de la terminal bancaria` |
 | Week | `Record.week_start_date`, `week_end_date`, `year` | `07 DE SEPTIEMBRE AL 13 DE SEPTIEMBRE DE 2026`; when start and end years differ: `29 DE DICIEMBRE DE 2025 AL 04 DE ENERO DE 2026` |
 | Image | The Record's `Image` | Centered and scaled proportionally to the usable page width; WebP is converted to a temporary PNG |
 | Table | All 11 official denominations, highest first | Denomination without `$` (`1000` … `0.5`); integer quantity, `0` when absent; row total `$0.00` |
-| Totals below the table | First the cash sum, then the Record return | `$920.00`, unlabeled |
+| Totals below the table | Gross denomination sum and selected document amount; customer change line when applicable | `$150.00` gross, `$120.00` document amount, `Cambio que dará el cliente: $30.00` |
 | Signatures | `ENTREGA` / `RECIBE` with a signature line | `delivered_by_name` under ENTREGA; `received_by_name` or blank under RECIBE |
+
+The document does not print the original official return separately. That amount remains in the database and is used to detect a stale Delivery. The table total is always gross cash; customer change is shown as a separate calculated line only when gross cash exceeds the selected document amount by more than `$1.00` and the Editor declared it. The selected document amount and gross cash should be labeled distinctly in the document rather than shown as two unlabeled totals.
 
 ## 4. Generation Rules
 
@@ -265,7 +282,7 @@ The backend generates it through a deterministic service:
 
 AI is not used to convert money into words.
 
-The format is `{INTEGER IN WORDS} PESOS {CC}/100 M.N.` in uppercase Spanish with accents, using integer-cent arithmetic. Examples: `UN PESO 00/100 M.N.`, `CERO PESOS 00/100 M.N.`, `MIL PESOS 00/100 M.N.`, `VEINTIÚN PESOS 00/100 M.N.`, `UN MILLÓN DE PESOS 00/100 M.N.`. The supported range is `0.00` to `9,999,999,999.99`.
+The format is `{INTEGER IN WORDS} PESOS {CC}/100 M.N.` in uppercase Spanish with accents, using integer-cent arithmetic on `document_return_amount`. Examples: `UN PESO 00/100 M.N.`, `CERO PESOS 00/100 M.N.`, `MIL PESOS 00/100 M.N.`, `VEINTIÚN PESOS 00/100 M.N.`, `UN MILLÓN DE PESOS 00/100 M.N.`. The supported range is `0.00` to `9,999,999,999.99`.
 
 ### History
 

@@ -171,7 +171,8 @@ Requirements:
 Requirements:
 - Prepare one editable `Delivery` for a confirmed `Record`.
 - Capture delivery date, delivering person, receiving person, and cash breakdown.
-- Validate the cash total against the current Record return total.
+- At preparation, accept gross cash up to `$1.00` below the official Record return or any excess; block larger shortfalls.
+- For Word, reconcile gross cash against the selected document amount and document customer change when the excess is greater than `$1.00`.
 - Detect stale delivery preparation when the Record return changes.
 - Require an associated image to generate the Word delivery document.
 

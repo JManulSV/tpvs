@@ -23,7 +23,7 @@ Laravel local filesystem configuration and Record image upload, replacement, pri
 
 Word and Excel files are outputs, not sources of truth. They should be generated from validated database data and returned as temporary output in the MVP rather than stored as delivery versions.
 
-Word generation requires a confirmed Record, valid Delivery preparation, cash reconciliation, and an associated Image.
+Word generation requires a confirmed Record, valid Delivery preparation, cash reconciliation against the selected document amount, and an associated Image. The request-time document adjustment and customer-change declaration are not persisted.
 
 Word delivery documents (SPEC 12):
 

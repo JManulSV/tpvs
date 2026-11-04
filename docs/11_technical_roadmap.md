@@ -263,16 +263,18 @@ Browser verification covered manual and image creation (`record_created` with fi
 
 Implement the single `Delivery` associated with a confirmed `Record`. It centralizes delivery date, delivering person, receiving person, prepared return amount, and `DeliveryCashDenomination` rows.
 
-Validate:
+At preparation save, validate in integer cents that gross cash is no more than `$1.00` below the official return; an excess is permitted. `prepared_return_amount` remains the official return and continues to drive stale detection. At Word generation, reconcile against the selected document amount and apply the transient customer-change declaration.
+
+Validate at Word generation:
 
 ```text
 SUM(denomination.value * denomination.quantity)
-  = current Record return amount
+  = selected document return amount ± $1.00
 ```
 
-Only positive quantities are persisted. A mismatch blocks successful preparation and document generation. If the record's current return changes after preparation, show that the delivery uses an older amount and allow the Editor to update the same delivery. Do not introduce delivery versions or delivery status states in the MVP.
+The selected document amount is one of three choices derived from the official return: same whole pesos with `.00`, same whole pesos with `.50`, or the next whole peso with `.00`. A shortfall greater than `$1.00` blocks; an excess greater than `$1.00` requires declaring that the customer gives change, which is calculated for Word and not persisted. Only positive quantities are persisted. If the record's current return changes after preparation, show that the delivery uses an older amount and allow the Editor to update the same delivery. Do not introduce delivery versions or delivery status states in the MVP.
 
-**Checkpoint:** A valid delivery is saved and its cash total equals the confirmed record return; a mismatch is rejected.
+**Checkpoint:** A delivery is saved with the official return preserved; cash shortfalls greater than `$1.00` are rejected, and Word reconciles gross cash with the selected document amount and declared customer change.
 
 **Status: COMPLETE (2026-10-29).** Delivery preparation is implemented: one editable `Delivery` per confirmed `Record`, cash denominations, stale detection, field-level history with `delivery_id`, and the `/records/[recordId]/delivery` screen linked from the confirmed record detail. Verification: backend suite 181 tests (1126 assertions) against `tpvs_test`, Pint, Vitest 61, ESLint, TypeScript, and production build (Next.js 16.4.3). Browser checkpoint evidence is recorded in [`frontend/06_testing.md`](frontend/06_testing.md).
 
@@ -284,7 +286,7 @@ Generate `.docx` from the current `Delivery`, its `Record`, the associated `Imag
 
 **Checkpoint:** A valid prepared delivery with an image generates a Word document; a missing image or invalid delivery blocks generation.
 
-**Status: COMPLETE (2026-10-29).** `POST /api/deliveries/{delivery}/document` generates the delivery `.docx` with PHPWord for `EDITOR`: office-format layout, amount in words from `MoneyToWordsService`, the associated Image (WebP converted to a temporary PNG), the 11 denominations, and signature names. Generation is blocked with `409 DOCUMENT_GENERATION_BLOCKED` (`INVALID_RECORD_STATE`, `MISSING_IMAGE`, `STALE_DELIVERY`, `CASH_MISMATCH`, `IMAGE_UNAVAILABLE`), the file is temporary and not stored, and each successful generation writes a `document_generated` History event. The delivery screen has the `Generar documento Word` action. Verification: backend suite 265 tests (1320 assertions) against `tpvs_test`, Pint, Vitest 81, ESLint, TypeScript, and production build. Browser checkpoint evidence, including the Word file approved by the Editor, is recorded in [`frontend/06_testing.md`](frontend/06_testing.md).
+**Status: COMPLETE for SPEC 12 (2026-10-29); SPEC 14 extension approved, implementation pending.** The current `POST /api/deliveries/{delivery}/document` generates the delivery `.docx` with PHPWord for `EDITOR`: office-format layout, amount in words from `MoneyToWordsService`, associated Image (WebP converted to a temporary PNG), 11 denominations, and signature names. SPEC 14 extends generation with a transient document amount and customer-change declaration, and updates cash reconciliation. The file remains temporary and successful generation writes a `document_generated` History event. Historical verification evidence for SPEC 12 is recorded in [`frontend/06_testing.md`](frontend/06_testing.md); SPEC 14 verification will be added after implementation.
 
 **Commit:** `feat: implement delivery document generation`
 
