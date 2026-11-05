@@ -4,23 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/status-badge";
 import { useDelivery } from "@/features/deliveries/hooks/use-deliveries";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
 import { getRecordActionPermissions } from "../record-actions";
 import { recordsService } from "../services/records.service";
-import { RecordsApiError, type AiProcessingStatus, type RecordStatus } from "../types";
+import { RecordsApiError, type AiProcessingStatus } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
 import { RecordActionDialog } from "./record-action-dialog";
 import { RecordHistoryPanel } from "./record-history-panel";
-
-const statusLabels: Record<RecordStatus, string> = {
-  PENDING: "Pendiente",
-  PROCESSING: "Procesando",
-  NEEDS_REVIEW: "Necesita revisión",
-  ERROR: "Error",
-  CONFIRMED: "Confirmado",
-  CANCELED: "Cancelado",
-};
 
 const aiStatusLabels: Record<AiProcessingStatus, string> = {
   PENDING: "Pendiente",
@@ -182,7 +174,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
             Registro #{record.id} · {record.source === "MANUAL" ? "Captura manual" : "Origen imagen"} · Semana {record.week ?? "—"}, {record.year ?? "—"}
           </p>
         </div>
-        <span className="rounded-full border px-3 py-1 text-sm font-medium" role="status">{statusLabels[record.status]}</span>
+        <StatusBadge status={record.status} />
       </header>
 
       {isProcessing && (

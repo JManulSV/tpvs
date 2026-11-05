@@ -2,19 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { recordStatusMeta, type RecordStatus } from "@/lib/status";
 import { useRecordHistory } from "../hooks/use-records";
-import type { RecordStatus } from "../types";
 
 const PAGE_SIZE = 20;
-
-const statusLabels: Record<RecordStatus, string> = {
-  PENDING: "Pendiente",
-  PROCESSING: "Procesando",
-  NEEDS_REVIEW: "Necesita revisión",
-  ERROR: "Error",
-  CONFIRMED: "Confirmado",
-  CANCELED: "Cancelado",
-};
 
 const eventLabels: Record<string, string> = {
   record_created: "Registro creado",
@@ -73,7 +64,7 @@ function money(value: string): string {
 function displayValue(fieldName: string, value: string | null): string {
   if (value === null) return "—";
   if (fieldName === "status" || fieldName === "record_created") {
-    return statusLabels[value as RecordStatus] ?? value;
+    return recordStatusMeta[value as RecordStatus]?.label ?? value;
   }
   if (fieldName === "prepared_return_amount") return money(value);
   if (denominationPattern.test(fieldName)) return value;

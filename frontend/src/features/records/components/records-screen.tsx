@@ -3,20 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/status-badge";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
+import { recordStatusMeta } from "@/lib/status";
 import { recordSources, recordStatuses, type RecordListParams, type RecordStatus } from "../types";
 import { useRecords } from "../hooks/use-records";
 
 const PAGE_SIZE = 15;
-
-const statusLabels: Record<RecordStatus, string> = {
-  PENDING: "Pendiente",
-  PROCESSING: "Procesando",
-  NEEDS_REVIEW: "Necesita revisión",
-  ERROR: "Error",
-  CONFIRMED: "Confirmado",
-  CANCELED: "Cancelado",
-};
 
 function money(value: string | null | undefined) {
   if (value === null) return "—";
@@ -88,7 +81,7 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
         </FilterSelect>
         <FilterSelect label="Estado" onChange={(value) => setFilter("status", (value || undefined) as RecordStatus | undefined)} value={filters.status ?? ""}>
           <option value="">Todos</option>
-          {recordStatuses.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
+          {recordStatuses.map((status) => <option key={status} value={status}>{recordStatusMeta[status].label}</option>)}
         </FilterSelect>
         <FilterSelect label="Origen" onChange={(value) => setFilter("source", (value || undefined) as "IMAGE" | "MANUAL" | undefined)} value={filters.source ?? ""}>
           <option value="">Todos</option>
@@ -134,7 +127,7 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
                     <td className="px-4 py-3">{record.week ? `Semana ${record.week}` : "Sin semana"}{record.year ? ` · ${record.year}` : ""}<br /><span className="text-muted-foreground">{record.week_start_date ?? "—"} – {record.week_end_date ?? "—"}</span></td>
                     <td className="px-4 py-3">{record.details.length ? record.details.map((detail) => <span className="block" key={detail.id}>{detail.affiliation ?? "—"}<br /><span className="text-muted-foreground">{detail.branch ?? "—"}</span></span>) : "—"}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{money(record.return_total)}</td>
-                    <td className="px-4 py-3">{statusLabels[record.status]}</td>
+                    <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
                     <td className="px-4 py-3">{record.source === "MANUAL" ? "Manual" : "Imagen"}</td>
                   </tr>
                 ))}
