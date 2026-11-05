@@ -29,24 +29,22 @@ async function LoginPageContent({ searchParams }: LoginPageProps) {
 
   if (user) redirect("/dashboard");
 
-  return (
-    <>
-      <ThemeToggle className="fixed right-4 top-4 z-10" />
-      <LoginForm returnTo={getSafeReturnTo(params.returnTo)} />
-    </>
-  );
+  return <LoginForm returnTo={getSafeReturnTo(params.returnTo)} />;
 }
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center px-4 py-12">
-          <p className="text-sm text-muted-foreground">Cargando acceso…</p>
-        </main>
-      }
-    >
-      <LoginPageContent searchParams={searchParams} />
-    </Suspense>
+    <>
+      <ThemeToggle className="fixed right-4 top-4 z-10" />
+      <Suspense
+        fallback={
+          <main className="flex min-h-screen items-center justify-center px-4 py-12">
+            <p className="text-sm text-muted-foreground">Cargando acceso…</p>
+          </main>
+        }
+      >
+        <LoginPageContent searchParams={searchParams} />
+      </Suspense>
+    </>
   );
 }
