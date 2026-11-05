@@ -1,6 +1,6 @@
 # SPEC 15 — Tokens de diseño y fundamentos de UI
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 02, SPEC 04, SPEC 09, SPEC 10, SPEC 11, SPEC 13
 > **Date:** 2026-11-05
 > **Objective:** Sustituir el tema neutro de shadcn por los tokens de marca INNOVA con tema claro/oscuro, tipografía, primitivos ajustados y utilidades únicas de estado y formato, sin rediseñar las pantallas.
@@ -178,29 +178,29 @@ Las clases se escriben como cadenas literales completas para que Tailwind las de
 
 ## Acceptance criteria
 
-- [ ] `frontend/src/app/globals.css` contiene exactamente los valores de color de `docs/design/shadcn-theme.css` para `:root` y `.dark`.
-- [ ] `grep` de `oklch(` en `globals.css` no devuelve resultados.
-- [ ] En las features no queda ninguna clase de color de la paleta de Tailwind (`bg-black`, `text-gray-*`, `bg-red-*`, etc.) ni un color hexadecimal.
-- [ ] El `<body>` se renderiza con Plus Jakarta Sans. Un elemento con `font-mono` se renderiza con JetBrains Mono.
-- [ ] Con el sistema operativo en modo oscuro y sin preferencia guardada, la app carga con la clase `dark` en `<html>`.
-- [ ] Al pulsar el botón de tema, la app cambia de claro a oscuro y viceversa, y al recargar conserva la elección.
-- [ ] El botón de tema existe en `/login` y en el header autenticado, y tiene un `aria-label` que cambia según el tema.
-- [ ] La consola del navegador no muestra advertencias de hidratación en `/login`, `/dashboard` ni `/records`.
-- [ ] `Button` en tamaño `default` mide 40 px de alto y tiene `border-radius` de píldora.
-- [ ] Al navegar con Tab, el foco de `Button` muestra un anillo de 2 px separado 2 px del borde.
-- [ ] Existen `badge.tsx`, `input.tsx`, `card.tsx`, `dialog.tsx` y `table.tsx` en `frontend/src/components/ui/`, y solo usan clases de tokens.
-- [ ] `rounded-sm` resuelve a 8 px, `rounded-md` a 12 px, `rounded-lg` a 16 px y `rounded-xl` a 24 px.
-- [ ] `recordStatusMeta` tiene exactamente las seis entradas de la tabla del Data model, con esas etiquetas e iconos.
-- [ ] La tabla de registros, el detalle y la pantalla de entrega muestran el estado con icono y palabra, no solo con color.
-- [ ] El texto «Necesita revisión» no aparece en `frontend/src` ni en `frontend/tests`.
-- [ ] Con `prefers-reduced-motion: reduce`, el icono de `PROCESSING` no gira.
-- [ ] No existen definiciones locales de `statusLabels`, `formatMoney`, `formatDate` ni `formatFileSize` fuera de `lib/`.
-- [ ] `formatMoney("9800")` devuelve `"$9,800.00"` y `formatMoney(null)` devuelve `"—"`.
-- [ ] `formatDate("2026-09-01")` devuelve `1 sep 2026` (con o sin punto) en cualquier zona horaria.
-- [ ] Los diálogos de acción de registro y de crear empresa usan `bg-overlay`, y en oscuro el velo es más oscuro que el fondo.
-- [ ] `docs/frontend/05_ui_and_accessibility.md` tiene la sección «Design system» con las reglas del paso 14.
-- [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
-- [ ] Dashboard, registros, detalle de registro, entrega, empresas, reportes y login se revisaron en el navegador en tema claro y oscuro, a ancho de escritorio y de tablet, sin texto ilegible ni controles invisibles.
+- [x] `frontend/src/app/globals.css` contiene exactamente los valores de color de `docs/design/shadcn-theme.css` para `:root` y `.dark`.
+- [x] `grep` de `oklch(` en `globals.css` no devuelve resultados.
+- [x] En las features no queda ninguna clase de color de la paleta de Tailwind (`bg-black`, `text-gray-*`, `bg-red-*`, etc.) ni un color hexadecimal.
+- [x] El `<body>` se renderiza con Plus Jakarta Sans. Un elemento con `font-mono` se renderiza con JetBrains Mono.
+- [x] Con el sistema operativo en modo oscuro y sin preferencia guardada, la app carga con la clase `dark` en `<html>`.
+- [x] Al pulsar el botón de tema, la app cambia de claro a oscuro y viceversa, y al recargar conserva la elección.
+- [x] El botón de tema existe en `/login` y en el header autenticado, y tiene un `aria-label` que cambia según el tema.
+- [x] La consola del navegador no muestra advertencias de hidratación en `/login`, `/dashboard` ni `/records`.
+- [x] `Button` en tamaño `default` mide 40 px de alto y tiene `border-radius` de píldora.
+- [x] Al navegar con Tab, el foco de `Button` muestra un anillo de 2 px separado 2 px del borde.
+- [x] Existen `badge.tsx`, `input.tsx`, `card.tsx`, `dialog.tsx` y `table.tsx` en `frontend/src/components/ui/`, y solo usan clases de tokens.
+- [x] `rounded-sm` resuelve a 8 px, `rounded-md` a 12 px, `rounded-lg` a 16 px y `rounded-xl` a 24 px.
+- [x] `recordStatusMeta` tiene exactamente las seis entradas de la tabla del Data model, con esas etiquetas e iconos.
+- [x] La tabla de registros, el detalle y la pantalla de entrega muestran el estado con icono y palabra, no solo con color.
+- [x] El texto «Necesita revisión» no aparece en `frontend/src` ni en `frontend/tests`.
+- [x] Con `prefers-reduced-motion: reduce`, el icono de `PROCESSING` no gira.
+- [x] No existen definiciones locales de `statusLabels`, `formatMoney`, `formatDate` ni `formatFileSize` fuera de `lib/`.
+- [x] `formatMoney("9800")` devuelve `"$9,800.00"` y `formatMoney(null)` devuelve `"—"`.
+- [x] `formatDate("2026-09-01")` devuelve `1 sep 2026` (con o sin punto) en cualquier zona horaria.
+- [x] Los diálogos de acción de registro y de crear empresa usan `bg-overlay`, y en oscuro el velo es más oscuro que el fondo.
+- [x] `docs/frontend/05_ui_and_accessibility.md` tiene la sección «Design system» con las reglas del paso 14.
+- [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
+- [x] Dashboard, registros, detalle de registro, entrega, empresas, reportes y login se revisaron en el navegador en tema claro y oscuro, a ancho de escritorio y de tablet, sin texto ilegible ni controles invisibles.
 
 ## Decisions
 
