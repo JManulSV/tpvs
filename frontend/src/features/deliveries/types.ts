@@ -21,6 +21,11 @@ export type DeliveryDenomination = {
   quantity: number;
 };
 
+export type GenerateDeliveryDocumentInput = {
+  document_return_amount: string;
+  customer_will_give_change: boolean;
+};
+
 export type Delivery = {
   id: number;
   record_id: number;
@@ -66,7 +71,8 @@ export const documentBlockedMessages: Record<string, string> = {
   INVALID_RECORD_STATE: "El registro debe estar confirmado para generar el documento.",
   MISSING_IMAGE: "Adjunta una imagen al registro para generar el documento.",
   STALE_DELIVERY: "La entrega usa un importe anterior; actualízala antes de generar el documento.",
-  CASH_MISMATCH: "El desglose de efectivo no coincide con el retorno actual.",
+  CASH_MISMATCH: "El efectivo contado está más de $1.00 por debajo del importe elegido para el documento.",
+  CHANGE_REQUIRED: "Indica que el cliente dará cambio para generar el documento.",
   IMAGE_UNAVAILABLE: "No se pudo leer la imagen del registro.",
 };
 

@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRecord } from "@/features/records/hooks/use-records";
 import type { RecordStatus } from "@/features/records/types";
 import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";
-import { centsToAmount, formatMoney, denominationsTotalCents, toCents } from "../utils";
+import {
+  centsToAmount,
+  denominationBreakdownKey,
+  denominationsTotalCents,
+  documentReturnOptions,
+  formatMoney,
+  toCents,
+} from "../utils";
 import { DeliveryDocumentAction } from "./delivery-document-action";
 import { DeliveryForm } from "./delivery-form";
 
@@ -24,6 +32,19 @@ export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; record
   const deliveryQuery = useDelivery(recordId);
   const record = recordQuery.data;
   const delivery = deliveryQuery.data ?? null;
+  const [selectedDocumentReturnAmount, setSelectedDocumentReturnAmount] = useState<string | null>(null);
+  const [customerWillGiveChange, setCustomerWillGiveChange] = useState(false);
+  const [draftCashBreakdownKey, setDraftCashBreakdownKey] = useState<string | null>(null);
+  const currentReturnAmount = record
+    ? record.return_total
+      ?? centsToAmount(record.details.reduce((total, detail) => total + toCents(detail.return_amount), 0))
+    : "0.00";
+
+  const documentAmountOptions = documentReturnOptions(currentReturnAmount);
+  const documentReturnAmount = selectedDocumentReturnAmount !== null
+    && documentAmountOptions.includes(selectedDocumentReturnAmount)
+    ? selectedDocumentReturnAmount
+    : documentAmountOptions[0];
 
   if (recordQuery.isPending) {
     return <p aria-live="polite" className="py-10 text-center text-sm text-muted-foreground">Cargando registro…</p>;
@@ -59,8 +80,6 @@ export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; record
     );
   }
 
-  const currentReturnAmount = record.return_total
-    ?? centsToAmount(record.details.reduce((total, detail) => total + toCents(detail.return_amount), 0));
   const canPrepare = canEdit && record.status === "CONFIRMED";
 
   function handleInvalidRecordState() {
@@ -105,8 +124,20 @@ export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; record
 
       {canPrepare && (
         <DeliveryForm
+          key={`${delivery?.id ?? "new"}:${delivery?.updated_at ?? "initial"}`}
           currentReturnAmount={currentReturnAmount}
+          customerWillGiveChange={customerWillGiveChange}
           delivery={delivery}
+          documentReturnAmount={documentReturnAmount}
+          onCashBreakdownChange={(denominations) => {
+            setDraftCashBreakdownKey(denominationBreakdownKey(denominations));
+            setCustomerWillGiveChange(false);
+          }}
+          onCustomerWillGiveChangeChange={setCustomerWillGiveChange}
+          onDocumentReturnAmountChange={(amount) => {
+            setSelectedDocumentReturnAmount(amount);
+            setCustomerWillGiveChange(false);
+          }}
           onInvalidRecordState={handleInvalidRecordState}
           recordId={record.id}
         />
@@ -130,6 +161,9 @@ export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; record
           hasImage={record.image !== null}
           onBlocked={handleInvalidRecordState}
           recordStatus={record.status}
+          draftCashBreakdownKey={draftCashBreakdownKey}
+          documentReturnAmount={documentReturnAmount}
+          customerWillGiveChange={customerWillGiveChange}
         />
       )}
     </section>

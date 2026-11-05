@@ -3,29 +3,52 @@
 import { Button } from "@/components/ui/button";
 import type { RecordStatus } from "@/features/records/types";
 import { useGenerateDeliveryDocument } from "../hooks/use-deliveries";
-import { DeliveryApiError, type Delivery } from "../types";
-import { documentBlockedReason } from "../utils";
+import { DeliveryApiError, type Delivery, type GenerateDeliveryDocumentInput } from "../types";
+import { denominationBreakdownKey, denominationsTotalCents, documentBlockedReason, toCents } from "../utils";
 
 export function DeliveryDocumentAction({
   delivery,
   hasImage,
   onBlocked,
   recordStatus,
+  draftCashBreakdownKey,
+  documentReturnAmount,
+  customerWillGiveChange,
 }: {
   delivery: Delivery | null;
   hasImage: boolean;
   onBlocked: () => void;
   recordStatus: RecordStatus;
+  draftCashBreakdownKey: string | null;
+  documentReturnAmount: string;
+  customerWillGiveChange: boolean;
 }) {
   const mutation = useGenerateDeliveryDocument();
-  const blockedReason = documentBlockedReason({ delivery, hasImage, recordStatus });
+  const savedCashCents = delivery === null ? 0 : denominationsTotalCents(delivery.denominations);
+  const excessCents = savedCashCents - toCents(documentReturnAmount);
+  const changeRequired = excessCents > 100;
+  const hasUnsavedCashChanges = delivery !== null
+    && draftCashBreakdownKey !== null
+    && draftCashBreakdownKey !== denominationBreakdownKey(delivery.denominations);
+  const blockedReason = documentBlockedReason({ delivery, hasImage, recordStatus })
+    ?? (hasUnsavedCashChanges ? "Guarda el desglose de efectivo antes de generar el documento." : null)
+    ?? (changeRequired && !customerWillGiveChange
+      ? "Indica que el cliente dará cambio para generar el documento."
+      : null);
   const error = mutation.error instanceof DeliveryApiError ? mutation.error : null;
 
   function handleGenerate() {
     if (delivery === null || blockedReason !== null || mutation.isPending) return;
 
     mutation.mutate(
-      { deliveryId: delivery.id, recordId: delivery.record_id },
+      {
+        deliveryId: delivery.id,
+        recordId: delivery.record_id,
+        input: {
+          document_return_amount: documentReturnAmount,
+          customer_will_give_change: customerWillGiveChange,
+        } satisfies GenerateDeliveryDocumentInput,
+      },
       {
         onError: (mutationError) => {
           if (mutationError instanceof DeliveryApiError && mutationError.status === 409) onBlocked();
