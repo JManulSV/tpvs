@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "@/features/auth/components/login-form";
 import { getSafeReturnTo } from "@/features/auth/safe-return-to";
 import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const instant = false;
 
@@ -28,7 +29,12 @@ async function LoginPageContent({ searchParams }: LoginPageProps) {
 
   if (user) redirect("/dashboard");
 
-  return <LoginForm returnTo={getSafeReturnTo(params.returnTo)} />;
+  return (
+    <>
+      <ThemeToggle className="fixed right-4 top-4 z-10" />
+      <LoginForm returnTo={getSafeReturnTo(params.returnTo)} />
+    </>
+  );
 }
 
 export default function LoginPage({ searchParams }: LoginPageProps) {

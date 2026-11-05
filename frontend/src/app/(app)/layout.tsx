@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
 import type { AuthUser } from "@/features/auth/types";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Session validation may redirect before the authenticated segment can render.
 // It is intentionally blocking rather than an instant-navigation shell.
@@ -49,7 +50,10 @@ async function AuthenticatedLayout({ children }: { children: ReactNode }) {
             </Link>
           </nav>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <LogoutButton />
+        </div>
       </header>
       <main className="mx-auto w-full max-w-6xl px-6 py-10">{children}</main>
     </div>
