@@ -2,7 +2,7 @@
 
 ## 1. Core Business Principle
 
-AI interprets the image, the backend validates the financial data, the person reviews the result, and the person confirms the record.
+For image-based records, AI interprets the image, the backend validates the financial data, and the person reviews and confirms the result. For manual records, the Editor reviews the data while entering it, and Laravel validates and confirms the record when it is saved.
 
 ## 2. Record States
 

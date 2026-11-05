@@ -98,9 +98,9 @@ The full row is clickable.
 
 ## 6. Review Record
 
-This is the most important screen in the system.
+This is the most important screen in the system for image-based records that require human review. A valid manual record is reviewed by the Editor during capture and is confirmed by Laravel when saved; it does not pass through a separate review or confirmation screen.
 
-### Image-based record
+### Image-based record: review and confirmation
 
 ```text
 Image                         NEEDS REVIEW
@@ -125,10 +125,10 @@ System:    $9,800  ✓
 Confirm
 ```
 
-### Manual record
+### Manual record: capture and confirm on save
 
 ```text
-Review record
+New manual record
 
 Company       [ Company ABC ]
 Year          [ 2026 ]
@@ -140,10 +140,21 @@ Movements
 - Income   Commission
   $10,000  2%
 
-Confirm
+Income total       $10,000
+Commission total      $200
+Return total         $9,800
+
+The server validates and calculates the official amounts.
+If valid, the record is confirmed when saved.
+
+[ Save and confirm ]
 ```
 
+The Editor reviews the entered fields and server-calculated amounts as part of this capture workflow. Saving a valid record creates it directly as `CONFIRMED`; it does not create an intermediate `NEEDS_REVIEW` state or require a second confirmation action.
+
 ### AI field states
+
+These states apply to information extracted from an image and shown for human review. They do not apply to manual capture.
 
 Numeric confidence values are not shown.
 
@@ -154,7 +165,7 @@ Shown states:
 - Missing information
 - Inconsistency
 
-Always show:
+Always show on image-based review screens:
 
 `Information extracted automatically. Review before confirming.`
 
@@ -168,7 +179,7 @@ Even if AI extracts everything correctly:
 - Commission
 - Return
 
-It is never auto-confirmed.
+It is never auto-confirmed. This rule applies to AI/image records; a valid manual record is confirmed on save because the Editor reviews it during entry.
 
 Flow:
 
@@ -182,7 +193,19 @@ Image
   -> CONFIRMED
 ```
 
-The AI interprets. The backend validates. The human confirms.
+The AI interprets. The backend validates. The human reviews and confirms.
+
+Manual flow:
+
+```text
+Manual capture
+  -> Editor reviews entered data
+  -> Backend validation and calculations
+  -> Save
+  -> CONFIRMED
+```
+
+The Editor reviews manual data during entry, so no separate confirmation screen is shown after save.
 
 ## 8. Prepare Delivery
 
@@ -364,6 +387,8 @@ There is no AI extraction sheet.
 | Create company | Yes | No |
 | Change company name | No | No |
 
+`Review` and the separate `Confirm` action apply to records in `NEEDS_REVIEW`, including image-based records and records reopened for correction. For a new manual record, the Editor reviews the data during capture and Laravel confirms it in the successful save transaction; no separate confirmation action follows.
+
 ## 15. Full UX Flow
 
 ```text
@@ -371,15 +396,31 @@ SUPPLIER
   -> WhatsApp
   -> Image
   -> New record
-  -> Image or Manual
-  -> AI or Capture
-  -> Validation
-  -> Review
-  -> Human
+  -> Image capture
+  -> AI extraction
+  -> Backend validation
+  -> NEEDS_REVIEW
+  -> Human review and confirmation
   -> CONFIRMED
   -> Prepare delivery
   -> Cash
   -> Word
+  -> Reports
+  -> Excel
+```
+
+Manual alternative:
+
+```text
+New record
+  -> Manual capture
+  -> Editor reviews entered data
+  -> Backend validation and calculations
+  -> Save and confirm
+  -> CONFIRMED
+  -> Prepare delivery
+  -> Cash
+  -> Word (after an image is attached)
   -> Reports
   -> Excel
 ```

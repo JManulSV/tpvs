@@ -101,18 +101,22 @@ Requirements:
 - Allow reprocessing.
 - Allow replacing the final image when needed.
 
+User stories:
+- As the Editor, I want to upload the supplier image so the system can extract the data.
+- As the Editor, I want to replace the image when the wrong file was uploaded.
+- As the Editor, I want to retry processing when AI fails.
+
 ### Manual Capture
 Requirements:
 - Create a `Record` manually without an image.
 - Skip AI processing for manual records.
 - Apply the same business validations as AI-derived records.
-- Route manual records through human review before confirmation.
+- Treat the Editor's data entry as the human review; Laravel confirms a valid manual record in the create transaction.
 - Require an image before generating the Word delivery document.
 
 User stories:
-- As the Editor, I want to upload the supplier image so the system can extract the data.
-- As the Editor, I want to replace the image when the wrong file was uploaded.
-- As the Editor, I want to retry processing when AI fails.
+- As the Editor, I want to enter and review a manual record in one workflow so a valid record is confirmed when I save it.
+- As the Editor, I want to attach an image to a manual record later when I need to generate its Word delivery document.
 
 ### AI Processing
 Requirements:
@@ -125,18 +129,17 @@ User stories:
 - As the system, I want to call AI so it can extract structured information.
 - As the Editor, I want to inspect the extracted content before confirmation.
 
-### Manual Review
+### Image Record Review and Confirmation
 Requirements:
-- Review extracted data.
-- Correct fields.
-- Add missing information.
-- Validate calculations.
-- Confirm or cancel the record.
+- Review AI-extracted data before it becomes official.
+- Correct fields and add missing information.
+- Validate calculations through the backend.
+- Explicitly confirm or cancel a record that requires review.
 
 User stories:
-- As the Editor, I want to review the AI output so I can fix mistakes.
-- As the Editor, I want to confirm the record only after validation passes.
-- As the Editor, I want to cancel invalid records so they do not affect reports.
+- As the Editor, I want to review the AI output so I can fix mistakes before confirmation.
+- As the Editor, I want to confirm an image-based record only after the backend validates it.
+- As the Editor, I want to cancel an invalid record so it does not affect reports.
 
 ### Reporting
 Requirements:

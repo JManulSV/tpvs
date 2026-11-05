@@ -177,7 +177,7 @@ Manual records still use:
 - `RecordDetail`
 - `History`
 
-and they follow the same validation and confirmation flow as image-based records. Manual creation writes one `record_created` History event with `new_value=CONFIRMED` and the fixed reason `Registro creado manualmente`. A `Delivery` and its cash denominations are created later during delivery preparation.
+and they use the same business validations as image-based records. The Editor reviews the data during entry, and Laravel creates a valid manual Record directly as `CONFIRMED` in the creation transaction; it does not pass through `NEEDS_REVIEW` or a separate confirmation action. Manual creation writes one `record_created` History event with `new_value=CONFIRMED` and the fixed reason `Registro creado manualmente`. A `Delivery` and its cash denominations are created later during delivery preparation.
 
 ## 9. Delivery
 

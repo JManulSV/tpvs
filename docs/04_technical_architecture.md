@@ -127,8 +127,8 @@ Responsibilities:
 - create records without images;
 - allow an image to be attached later without starting AI processing;
 - skip AI processing for manual records;
-- route manual records into the same review flow;
-- apply the same business validation rules.
+- treat Editor data entry as the human review;
+- apply the same business validation rules and create valid manual records directly as `CONFIRMED` in the save transaction.
 
 ### Validation Module
 Responsibilities:
@@ -187,9 +187,9 @@ Manual flow:
 1. Editor creates a manual record.
 2. The system creates the record without image or AI processing.
 3. The Editor captures the data manually.
-4. Backend applies the same business validation.
-5. The record moves to `NEEDS_REVIEW`.
-6. The Editor reviews and confirms the record.
+4. The Editor reviews the entered fields and calculated values as part of capture.
+5. Backend applies the same business validation and calculates official amounts.
+6. On a valid save, the record is created directly as `CONFIRMED`.
 
 ## 6. Local Storage Strategy
 

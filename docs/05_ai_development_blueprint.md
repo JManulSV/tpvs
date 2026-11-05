@@ -120,7 +120,7 @@ The service must not confirm records or write official totals.
 Implement manual record creation for the MVP.
 Allow the Editor to create a Record with source = MANUAL without an Image or AIProcessing row.
 Apply the same business validation rules used for image-based records.
-Route the manual record through NEEDS_REVIEW before confirmation.
+The Editor reviews the data during entry. On a valid save, create the manual Record directly as CONFIRMED in the same transaction; do not route it through NEEDS_REVIEW or require a separate confirmation action.
 An Image is still required later to generate Word.
 ```
 
