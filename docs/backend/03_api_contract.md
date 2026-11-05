@@ -282,7 +282,7 @@ Both `EDITOR` and `VIEWER` may read history. Unauthenticated requests return `40
 
 ## Delivery Preparation Contract — SPEC 11 (Phase 8.12)
 
-The delivery contract below is approved for phase 8.12 and is implemented incrementally under SPEC 11. It requires Laravel's authenticated Sanctum session. State-changing browser requests require valid CSRF.
+The delivery contract was implemented for phase 8.12 under SPEC 11 and extended by SPEC 14 for preparation cash tolerance. It requires Laravel's authenticated Sanctum session. State-changing browser requests require valid CSRF.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -364,7 +364,7 @@ Delivery creation and updates write field-level History rows with `record_id`, `
 
 ## Delivery Document Contract — SPEC 12 (Phase 8.13), extended by SPEC 14
 
-The Word delivery document contract was implemented for phase 8.13 under SPEC 12. SPEC 14 extends its request and cash-reconciliation rules while preserving Laravel's authenticated Sanctum session and valid CSRF requirements.
+The Word delivery document contract was implemented for phase 8.13 under SPEC 12 and extended for SPEC 14. It requires Laravel's authenticated Sanctum session and valid CSRF.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -380,6 +380,8 @@ The JSON request body supplies the document-only adjustment and whether the cust
 ```
 
 `document_return_amount` is a required decimal string with at most two decimals and must be one of the three allowed amounts derived from the current official Record return. `customer_will_give_change` is a required boolean. Laravel derives the cash amount and any change from the persisted denominations; the client does not submit a change amount. Missing/malformed fields or an amount outside the three choices return `422`.
+
+The request is authorized for `EDITOR` before body validation. The change amount is derived by Laravel and is not accepted from the client. `PUT /api/records/{record}/delivery` prohibits the document-only fields.
 
 A successful response is `200` with a binary body and:
 

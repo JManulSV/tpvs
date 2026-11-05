@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. **Phase 8.11 / SPEC 10 is implemented and verified (2026-10-26):** record change history with user, reason, and before/after values, plus audited editing and reopening of `CONFIRMED` records. **SPEC 11 / phase 8.12 is approved (2026-10-26); delivery preparation UI is in progress.** The checkpoint is recorded in the roadmap.
+**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. **Phase 8.11 / SPEC 10 is implemented and verified (2026-10-26):** record change history with user, reason, and before/after values, plus audited editing and reopening of `CONFIRMED` records. **SPEC 11 / phase 8.12 and SPEC 12 / phase 8.13 are implemented. SPEC 14 cash-adjustment behavior is integrated; focused checks pass.** The checkpoint is recorded in the roadmap.
 
 ## Goal and Scope
 
@@ -71,6 +71,7 @@ Mutation errors are handled from the backend response: `RECORD_UPDATE_BLOCKED`, 
 - A `CONFIRMED` record shows the delivery preparation link to `EDITOR` and `VIEWER`; the route remains directly accessible for read-only states and explains when preparation requires confirmation.
 - The delivery screen displays the official return, gross cash, the three document amount choices, stale warning, and backend cash-reconciliation details.
 - Word generation sends the selected document amount and customer-change declaration only with the document request; neither value is persisted.
+- Word generation is blocked until unsaved cash denomination changes are saved.
 - Delivery preparation is editable by `EDITOR` and read-only for `VIEWER`; the UI never sends `prepared_return_amount`.
 - Delivery history entries use readable labels, including `denominations[1000.00]`-style entries, and appear in the existing history panel.
 - Confirmation is available only for `NEEDS_REVIEW`; it revalidates on the backend and shows the resulting state. Unresolved AI issues do not block a complete, valid aggregate.

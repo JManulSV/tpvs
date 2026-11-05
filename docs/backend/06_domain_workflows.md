@@ -137,7 +137,7 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 ## Delivery
 
-**Status:** SPEC 11 / phase 8.12 approved (2026-10-26); implementation in progress.
+**Status:** SPEC 11 / phase 8.12 implemented (2026-10-29); SPEC 14 cash-save rules implemented.
 
 **Purpose:** Persist the single editable delivery preparation for a confirmed Record, reconcile its cash breakdown against the current return, and audit changes without creating delivery versions or states.
 
@@ -169,9 +169,11 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 **Tests:** Cover read access and null delivery, Editor/Viewer authorization, confirmed-only preparation, official denominations, zero quantities, empty breakdown for a zero return, duplicates, cash mismatch, stale updates, idempotent no-op, same-row updates, fixed-reason History with `delivery_id`, transactional rollback, and the absence of Record status changes.
 
+SPEC 14 verification also covers save-time tolerance boundaries, allowed excess cash, and preservation of the official `prepared_return_amount`.
+
 ## Delivery Document
 
-**Status:** SPEC 12 / phase 8.13 complete (2026-10-29).
+**Status:** SPEC 12 / phase 8.13 complete (2026-10-29); SPEC 14 document cash-adjustment logic implemented.
 
 **Purpose:** Generate the Word delivery receipt on demand from the persisted Delivery, its Record, the Record Image, and the cash denominations, without storing the file.
 
@@ -200,6 +202,8 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 **Jobs or events:** None. Generation is synchronous.
 
 **Tests:** Cover amount-in-words cases, Spanish date formatting, document content (text, 11 table rows, totals, signatures, image), JPEG/PNG/WebP insertion, response headers, temporary-file cleanup, Editor/Viewer/anonymous access, each blocking reason, History only on success, and the absence of data changes.
+
+SPEC 14 coverage includes the three document amount options, transient customer-change declaration, `CASH_MISMATCH` and `CHANGE_REQUIRED`, and Word content for gross cash, adjusted amount, amount in words, and calculated change.
 
 ## Reports and Excel
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-**SPEC 11 / phase 8.12 complete (2026-10-29). SPEC 12 / phase 8.13 complete (2026-10-29). SPEC 14 contract approved; implementation in progress.** The current baseline delivery flow and its approved cash-adjustment extension are defined below.
+**SPEC 11 / phase 8.12 complete (2026-10-29). SPEC 12 / phase 8.13 complete (2026-10-29). SPEC 14 implemented; focused backend/frontend checks pass.** The delivery flow includes the approved document-only cash adjustment and customer-change behavior.
 
 ## Goal and Scope
 
@@ -71,7 +71,7 @@ The frontend must preserve and display backend errors:
 
 The cash mismatch response includes `expected_amount`, `cash_amount`, and `difference`. On `409 INVALID_RECORD_STATE`, refresh the Record and disable editing.
 
-### Word Document (SPEC 12)
+### Word Document (SPEC 12, extended by SPEC 14)
 
 ```text
 POST /api/deliveries/{delivery}/document
@@ -99,6 +99,7 @@ For `CASH_MISMATCH` and `CHANGE_REQUIRED`, the backend includes `expected_amount
 - The delivery screen loads the Record and Delivery queries.
 - The gross cash total and three document amount options are calculated for immediate feedback; Laravel remains authoritative.
 - The change declaration is shown only when gross cash exceeds the selected document amount by more than `$1.00`; the amount of change is calculated and not editable.
+- Word generation is disabled if the denomination form differs from the last saved Delivery; the Editor must save the cash breakdown first.
 - A stale warning is shown when `is_stale=true`.
 - A preparation cash shortfall greater than `$1.00` displays backend expected/cash/difference values; a Word-generation `CASH_MISMATCH` or `CHANGE_REQUIRED` preserves those values and explains the correction needed.
 - Word generation sends the selected document amount and change declaration without adding either to the preparation payload.
@@ -110,6 +111,7 @@ For `CASH_MISMATCH` and `CHANGE_REQUIRED`, the backend includes `expected_amount
 - `Generar documento Word` is shown only to `EDITOR`. It is disabled, with a visible reason, when no Delivery exists, the Delivery is stale, the Record is not `CONFIRMED`, or the Record has no image.
 - The action prevents duplicate submission while generating.
 - A `409` shows the translated reason; `STALE_DELIVERY` and `INVALID_RECORD_STATE` refresh the Record and Delivery queries.
+- If the cash denomination breakdown differs from the last saved preparation, Word generation is disabled until the Editor saves it.
 - A successful download invalidates the Record history query. The history panel labels `document_generated` as `Documento Word generado`.
 
 ## Acceptance Criteria
@@ -122,12 +124,15 @@ For `CASH_MISMATCH` and `CHANGE_REQUIRED`, the backend includes `expected_amount
 - The Editor can choose the three document amounts derived from the official return; the chosen amount and customer-change declaration are sent only with Word generation.
 - A gross excess over the document amount greater than `$1.00` requires customer-change declaration; a shortfall greater than `$1.00` is blocked, and differences within `±$1.00` need no change line.
 - The generated Word shows the selected amount and words, gross cash total, and calculated customer change when applicable, without persisting the temporary choices.
+- Word generation is disabled while the denomination breakdown differs from the last successfully saved preparation.
 - The interface invalidates delivery and history queries after a successful save.
 - A successful save reflects the backend resource; the client never treats its own total as authoritative.
 - A shortfall over `$1.00` at preparation is explained from backend values; gross cash excess is allowed and does not change `prepared_return_amount`.
 - Document amount choices and customer-change declaration are sent only to Word generation and are never persisted.
 - The Word output shows the selected amount in digits and words, gross cash, and calculated customer change when applicable.
 - An Editor can download the Word document for a valid Delivery with an image; blocked cases show their reason and a Viewer sees no generation action.
+- `document_return_amount` and `customer_will_give_change` are sent only in the Word request; the saved delivery keeps the official return and denominations unchanged.
+- The Word request is blocked while cash denominations have unsaved edits.
 
 ## Related Documents
 

@@ -1,6 +1,6 @@
 # SPEC 14 — Ajuste de efectivo y cambio en la entrega
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 11, SPEC 12
 > **Date:** 2026-11-03
 > **Objective:** Permitir ajustar el importe de la constancia de entrega a pesos o medios pesos y documentar el cambio que devolverá el cliente sin alterar el retorno oficial persistido.
@@ -86,20 +86,20 @@ Errores de validación de forma o de ajuste no permitido responden `422`. Los bl
 
 ## Acceptance criteria
 
-- [ ] La preparación conserva `prepared_return_amount` igual al retorno oficial, aunque el total de efectivo sea diferente.
-- [ ] El guardado acepta efectivo exactamente `$1.00` por debajo del retorno y cualquier excedente; rechaza faltantes mayores a `$1.00`.
-- [ ] El guardado y la generación comparan importes con aritmética entera en centavos.
-- [ ] Para un retorno oficial de `$1,298.57`, la UI ofrece exactamente `$1,298.00`, `$1,298.50` y `$1,299.00`.
-- [ ] El backend rechaza un `document_return_amount` que no sea una de las tres opciones calculadas para el retorno actual.
-- [ ] Un importe documental y efectivo bruto con diferencia de exactamente `$1.00` puede generar Word sin cambio.
-- [ ] Una diferencia positiva mayor a `$1.00` requiere `customer_will_give_change=true`; el Word muestra el excedente calculado.
-- [ ] Si el excedente es de `$1.00` o menos, el documento no muestra una línea de cambio.
-- [ ] Una diferencia negativa mayor a `$1.00` bloquea la generación con error de negocio estable y no produce documento ni History.
-- [ ] El Word muestra el importe documental ajustado en número y palabras, el total bruto de las denominaciones y el cambio cuando aplica.
-- [ ] Un cambio declarado no se persiste en `Delivery`, `DeliveryCashDenomination` ni `History`; la generación exitosa solo escribe el evento existente `document_generated`.
-- [ ] La generación mantiene las validaciones existentes de autorización, estado confirmado, imagen disponible y entrega vigente respecto al retorno oficial.
-- [ ] `EDITOR` puede preparar y generar según las reglas; `VIEWER` solo consulta y recibe `403` ante mutaciones directas.
-- [ ] Las pruebas backend, frontend, lint, TypeScript y build pasan, y se verifica el `.docx` generado con un caso de cambio.
+- [x] La preparación conserva `prepared_return_amount` igual al retorno oficial, aunque el total de efectivo sea diferente.
+- [x] El guardado acepta efectivo exactamente `$1.00` por debajo del retorno y cualquier excedente; rechaza faltantes mayores a `$1.00`.
+- [x] El guardado y la generación comparan importes con aritmética entera en centavos.
+- [x] Para un retorno oficial de `$1,298.57`, la UI ofrece exactamente `$1,298.00`, `$1,298.50` y `$1,299.00`.
+- [x] El backend rechaza un `document_return_amount` que no sea una de las tres opciones calculadas para el retorno actual.
+- [x] Un importe documental y efectivo bruto con diferencia de exactamente `$1.00` puede generar Word sin cambio.
+- [x] Una diferencia positiva mayor a `$1.00` requiere `customer_will_give_change=true`; el Word muestra el excedente calculado.
+- [x] Si el excedente es de `$1.00` o menos, el documento no muestra una línea de cambio.
+- [x] Una diferencia negativa mayor a `$1.00` bloquea la generación con error de negocio estable y no produce documento ni History.
+- [x] El Word muestra el importe documental ajustado en número y palabras, el total bruto de las denominaciones y el cambio cuando aplica.
+- [x] Un cambio declarado no se persiste en `Delivery`, `DeliveryCashDenomination` ni `History`; la generación exitosa solo escribe el evento existente `document_generated`.
+- [x] La generación mantiene las validaciones existentes de autorización, estado confirmado, imagen disponible y entrega vigente respecto al retorno oficial.
+- [x] `EDITOR` puede preparar y generar según las reglas; `VIEWER` solo consulta y recibe `403` ante mutaciones directas.
+- [x] Las pruebas backend, frontend, lint, TypeScript y build pasan, y se verifica el `.docx` generado con un caso de cambio.
 
 ## Decisions
 

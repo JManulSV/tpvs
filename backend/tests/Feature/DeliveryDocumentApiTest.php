@@ -267,6 +267,9 @@ class DeliveryDocumentApiTest extends TestCase
             ]));
 
         $response->assertOk();
+        $text = $this->documentText($response->streamedContent());
+        $this->assertStringContainsString('NOVECIENTOS VEINTIÚN PESOS 00/100 M.N.', $text);
+        $this->assertStringNotContainsString('Cambio que dará el cliente', $text);
         $this->assertDatabaseCount('histories', 1);
     }
 
@@ -319,11 +322,17 @@ class DeliveryDocumentApiTest extends TestCase
             ]);
         }
 
-        $this->actingAs($this->user(UserRole::EDITOR), 'web')
+        $response = $this->actingAs($this->user(UserRole::EDITOR), 'web')
             ->post('/api/deliveries/'.$delivery->id.'/document', $this->validDocumentPayload([
                 'customer_will_give_change' => true,
-            ]))
-            ->assertOk();
+            ]));
+
+        $response->assertOk();
+        $text = $this->documentText($response->streamedContent());
+        $this->assertStringContainsString('la cantidad de $920.00 (NOVECIENTOS VEINTE PESOS 00/100 M.N.)', $text);
+        $this->assertStringContainsString('Cambio que dará el cliente: $30.00', $text);
+        $this->assertStringContainsString('Importe de entrega: $920.00', $text);
+        $this->assertStringContainsString('Efectivo bruto: $950.00', $text);
 
         $this->assertDatabaseCount('histories', 1);
         $after = $this->snapshot($delivery);

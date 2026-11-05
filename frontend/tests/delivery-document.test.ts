@@ -13,7 +13,11 @@ import { apiClient } from "@/lib/api-client";
 import { fieldLabel } from "@/features/records/components/record-history-panel";
 import { deliveriesService } from "@/features/deliveries/services/deliveries.service";
 import { documentBlockedMessages, type Delivery } from "@/features/deliveries/types";
-import { documentBlockedReason, documentReturnOptions } from "@/features/deliveries/utils";
+import {
+  denominationBreakdownKey,
+  documentBlockedReason,
+  documentReturnOptions,
+} from "@/features/deliveries/utils";
 
 const apiClientMock = vi.mocked(apiClient);
 
@@ -182,6 +186,21 @@ describe("documentReturnOptions", () => {
     expect(documentReturnOptions("1298.57")).toEqual(["1298.00", "1298.50", "1299.00"]);
     expect(documentReturnOptions("1298.99")).toEqual(["1298.00", "1298.50", "1299.00"]);
     expect(documentReturnOptions("0.50")).toEqual(["0.00", "0.50", "1.00"]);
+  });
+});
+
+describe("denominationBreakdownKey", () => {
+  it("canonicalizes order and zero quantities for comparison with the saved breakdown", () => {
+    expect(denominationBreakdownKey([
+      { value: "500.00", quantity: 1 },
+      { value: "1000.00", quantity: 0 },
+    ])).toBe(denominationBreakdownKey([
+      { value: "1000.00", quantity: 0 },
+      { value: "500.00", quantity: 1 },
+    ]));
+
+    expect(denominationBreakdownKey([{ value: "500.00", quantity: 2 }]))
+      .not.toBe(denominationBreakdownKey([{ value: "500.00", quantity: 1 }]));
   });
 });
 
