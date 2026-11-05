@@ -72,11 +72,11 @@ class DeliveryController extends Controller
                 ->first();
 
             $currentReturnAmount = $validator->currentReturnAmount($record);
-            $mismatch = $validator->cashMismatch($currentReturnAmount, $denominations);
+            $mismatch = $validator->preparationCashShortfall($currentReturnAmount, $denominations);
 
             if ($mismatch !== null) {
                 return response()->json([
-                    'message' => 'The cash breakdown does not match the current return amount.',
+                    'message' => 'The cash breakdown is more than one peso below the current return amount.',
                     'code' => 'DELIVERY_PREPARATION_BLOCKED',
                     'details' => [
                         'reason' => 'CASH_MISMATCH',

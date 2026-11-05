@@ -156,6 +156,99 @@ class DeliveryApiTest extends TestCase
         $this->assertDatabaseCount('histories', 0);
     }
 
+    public function test_preparation_accepts_a_cash_shortfall_of_exactly_one_peso(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('120.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'denominations' => [
+                    ['value' => '100.00', 'quantity' => 1],
+                    ['value' => '10.00', 'quantity' => 1],
+                    ['value' => '5.00', 'quantity' => 1],
+                    ['value' => '2.00', 'quantity' => 2],
+                ],
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.prepared_return_amount', '120.00')
+            ->assertJsonPath('data.current_return_amount', '120.00')
+            ->assertJsonPath('data.denominations', [
+                ['value' => '100.00', 'quantity' => 1],
+                ['value' => '10.00', 'quantity' => 1],
+                ['value' => '5.00', 'quantity' => 1],
+                ['value' => '2.00', 'quantity' => 2],
+            ]);
+
+        $this->assertDatabaseHas('deliveries', [
+            'record_id' => $record->id,
+            'prepared_return_amount' => '120.00',
+        ]);
+        $this->assertDatabaseHas('delivery_cash_denominations', [
+            'value' => '100.00',
+            'quantity' => 1,
+        ]);
+    }
+
+    public function test_preparation_rejects_a_cash_shortfall_greater_than_one_peso_without_writes(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('120.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'denominations' => [
+                    ['value' => '100.00', 'quantity' => 1],
+                    ['value' => '10.00', 'quantity' => 1],
+                    ['value' => '5.00', 'quantity' => 1],
+                    ['value' => '2.00', 'quantity' => 1],
+                    ['value' => '1.00', 'quantity' => 1],
+                    ['value' => '0.50', 'quantity' => 1],
+                ],
+            ]))
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'DELIVERY_PREPARATION_BLOCKED')
+            ->assertJsonPath('details.reason', 'CASH_MISMATCH')
+            ->assertJsonPath('details.expected_amount', '120.00')
+            ->assertJsonPath('details.cash_amount', '118.50')
+            ->assertJsonPath('details.difference', '-1.50');
+
+        $this->assertDatabaseCount('deliveries', 0);
+        $this->assertDatabaseCount('delivery_cash_denominations', 0);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_preparation_accepts_any_excess_and_keeps_official_return_persisted(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('120.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'denominations' => [
+                    ['value' => '100.00', 'quantity' => 1],
+                    ['value' => '50.00', 'quantity' => 1],
+                ],
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.prepared_return_amount', '120.00')
+            ->assertJsonPath('data.current_return_amount', '120.00')
+            ->assertJsonPath('data.is_stale', false)
+            ->assertJsonPath('data.denominations.0.value', '100.00')
+            ->assertJsonPath('data.denominations.1.value', '50.00');
+
+        $this->assertDatabaseHas('deliveries', [
+            'record_id' => $record->id,
+            'prepared_return_amount' => '120.00',
+        ]);
+        $this->assertDatabaseCount('delivery_cash_denominations', 2);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'field_name' => 'prepared_return_amount',
+            'new_value' => '120.00',
+        ]);
+    }
+
     public function test_zero_quantities_are_ignored_and_empty_breakdown_requires_zero_return(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);

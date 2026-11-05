@@ -4,6 +4,7 @@ import {
   toDeliveryApiError,
   type Delivery,
   type DeliveryDocument,
+  type GenerateDeliveryDocumentInput,
   type DeliveryResponse,
   type UpsertDeliveryInput,
 } from "../types";
@@ -57,9 +58,9 @@ export const deliveriesService = {
     }
   },
 
-  async generateDocument(deliveryId: number): Promise<DeliveryDocument> {
+  async generateDocument(deliveryId: number, input: GenerateDeliveryDocumentInput): Promise<DeliveryDocument> {
     try {
-      const response = await apiClient.post<Blob>(`deliveries/${deliveryId}/document`, null, {
+      const response = await apiClient.post<Blob>(`deliveries/${deliveryId}/document`, input, {
         responseType: "blob",
       });
 

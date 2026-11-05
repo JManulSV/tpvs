@@ -1,5 +1,5 @@
 import type { RecordStatus } from "@/features/records/types";
-import type { Delivery } from "./types";
+import { officialDenominationValues, type Delivery } from "./types";
 
 const currencyFormatter = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -47,6 +47,26 @@ export function denominationsTotalCents(
 
     return total + toCents(denomination.value) * Math.max(quantity, 0);
   }, 0);
+}
+
+export function documentReturnOptions(officialReturnAmount: string): [string, string, string] {
+  const wholePesoCents = Math.floor(Math.max(toCents(officialReturnAmount), 0) / 100) * 100;
+
+  return [
+    centsToAmount(wholePesoCents),
+    centsToAmount(wholePesoCents + 50),
+    centsToAmount(wholePesoCents + 100),
+  ];
+}
+
+export function denominationBreakdownKey(
+  denominations: Array<{ value: string; quantity: number | string }>,
+): string {
+  const quantities = new Map(denominations.map(({ value, quantity }) => [value, quantity]));
+
+  return officialDenominationValues
+    .map((value) => `${value}:${Math.max(Math.trunc(Number(quantities.get(value) ?? 0)), 0)}`)
+    .join("|");
 }
 
 export function downloadBlob(blob: Blob, fileName: string): void {

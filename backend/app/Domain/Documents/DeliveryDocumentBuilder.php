@@ -33,8 +33,12 @@ class DeliveryDocumentBuilder
      * Build the delivery receipt and return the path of a temporary `.docx`.
      * The caller owns the file and must delete it.
      */
-    public function build(Delivery $delivery, string $imagePath): string
-    {
+    public function build(
+        Delivery $delivery,
+        string $imagePath,
+        string $documentReturnAmount,
+        bool $customerWillGiveChange,
+    ): string {
         $delivery->loadMissing('record', 'cashDenominations');
 
         $temporaryImage = null;
@@ -44,7 +48,7 @@ class DeliveryDocumentBuilder
             [$imagePath, $temporaryImage] = $this->imageForDocument($imagePath);
 
             $documentPath = $this->temporaryPath('tpvs-delivery-');
-            $phpWord = $this->compose($delivery, $imagePath);
+            $phpWord = $this->compose($delivery, $imagePath, $documentReturnAmount, $customerWillGiveChange);
 
             IOFactory::createWriter($phpWord, 'Word2007')->save($documentPath);
 
@@ -62,18 +66,26 @@ class DeliveryDocumentBuilder
         }
     }
 
-    private function compose(Delivery $delivery, string $imagePath): PhpWord
-    {
+    private function compose(
+        Delivery $delivery,
+        string $imagePath,
+        string $documentReturnAmount,
+        bool $customerWillGiveChange,
+    ): PhpWord {
         Settings::setOutputEscapingEnabled(true);
 
         $record = $delivery->record;
-        $returnAmount = $this->validator->currentReturnAmount($record);
         $denominations = $delivery->cashDenominations
             ->mapWithKeys(fn ($row): array => [
                 (string) $this->validator->canonicalDenomination((string) $row->value) => (int) $row->quantity,
             ]);
         $cashTotal = $this->validator->cashTotal(
             $denominations->map(fn (int $quantity, string $value): array => compact('value', 'quantity'))->values()->all(),
+        );
+        $reconciliation = $this->validator->documentCashReconciliation(
+            $documentReturnAmount,
+            $denominations->map(fn (int $quantity, string $value): array => compact('value', 'quantity'))->values()->all(),
+            $customerWillGiveChange,
         );
 
         $phpWord = new PhpWord;
@@ -101,8 +113,8 @@ class DeliveryDocumentBuilder
                 'Mediante la presente hago constar que recibí por parte del C. %s, la cantidad de %s (%s) '
                 .'por concepto del uso de la terminal bancaria, correspondiente a la semana del %s',
                 mb_strtoupper($delivery->delivered_by_name),
-                $this->money($returnAmount),
-                $this->moneyToWords->convert($returnAmount),
+                $this->money($documentReturnAmount),
+                $this->moneyToWords->convert($documentReturnAmount),
                 $this->dates->weekRange($record->week_start_date, $record->week_end_date),
             ),
             [],
@@ -124,8 +136,24 @@ class DeliveryDocumentBuilder
 
         $this->addCashTable($section, $denominations->all());
 
-        $section->addText($this->money($cashTotal), ['bold' => true], ['alignment' => Jc::END, 'spaceBefore' => 60]);
-        $section->addText($this->money($returnAmount), ['bold' => true], ['alignment' => Jc::END]);
+        $section->addText(
+            'Efectivo bruto: '.$this->money($cashTotal),
+            ['bold' => true],
+            ['alignment' => Jc::END, 'spaceBefore' => 60],
+        );
+        $section->addText(
+            'Importe de entrega: '.$this->money($documentReturnAmount),
+            ['bold' => true],
+            ['alignment' => Jc::END],
+        );
+
+        if ($reconciliation['change_amount'] !== null) {
+            $section->addText(
+                'Cambio que dará el cliente: '.$this->money($reconciliation['change_amount']),
+                ['bold' => true],
+                ['alignment' => Jc::END],
+            );
+        }
 
         $this->addSignatures($section, $delivery);
 

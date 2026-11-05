@@ -14,6 +14,8 @@ final class DocumentGenerationBlockedException extends RuntimeException
 
     public const CASH_MISMATCH = 'CASH_MISMATCH';
 
+    public const CHANGE_REQUIRED = 'CHANGE_REQUIRED';
+
     public const IMAGE_UNAVAILABLE = 'IMAGE_UNAVAILABLE';
 
     /**

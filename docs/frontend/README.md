@@ -48,7 +48,7 @@ When documents disagree about implemented behavior, inspect the code. Do not cha
 | `features/dashboard.md` | Role-aware operational home screen | Planned |
 | `features/companies.md` | Company listing, search, and creation | Implemented; phase 8.5 verified |
 | `features/records.md` | Record list, manual/image capture, review, and state actions | Planned |
-| `features/deliveries.md` | Delivery preparation, cash breakdown, and Word download | Planned |
+| `features/deliveries.md` | Delivery preparation, cash breakdown, and Word download | Implemented; SPEC 14 adjustment integrated |
 | `features/reports.md` | Confirmed-record summaries, filters, and Excel download | Planned |
 
 ## Implementation Principles

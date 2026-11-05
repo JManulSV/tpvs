@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Domain\Deliveries\DeliveryValidator;
+use App\Domain\Documents\Exceptions\DocumentGenerationBlockedException;
 use App\Models\Record;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
@@ -99,6 +100,128 @@ class DeliveryValidatorTest extends TestCase
             ['value' => '20.00', 'quantity' => 4],
             ['value' => '0.50', 'quantity' => 1],
         ]));
+    }
+
+    public function test_it_derives_the_three_document_return_options_from_the_official_return(): void
+    {
+        $validator = $this->validator();
+
+        $this->assertSame(
+            ['1298.00', '1298.50', '1299.00'],
+            $validator->documentReturnOptions('1298.57'),
+        );
+        $this->assertSame(
+            ['1298.00', '1298.50', '1299.00'],
+            $validator->documentReturnOptions('1298.99'),
+        );
+        $this->assertSame(
+            ['1298.00', '1298.50', '1299.00'],
+            $validator->documentReturnOptions('1298.00'),
+        );
+    }
+
+    public function test_it_accepts_only_document_amounts_derived_from_the_official_return(): void
+    {
+        $validator = $this->validator();
+
+        $this->assertTrue($validator->isDocumentReturnOption('1298.57', '1298'));
+        $this->assertTrue($validator->isDocumentReturnOption('1298.57', '1298.50'));
+        $this->assertTrue($validator->isDocumentReturnOption('1298.57', '1299.00'));
+        $this->assertFalse($validator->isDocumentReturnOption('1298.57', '1298.57'));
+        $this->assertFalse($validator->isDocumentReturnOption('1298.57', '1300.00'));
+        $this->assertFalse($validator->isDocumentReturnOption('1298.57', '-1.00'));
+        $this->assertFalse($validator->isDocumentReturnOption('1298.57', 'invalid'));
+    }
+
+    public function test_document_cash_reconciliation_accepts_exact_one_peso_differences_without_change(): void
+    {
+        $validator = $this->validator();
+
+        $cases = [
+            [
+                [['value' => '100.00', 'quantity' => 1], ['value' => '10.00', 'quantity' => 1], ['value' => '5.00', 'quantity' => 1], ['value' => '2.00', 'quantity' => 2]],
+                '119.00',
+                '-1.00',
+            ],
+            [
+                [['value' => '100.00', 'quantity' => 1], ['value' => '20.00', 'quantity' => 1]],
+                '120.00',
+                '0.00',
+            ],
+            [
+                [['value' => '100.00', 'quantity' => 1], ['value' => '20.00', 'quantity' => 1], ['value' => '1.00', 'quantity' => 1]],
+                '121.00',
+                '1.00',
+            ],
+        ];
+
+        foreach ($cases as [$denominations, $cash, $difference]) {
+            $reconciliation = $validator->documentCashReconciliation('120.00', $denominations, false);
+
+            $this->assertSame('120.00', $reconciliation['expected_amount']);
+            $this->assertSame($cash, $reconciliation['cash_amount']);
+            $this->assertSame($difference, $reconciliation['difference']);
+            $this->assertNull($reconciliation['change_amount']);
+            $this->assertNull($reconciliation['reason']);
+        }
+    }
+
+    public function test_document_cash_reconciliation_blocks_shortfalls_over_one_peso(): void
+    {
+        $reconciliation = $this->validator()->documentCashReconciliation('120.00', [
+            ['value' => '100.00', 'quantity' => 1],
+            ['value' => '10.00', 'quantity' => 1],
+            ['value' => '5.00', 'quantity' => 1],
+            ['value' => '2.00', 'quantity' => 1],
+            ['value' => '1.00', 'quantity' => 1],
+            ['value' => '0.50', 'quantity' => 1],
+        ], false);
+
+        $this->assertSame('120.00', $reconciliation['expected_amount']);
+        $this->assertSame('118.50', $reconciliation['cash_amount']);
+        $this->assertSame('-1.50', $reconciliation['difference']);
+        $this->assertNull($reconciliation['change_amount']);
+        $this->assertSame(DocumentGenerationBlockedException::CASH_MISMATCH, $reconciliation['reason']);
+    }
+
+    public function test_document_cash_reconciliation_requires_change_for_excess_over_one_peso(): void
+    {
+        $reconciliation = $this->validator()->documentCashReconciliation('120.00', [
+            ['value' => '100.00', 'quantity' => 1],
+            ['value' => '20.00', 'quantity' => 1],
+            ['value' => '2.00', 'quantity' => 1],
+        ], false);
+
+        $this->assertSame('122.00', $reconciliation['cash_amount']);
+        $this->assertSame('2.00', $reconciliation['difference']);
+        $this->assertNull($reconciliation['change_amount']);
+        $this->assertSame(DocumentGenerationBlockedException::CHANGE_REQUIRED, $reconciliation['reason']);
+    }
+
+    public function test_document_cash_reconciliation_calculates_declared_customer_change(): void
+    {
+        $reconciliation = $this->validator()->documentCashReconciliation('120.00', [
+            ['value' => '100.00', 'quantity' => 1],
+            ['value' => '50.00', 'quantity' => 1],
+        ], true);
+
+        $this->assertSame('150.00', $reconciliation['cash_amount']);
+        $this->assertSame('30.00', $reconciliation['difference']);
+        $this->assertSame('30.00', $reconciliation['change_amount']);
+        $this->assertNull($reconciliation['reason']);
+    }
+
+    public function test_document_cash_reconciliation_does_not_print_change_for_one_peso_or_less_even_when_declared(): void
+    {
+        $reconciliation = $this->validator()->documentCashReconciliation('120.00', [
+            ['value' => '100.00', 'quantity' => 1],
+            ['value' => '20.00', 'quantity' => 1],
+            ['value' => '1.00', 'quantity' => 1],
+        ], true);
+
+        $this->assertSame('1.00', $reconciliation['difference']);
+        $this->assertNull($reconciliation['change_amount']);
+        $this->assertNull($reconciliation['reason']);
     }
 
     public function test_it_detects_stale_preparations_after_canonicalizing_amounts(): void

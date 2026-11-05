@@ -194,6 +194,7 @@ Prepare delivery
 Company ABC · Week 38
 
 Official return         $9,800.00
+Document amount         [ $9,800.00 | $9,800.50 | $9,801.00 ]
 
 Delivery data
 Date       [18/09/2026]
@@ -213,8 +214,13 @@ $100               3            $300
 Total cash                 $9,800
                           Coincides
 
+If cash exceeds the selected document amount by more than $1.00:
+[x] El cliente dará cambio · $30.00 (calculated)
+
 [ Generate receipt ]
 ```
+
+The cash table represents gross cash. The document prints the selected document amount and the calculated customer change, when applicable. The selection and declaration are sent only when generating Word; the official return remains the persisted preparation amount.
 
 ## 9. Record Image
 

@@ -282,7 +282,7 @@ Both `EDITOR` and `VIEWER` may read history. Unauthenticated requests return `40
 
 ## Delivery Preparation Contract — SPEC 11 (Phase 8.12)
 
-The delivery contract below is approved for phase 8.12 and is implemented incrementally under SPEC 11. It requires Laravel's authenticated Sanctum session. State-changing browser requests require valid CSRF.
+The delivery contract was implemented for phase 8.12 under SPEC 11 and extended by SPEC 14 for preparation cash tolerance. It requires Laravel's authenticated Sanctum session. State-changing browser requests require valid CSRF.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -344,12 +344,11 @@ Rules:
 - `denominations.*.quantity` is a required integer greater than or equal to `0`.
 - Rows with `quantity = 0` are ignored before duplicate validation and persistence.
 - Two positive rows with the same normalized denomination return `422`.
-- `prepared_return_amount`, `record_id`, `status`, `source`, `reason`, and aggregate totals are prohibited client fields.
+- `prepared_return_amount`, `record_id`, `status`, `source`, `reason`, `document_return_amount`, `customer_will_give_change`, `change_amount`, and aggregate totals are prohibited client fields.
 - Only a `CONFIRMED` Record may be prepared. Other states return `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=INVALID_RECORD_STATE`.
-- Laravel derives `prepared_return_amount` from the current Record return total and compares the denomination sum with it in integer cents.
-- A mismatch returns `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=CASH_MISMATCH`, `expected_amount`, `cash_amount`, and `difference`.
+- Laravel derives `prepared_return_amount` from the current Record return total. At preparation save, it accepts gross cash up to `$1.00` below the current return or any excess, comparing in integer cents; a shortfall greater than `$1.00` returns `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=CASH_MISMATCH`, `expected_amount`, `cash_amount`, and `difference`. The existing rule that an empty denomination array is valid only for a `0.00` return remains in force.
 - An existing Delivery is updated in place; no new row, version, or delivery status is created.
-- A stale Delivery may be updated with a new breakdown that matches the current return total.
+- A stale Delivery may be updated with a new breakdown that meets the save-time tolerance against the current return total.
 - An identical preparation returns `200` without writing History or changing `updated_at`.
 - Delivery, denominations, and History are written in one transaction under a Record row lock; a failure rolls back all of them.
 
@@ -361,17 +360,28 @@ Delivery creation and updates write field-level History rows with `record_id`, `
 
 - `401` unauthenticated; `403` Viewer mutation; `404` missing Record; `419` invalid CSRF.
 - `422` for invalid shape, date, names, unsupported denomination, duplicate positive denomination, or invalid quantity.
-- `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=INVALID_RECORD_STATE` or `CASH_MISMATCH`.
+- `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=INVALID_RECORD_STATE` or `CASH_MISMATCH` (cash shortfall greater than `$1.00`).
 
-## Delivery Document Contract — SPEC 12 (Phase 8.13)
+## Delivery Document Contract — SPEC 12 (Phase 8.13), extended by SPEC 14
 
-The Word delivery document contract is implemented for phase 8.13 under SPEC 12. It requires Laravel's authenticated Sanctum session and valid CSRF.
+The Word delivery document contract was implemented for phase 8.13 under SPEC 12 and extended for SPEC 14. It requires Laravel's authenticated Sanctum session and valid CSRF.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
 | `POST` | `/api/deliveries/{delivery}/document` | Validate the Delivery and return a generated `.docx` download. | Authenticated `EDITOR` only |
 
-The request has no body. Delivery data is read from the persisted `Delivery`, its `Record`, the Record's `Image`, and the cash denominations.
+The JSON request body supplies the document-only adjustment and whether the customer will give change. These values are not persisted:
+
+```json
+{
+  "document_return_amount": "1298.50",
+  "customer_will_give_change": true
+}
+```
+
+`document_return_amount` is a required decimal string with at most two decimals and must be one of the three allowed amounts derived from the current official Record return. `customer_will_give_change` is a required boolean. Laravel derives the cash amount and any change from the persisted denominations; the client does not submit a change amount. Missing/malformed fields or an amount outside the three choices return `422`.
+
+The request is authorized for `EDITOR` before body validation. The change amount is derived by Laravel and is not accepted from the client. `PUT /api/records/{record}/delivery` prohibits the document-only fields.
 
 A successful response is `200` with a binary body and:
 
@@ -384,8 +394,9 @@ Laravel locks the Record and Delivery and checks, in order:
 1. The Record is `CONFIRMED`; otherwise `details.reason=INVALID_RECORD_STATE`.
 2. The Record has an Image; otherwise `details.reason=MISSING_IMAGE`.
 3. `prepared_return_amount` equals the current Record return total; otherwise `details.reason=STALE_DELIVERY` with `prepared_amount` and `current_amount`.
-4. The denomination sum equals the current Record return total in integer cents; otherwise `details.reason=CASH_MISMATCH` with `expected_amount`, `cash_amount`, and `difference`.
-5. The private image file is readable; otherwise `details.reason=IMAGE_UNAVAILABLE`. The response never includes paths; the condition is logged.
+4. `document_return_amount` is one of the three allowed amounts derived from the current Record return; an unsupported amount returns `422`.
+5. The gross denomination sum is compared with `document_return_amount` in integer cents. A shortfall greater than `$1.00` returns `409 DOCUMENT_GENERATION_BLOCKED` with `details.reason=CASH_MISMATCH`, `expected_amount`, `cash_amount`, and `difference`; an excess greater than `$1.00` requires `customer_will_give_change=true`, or returns `details.reason=CHANGE_REQUIRED` with the same amounts. The backend calculates the change as gross cash minus document amount. Differences within `±$1.00` are accepted without a change line.
+6. The private image file is readable; otherwise `details.reason=IMAGE_UNAVAILABLE`. The response never includes paths; the condition is logged.
 
 Each blocked case returns `409` with `code=DOCUMENT_GENERATION_BLOCKED`:
 
@@ -399,7 +410,7 @@ Each blocked case returns `409` with `code=DOCUMENT_GENERATION_BLOCKED`:
 
 A successful generation writes one `document_generated` History row with `delivery_id`, null values, and the reason `Documento Word generado`. Generation never modifies the Record, Delivery, denominations, or Image. The file is not stored; the temporary copy is deleted after it is sent.
 
-Errors: `401` unauthenticated; `403` Viewer; `404` missing Delivery; `419` invalid CSRF; `409 DOCUMENT_GENERATION_BLOCKED`; a generic safe `500` if document construction fails, with no History written.
+Errors: `401` unauthenticated; `403` Viewer; `404` missing Delivery; `419` invalid CSRF; `422` malformed or unsupported document adjustment; `409 DOCUMENT_GENERATION_BLOCKED` with `INVALID_RECORD_STATE`, `MISSING_IMAGE`, `STALE_DELIVERY`, `CASH_MISMATCH`, `CHANGE_REQUIRED`, or `IMAGE_UNAVAILABLE`; a generic safe `500` if document construction fails, with no History written.
 
 ## Reports and Excel Contract — SPEC 13 (Phase 8.14)
 

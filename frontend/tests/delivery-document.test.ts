@@ -13,7 +13,11 @@ import { apiClient } from "@/lib/api-client";
 import { fieldLabel } from "@/features/records/components/record-history-panel";
 import { deliveriesService } from "@/features/deliveries/services/deliveries.service";
 import { documentBlockedMessages, type Delivery } from "@/features/deliveries/types";
-import { documentBlockedReason } from "@/features/deliveries/utils";
+import {
+  denominationBreakdownKey,
+  documentBlockedReason,
+  documentReturnOptions,
+} from "@/features/deliveries/utils";
 
 const apiClientMock = vi.mocked(apiClient);
 
@@ -48,16 +52,21 @@ afterEach(() => {
 });
 
 describe("deliveriesService.generateDocument", () => {
-  it("posts without a body, requests a blob, and reads the file name from Content-Disposition", async () => {
+  const documentInput = {
+    document_return_amount: "920.50",
+    customer_will_give_change: true,
+  };
+
+  it("posts the ephemeral document options, requests a blob, and reads Content-Disposition", async () => {
     const blob = new Blob(["docx"]);
     apiClientMock.post.mockResolvedValueOnce({
       data: blob,
       headers: { "content-disposition": 'attachment; filename="entrega-registro-12-semana-38-2026.docx"' },
     });
 
-    const result = await deliveriesService.generateDocument(3);
+    const result = await deliveriesService.generateDocument(3, documentInput);
 
-    expect(apiClientMock.post).toHaveBeenCalledWith("deliveries/3/document", null, { responseType: "blob" });
+    expect(apiClientMock.post).toHaveBeenCalledWith("deliveries/3/document", documentInput, { responseType: "blob" });
     expect(result.blob).toBe(blob);
     expect(result.fileName).toBe("entrega-registro-12-semana-38-2026.docx");
   });
@@ -68,7 +77,7 @@ describe("deliveriesService.generateDocument", () => {
       headers: { "content-disposition": "attachment; filename=entrega-registro-12-semana-38-2026.docx" },
     });
 
-    await expect(deliveriesService.generateDocument(3)).resolves.toMatchObject({
+    await expect(deliveriesService.generateDocument(3, documentInput)).resolves.toMatchObject({
       fileName: "entrega-registro-12-semana-38-2026.docx",
     });
   });
@@ -76,7 +85,7 @@ describe("deliveriesService.generateDocument", () => {
   it("falls back to a generic file name when the header is missing", async () => {
     apiClientMock.post.mockResolvedValueOnce({ data: new Blob(["docx"]), headers: {} });
 
-    await expect(deliveriesService.generateDocument(3)).resolves.toMatchObject({ fileName: "entrega-3.docx" });
+    await expect(deliveriesService.generateDocument(3, documentInput)).resolves.toMatchObject({ fileName: "entrega-3.docx" });
   });
 
   it.each(Object.entries(documentBlockedMessages))(
@@ -90,7 +99,7 @@ describe("deliveriesService.generateDocument", () => {
         }),
       );
 
-      const error = await deliveriesService.generateDocument(3).catch((caught: unknown) => caught);
+      const error = await deliveriesService.generateDocument(3, documentInput).catch((caught: unknown) => caught);
 
       expect(error).toMatchObject({ status: 409, code: "DOCUMENT_GENERATION_BLOCKED", reason, message });
     },
@@ -104,7 +113,7 @@ describe("deliveriesService.generateDocument", () => {
       }),
     );
 
-    const error = await deliveriesService.generateDocument(3).catch((caught: unknown) => caught);
+    const error = await deliveriesService.generateDocument(3, documentInput).catch((caught: unknown) => caught);
 
     expect(error).toMatchObject({ details: { prepared_amount: "9800.00", current_amount: "10000.00" } });
   });
@@ -116,7 +125,7 @@ describe("deliveriesService.generateDocument", () => {
   ])("maps HTTP %i from a Blob error body to a fixed message", async (status, message) => {
     apiClientMock.post.mockRejectedValueOnce(blobError(status, { message: "ignored" }));
 
-    const error = await deliveriesService.generateDocument(3).catch((caught: unknown) => caught);
+    const error = await deliveriesService.generateDocument(3, documentInput).catch((caught: unknown) => caught);
 
     expect(error).toMatchObject({ status, message });
   });
@@ -133,7 +142,7 @@ describe("deliveriesService.generateDocument", () => {
       new AxiosError("Request failed", "ERR_BAD_RESPONSE", undefined, undefined, response),
     );
 
-    const error = await deliveriesService.generateDocument(3).catch((caught: unknown) => caught);
+    const error = await deliveriesService.generateDocument(3, documentInput).catch((caught: unknown) => caught);
 
     expect(error).toMatchObject({
       status: 500,
@@ -169,6 +178,29 @@ describe("documentBlockedReason", () => {
     expect(
       documentBlockedReason({ delivery: { ...delivery, is_stale: true }, hasImage: true, recordStatus: "CONFIRMED" }),
     ).toBe(documentBlockedMessages.STALE_DELIVERY);
+  });
+});
+
+describe("documentReturnOptions", () => {
+  it("offers the same-peso .00, same-peso .50 and next-peso .00 values", () => {
+    expect(documentReturnOptions("1298.57")).toEqual(["1298.00", "1298.50", "1299.00"]);
+    expect(documentReturnOptions("1298.99")).toEqual(["1298.00", "1298.50", "1299.00"]);
+    expect(documentReturnOptions("0.50")).toEqual(["0.00", "0.50", "1.00"]);
+  });
+});
+
+describe("denominationBreakdownKey", () => {
+  it("canonicalizes order and zero quantities for comparison with the saved breakdown", () => {
+    expect(denominationBreakdownKey([
+      { value: "500.00", quantity: 1 },
+      { value: "1000.00", quantity: 0 },
+    ])).toBe(denominationBreakdownKey([
+      { value: "1000.00", quantity: 0 },
+      { value: "500.00", quantity: 1 },
+    ]));
+
+    expect(denominationBreakdownKey([{ value: "500.00", quantity: 2 }]))
+      .not.toBe(denominationBreakdownKey([{ value: "500.00", quantity: 1 }]));
   });
 });
 

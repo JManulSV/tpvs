@@ -158,7 +158,8 @@ Responsibilities:
 ### Cash Breakdown Module
 Responsibilities:
 - store denomination quantities under `Delivery`;
-- validate the sum of delivery cash denominations against the current Record return amount;
+- accept preparation cash no more than `$1.00` below the official Record return and allow excess cash, using integer-cent arithmetic;
+- validate Word cash reconciliation against a transient selected document amount and customer-change declaration;
 - keep only denominations with quantity greater than zero.
 - support the official `0.50` denomination.
 

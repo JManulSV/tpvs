@@ -2,13 +2,17 @@
 
 namespace App\Domain\Deliveries;
 
+use App\Domain\Documents\Exceptions\DocumentGenerationBlockedException;
 use App\Models\Record;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class DeliveryValidator
 {
+    public const DOCUMENT_CASH_TOLERANCE_CENTS = 100;
+
     public const DENOMINATIONS = [
         '1000.00',
         '500.00',
@@ -31,6 +35,47 @@ class DeliveryValidator
     public function currentReturnAmount(Record $record): string
     {
         return $this->fromCents($this->currentReturnCents($record));
+    }
+
+    /**
+     * The document amount choices are the current whole peso, the same peso
+     * plus fifty cents, and the next whole peso.
+     *
+     * @return array{string, string, string}
+     */
+    public function documentReturnOptions(string $officialReturnAmount): array
+    {
+        $officialReturnCents = $this->amountCents($officialReturnAmount);
+
+        if ($officialReturnCents < 0) {
+            throw new InvalidArgumentException('The official return amount must not be negative.');
+        }
+
+        $wholePesoCents = intdiv($officialReturnCents, 100) * 100;
+
+        return [
+            $this->fromCents($wholePesoCents),
+            $this->fromCents($wholePesoCents + 50),
+            $this->fromCents($wholePesoCents + 100),
+        ];
+    }
+
+    public function isDocumentReturnOption(string $officialReturnAmount, string $documentReturnAmount): bool
+    {
+        try {
+            $canonicalDocumentAmount = $this->canonicalAmount($documentReturnAmount);
+            if ($canonicalDocumentAmount === null) {
+                return false;
+            }
+
+            return in_array(
+                $canonicalDocumentAmount,
+                $this->documentReturnOptions($officialReturnAmount),
+                true,
+            );
+        } catch (InvalidArgumentException) {
+            return false;
+        }
     }
 
     public function isStale(string $preparedReturnAmount, string $currentReturnAmount): bool
@@ -128,6 +173,107 @@ class DeliveryValidator
             'expected_amount' => $this->fromCents($expectedCents),
             'cash_amount' => $this->fromCents($cashCents),
             'difference' => $this->fromCents($cashCents - $expectedCents),
+        ];
+    }
+
+    /**
+     * At preparation time, allow up to one peso of missing cash and any excess.
+     * Preserve the existing rule that an empty normalized breakdown is valid
+     * only for a zero return.
+     *
+     * @param  array<int, array{value?: mixed, quantity?: mixed}>  $denominations
+     * @return array{expected_amount: string, cash_amount: string, difference: string}|null
+     */
+    public function preparationCashShortfall(string $expectedAmount, array $denominations): ?array
+    {
+        $expectedCents = $this->amountCents($expectedAmount);
+        $cashCents = $this->cashTotalCents($denominations);
+        $differenceCents = $cashCents - $expectedCents;
+
+        if ($differenceCents >= -self::DOCUMENT_CASH_TOLERANCE_CENTS
+            && ! ($expectedCents > 0 && $this->canonicalizeDenominations($denominations) === [])) {
+            return null;
+        }
+
+        return [
+            'expected_amount' => $this->fromCents($expectedCents),
+            'cash_amount' => $this->fromCents($cashCents),
+            'difference' => $this->fromCents($differenceCents),
+        ];
+    }
+
+    /**
+     * Compare gross cash with the selected document amount and determine
+     * whether change is required or may be printed.
+     *
+     * @param  array<int, array{value?: mixed, quantity?: mixed}>  $denominations
+     * @return array{expected_amount: string, cash_amount: string, difference: string, change_amount: ?string, reason: ?string}
+     */
+    public function documentCashReconciliation(
+        string $documentReturnAmount,
+        array $denominations,
+        bool $customerWillGiveChange,
+    ): array {
+        $expectedCents = $this->amountCents($documentReturnAmount);
+        $cashCents = $this->cashTotalCents($denominations);
+        $differenceCents = $cashCents - $expectedCents;
+        $reason = null;
+        $changeAmount = null;
+
+        if ($differenceCents < -self::DOCUMENT_CASH_TOLERANCE_CENTS) {
+            $reason = DocumentGenerationBlockedException::CASH_MISMATCH;
+        } elseif ($differenceCents > self::DOCUMENT_CASH_TOLERANCE_CENTS) {
+            if ($customerWillGiveChange) {
+                $changeAmount = $this->fromCents($differenceCents);
+            } else {
+                $reason = DocumentGenerationBlockedException::CHANGE_REQUIRED;
+            }
+        }
+
+        return [
+            'expected_amount' => $this->fromCents($expectedCents),
+            'cash_amount' => $this->fromCents($cashCents),
+            'difference' => $this->fromCents($differenceCents),
+            'change_amount' => $changeAmount,
+            'reason' => $reason,
+        ];
+    }
+
+    /**
+     * @param  array<int, array{value?: mixed, quantity?: mixed}>  $denominations
+     * @return array{expected_amount: string, cash_amount: string, difference: string, change_amount: ?string}
+     */
+    public function validateDocumentCashReconciliation(
+        string $officialReturnAmount,
+        string $documentReturnAmount,
+        array $denominations,
+        bool $customerWillGiveChange,
+    ): array {
+        if (! $this->isDocumentReturnOption($officialReturnAmount, $documentReturnAmount)) {
+            throw ValidationException::withMessages([
+                'document_return_amount' => ['The document return amount is not an allowed adjustment for the current return.'],
+            ]);
+        }
+
+        $reconciliation = $this->documentCashReconciliation(
+            $documentReturnAmount,
+            $denominations,
+            $customerWillGiveChange,
+        );
+
+        if ($reconciliation['reason'] !== null) {
+            throw new DocumentGenerationBlockedException($reconciliation['reason'], [
+                'expected_amount' => $reconciliation['expected_amount'],
+                'cash_amount' => $reconciliation['cash_amount'],
+                'difference' => $reconciliation['difference'],
+            ]);
+        }
+
+        return [
+            'expected_amount' => $reconciliation['expected_amount'],
+            'cash_amount' => $reconciliation['cash_amount'],
+            'difference' => $reconciliation['difference'],
+            'change_amount' => $reconciliation['change_amount'],
         ];
     }
 
