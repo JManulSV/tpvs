@@ -1,6 +1,6 @@
 # SPEC 15 — Tokens de diseño y fundamentos de UI
 
-> **Status:** Draft
+> **Status:** Approved
 > **Depends on:** SPEC 02, SPEC 04, SPEC 09, SPEC 10, SPEC 11, SPEC 13
 > **Date:** 2026-11-05
 > **Objective:** Sustituir el tema neutro de shadcn por los tokens de marca INNOVA con tema claro/oscuro, tipografía, primitivos ajustados y utilidades únicas de estado y formato, sin rediseñar las pantallas.
