@@ -4,7 +4,7 @@ This directory documents how the TPVS backend is implemented and operated with L
 
 ## Current Status
 
-Status: Laravel foundation, authentication, Companies, manual Records, private Record images, and SPEC 08 backend implementation are present and verified against PostgreSQL. History, deliveries, reports, and frontend AI review remain planned.
+Status: Laravel foundation, authentication, Companies, Records, private Record images, AI processing, delivery preparation and Word generation (including SPEC 14 cash adjustment), history, and reports are implemented and covered by automated checks. See the roadmap and feature contracts for checkpoint evidence.
 
 Implemented:
 

@@ -73,12 +73,6 @@ export function DeliveryForm({
   const customerChangeIsRequired = documentDifferenceCents > 100;
 
   useEffect(() => {
-    if (!customerChangeIsRequired && customerWillGiveChange) {
-      onCustomerWillGiveChangeChange(false);
-    }
-  }, [customerChangeIsRequired, customerWillGiveChange, onCustomerWillGiveChangeChange]);
-
-  useEffect(() => {
     form.reset(buildFormValues(delivery));
   }, [delivery?.id, delivery?.updated_at, form, delivery]);
 
