@@ -1,0 +1,175 @@
+/* INNOVA → shadcn/ui (Tailwind v4, App Router).
+   Pega esto en app/globals.css después de `@import "tailwindcss";` y reemplaza el bloque :root/.dark que genera shadcn.
+   Los valores salen de tokens.json; si cambian allí, cámbialos aquí. */
+
+:root {
+  --radius: 1rem; /* radius-lg = 16px */
+
+  --background: #EEF3F8;          /* canvas */
+  --foreground: #17203A;          /* ink */
+  --card: #FFFFFF;                /* surface */
+  --card-foreground: #17203A;
+  --popover: #FFFFFF;
+  --popover-foreground: #17203A;
+  --primary: #324168;             /* primary (brand-navy) */
+  --primary-foreground: #FFFFFF;  /* on-primary */
+  --secondary: #E3F1FA;           /* accent-soft */
+  --secondary-foreground: #1B5C85;/* accent-soft-ink */
+  --muted: #F5F8FC;               /* surface-muted */
+  --muted-foreground: #4F5B77;    /* ink-muted */
+  --accent: #E3F1FA;
+  --accent-foreground: #1B5C85;
+  --destructive: #B3261E;
+  --destructive-foreground: #FFFFFF;
+  --border: #DBE4EE;
+  --input: #6F819C;               /* border-strong: borde de inputs */
+  --ring: #324168;
+  --overlay: rgba(23, 32, 58, 0.40);
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #4F5B77;
+  --sidebar-primary: #E3F1FA;
+  --sidebar-primary-foreground: #1B5C85;
+  --sidebar-accent: #F5F8FC;
+  --sidebar-accent-foreground: #17203A;
+  --sidebar-border: #DBE4EE;
+  --sidebar-ring: #324168;
+
+  --chart-1: #324168;
+  --chart-2: #2F88BA;
+
+  --hero: #324168;
+  --on-hero: #FFFFFF;
+  --brand-sky: #64B3DD;
+
+  --status-confirmed: #0F6B3A;     --status-confirmed-bg: #E3F5EA;
+  --status-needs-review: #8A4B00;  --status-needs-review-bg: #FDF0D8;
+  --status-error: #A3202A;         --status-error-bg: #FCE6E7;
+  --status-processing: #4D3FA3;    --status-processing-bg: #ECE9FB;
+  --status-pending: #46526C;       --status-pending-bg: #E8EDF4;
+  --status-canceled: #5B6478;      --status-canceled-bg: #EEF0F4;
+
+  --shadow-card: 0 1px 2px rgba(23, 32, 58, 0.05), 0 4px 16px rgba(23, 32, 58, 0.04);
+  --shadow-popover: 0 8px 32px rgba(23, 32, 58, 0.14);
+}
+
+.dark {
+  --background: #0D1426;
+  --foreground: #EAF0F8;
+  --card: #151E36;
+  --card-foreground: #EAF0F8;
+  --popover: #151E36;
+  --popover-foreground: #EAF0F8;
+  --primary: #64B3DD;
+  --primary-foreground: #0D1426;
+  --secondary: #1D3552;
+  --secondary-foreground: #9ED2EE;
+  --muted: #1B2744;
+  --muted-foreground: #A9B6CF;
+  --accent: #1D3552;
+  --accent-foreground: #9ED2EE;
+  --destructive: #F2918B;
+  --destructive-foreground: #2A0A08;
+  --border: #2B3858;
+  --input: #6C7FA3;
+  --ring: #64B3DD;
+  --overlay: rgba(0, 0, 0, 0.60);
+
+  --sidebar: #151E36;
+  --sidebar-foreground: #A9B6CF;
+  --sidebar-primary: #1D3552;
+  --sidebar-primary-foreground: #9ED2EE;
+  --sidebar-accent: #1B2744;
+  --sidebar-accent-foreground: #EAF0F8;
+  --sidebar-border: #2B3858;
+  --sidebar-ring: #64B3DD;
+
+  --chart-1: #C9D5F7;
+  --chart-2: #3F8FBF;
+
+  --hero: #243B6E;
+
+  --status-confirmed: #7DD9A4;     --status-confirmed-bg: #12301F;
+  --status-needs-review: #F5C26B;  --status-needs-review-bg: #3A2A0C;
+  --status-error: #F5A0A6;         --status-error-bg: #3D1519;
+  --status-processing: #BDB3F5;    --status-processing-bg: #261F52;
+  --status-pending: #B4C0D6;       --status-pending-bg: #232E4A;
+  --status-canceled: #98A4BC;      --status-canceled-bg: #1C2438;
+
+  --shadow-card: none;
+  --shadow-popover: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+@theme inline {
+  --font-sans: var(--font-plus-jakarta), system-ui, sans-serif; /* next/font/google: Plus_Jakarta_Sans, variable: "--font-plus-jakarta" */
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 8px);  /*  8px: inputs */
+  --radius-md: calc(var(--radius) - 4px);  /* 12px: iconos de métrica, nav, alertas */
+  --radius-lg: var(--radius);              /* 16px: tarjetas */
+  --radius-xl: calc(var(--radius) + 8px);  /* 24px: hero, sidebar, diálogos */
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+
+  --color-hero: var(--hero);
+  --color-on-hero: var(--on-hero);
+  --color-brand-sky: var(--brand-sky);
+
+  --color-status-confirmed: var(--status-confirmed);
+  --color-status-confirmed-bg: var(--status-confirmed-bg);
+  --color-status-needs-review: var(--status-needs-review);
+  --color-status-needs-review-bg: var(--status-needs-review-bg);
+  --color-status-error: var(--status-error);
+  --color-status-error-bg: var(--status-error-bg);
+  --color-status-processing: var(--status-processing);
+  --color-status-processing-bg: var(--status-processing-bg);
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-bg: var(--status-pending-bg);
+  --color-status-canceled: var(--status-canceled);
+  --color-status-canceled-bg: var(--status-canceled-bg);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-popover: var(--shadow-popover);
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground font-sans; }
+  /* Cifras de dinero y totales: siempre tabulares. Úsalo como clase `tabular-nums` de Tailwind. */
+}
+
+/* Escala de radios (fuente de verdad: estos tokens CSS):
+   rounded-sm: 8px (inputs)
+   rounded-md: 12px (iconos de métrica, navegación, alertas)
+   rounded-lg: 16px (tarjetas)
+   rounded-xl: 24px (hero, sidebar, diálogos)
+   rounded-full: píldora (botones, badges, buscador, controles segmentados) */
