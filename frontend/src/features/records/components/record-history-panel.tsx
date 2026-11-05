@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { formatDateTime, formatMoney } from "@/lib/format";
 import { recordStatusMeta, type RecordStatus } from "@/lib/status";
 import { useRecordHistory } from "../hooks/use-records";
 
@@ -45,7 +46,7 @@ export function fieldLabel(fieldName: string): string {
   if (deliveryFieldLabels[fieldName] !== undefined) return deliveryFieldLabels[fieldName];
 
   const denominationMatch = denominationPattern.exec(fieldName);
-  if (denominationMatch !== null) return `Denominación ${money(denominationMatch[1])}`;
+   if (denominationMatch !== null) return `Denominación ${formatMoney(denominationMatch[1])}`;
 
   if (eventLabels[fieldName] !== undefined) return eventLabels[fieldName];
   if (recordFieldLabels[fieldName] !== undefined) return recordFieldLabels[fieldName];
@@ -57,30 +58,19 @@ export function fieldLabel(fieldName: string): string {
   return `Movimiento ${order} · ${detailFieldLabels[field] ?? field}`;
 }
 
-function money(value: string): string {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(value));
-}
-
 function displayValue(fieldName: string, value: string | null): string {
   if (value === null) return "—";
   if (fieldName === "status" || fieldName === "record_created") {
     return recordStatusMeta[value as RecordStatus]?.label ?? value;
   }
-  if (fieldName === "prepared_return_amount") return money(value);
+  if (fieldName === "prepared_return_amount") return formatMoney(value);
   if (denominationPattern.test(fieldName)) return value;
   if (fieldName.endsWith(".income") || fieldName.endsWith(".commission") || fieldName.endsWith(".return_amount")) {
-    return money(value);
+    return formatMoney(value);
   }
   if (fieldName.endsWith(".commission_percentage")) return `${value}%`;
 
   return value;
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 export function RecordHistoryPanel({ recordId }: { recordId: number }) {
@@ -136,7 +126,7 @@ export function RecordHistoryPanel({ recordId }: { recordId: number }) {
               <tbody>
                 {entries.map((entry) => (
                   <tr className="border-t align-top" key={entry.id}>
-                    <td className="px-4 py-3 whitespace-nowrap">{formatDate(entry.created_at)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(entry.created_at)}</td>
                     <td className="px-4 py-3">
                       <span className="block">{entry.user.name}</span>
                       <span className="block text-xs text-muted-foreground">{entry.user.email}</span>

@@ -5,16 +5,12 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
+import { formatMoney } from "@/lib/format";
 import { recordStatusMeta } from "@/lib/status";
 import { recordSources, recordStatuses, type RecordListParams, type RecordStatus } from "../types";
 import { useRecords } from "../hooks/use-records";
 
 const PAGE_SIZE = 15;
-
-function money(value: string | null | undefined) {
-  if (value === null) return "—";
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(value));
-}
 
 export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
   const [searchInput, setSearchInput] = useState("");
@@ -126,7 +122,7 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
                     </th>
                     <td className="px-4 py-3">{record.week ? `Semana ${record.week}` : "Sin semana"}{record.year ? ` · ${record.year}` : ""}<br /><span className="text-muted-foreground">{record.week_start_date ?? "—"} – {record.week_end_date ?? "—"}</span></td>
                     <td className="px-4 py-3">{record.details.length ? record.details.map((detail) => <span className="block" key={detail.id}>{detail.affiliation ?? "—"}<br /><span className="text-muted-foreground">{detail.branch ?? "—"}</span></span>) : "—"}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{money(record.return_total)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.return_total)}</td>
                     <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
                     <td className="px-4 py-3">{record.source === "MANUAL" ? "Manual" : "Imagen"}</td>
                   </tr>

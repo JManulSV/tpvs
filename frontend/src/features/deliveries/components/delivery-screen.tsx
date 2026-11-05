@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/format";
 import { useRecord } from "@/features/records/hooks/use-records";
 import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";
@@ -12,7 +13,6 @@ import {
   denominationBreakdownKey,
   denominationsTotalCents,
   documentReturnOptions,
-  formatMoney,
   toCents,
 } from "../utils";
 import { DeliveryDocumentAction } from "./delivery-document-action";
