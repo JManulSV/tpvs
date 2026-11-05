@@ -1,11 +1,6 @@
 import type { RecordStatus } from "@/features/records/types";
 import { officialDenominationValues, type Delivery } from "./types";
 
-const currencyFormatter = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-});
-
 export function toCents(amount: string | number | null | undefined): number {
   if (amount === null || amount === undefined || amount === "") {
     return 0;
@@ -29,14 +24,6 @@ export function centsToAmount(cents: number): string {
   const absolute = Math.abs(Math.trunc(cents));
 
   return `${sign}${Math.floor(absolute / 100)}.${String(absolute % 100).padStart(2, "0")}`;
-}
-
-export function formatMoney(amount: string | number | null | undefined): string {
-  if (amount === null || amount === undefined || amount === "") {
-    return "—";
-  }
-
-  return currencyFormatter.format(Number(amount));
 }
 
 export function denominationsTotalCents(

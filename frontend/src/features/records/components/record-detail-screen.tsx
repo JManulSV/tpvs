@@ -4,23 +4,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/status-badge";
+import { formatFileSize, formatMoney } from "@/lib/format";
 import { useDelivery } from "@/features/deliveries/hooks/use-deliveries";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
 import { getRecordActionPermissions } from "../record-actions";
 import { recordsService } from "../services/records.service";
-import { RecordsApiError, type AiProcessingStatus, type RecordStatus } from "../types";
+import { RecordsApiError, type AiProcessingStatus } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
 import { RecordActionDialog } from "./record-action-dialog";
 import { RecordHistoryPanel } from "./record-history-panel";
-
-const statusLabels: Record<RecordStatus, string> = {
-  PENDING: "Pendiente",
-  PROCESSING: "Procesando",
-  NEEDS_REVIEW: "Necesita revisión",
-  ERROR: "Error",
-  CONFIRMED: "Confirmado",
-  CANCELED: "Cancelado",
-};
 
 const aiStatusLabels: Record<AiProcessingStatus, string> = {
   PENDING: "Pendiente",
@@ -29,20 +22,6 @@ const aiStatusLabels: Record<AiProcessingStatus, string> = {
   ERROR: "Error",
   COMPLETED: "Completado",
 };
-
-function money(value: string | null | undefined) {
-  if (value === null || value === undefined) return "—";
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(value));
-}
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-
-  const kilobytes = bytes / 1024;
-  if (kilobytes < 1024) return `${kilobytes.toFixed(1)} KB`;
-
-  return `${(kilobytes / 1024).toFixed(1)} MB`;
-}
 
 export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
   const recordQuery = useRecord(recordId);
@@ -182,7 +161,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
             Registro #{record.id} · {record.source === "MANUAL" ? "Captura manual" : "Origen imagen"} · Semana {record.week ?? "—"}, {record.year ?? "—"}
           </p>
         </div>
-        <span className="rounded-full border px-3 py-1 text-sm font-medium" role="status">{statusLabels[record.status]}</span>
+        <StatusBadge status={record.status} />
       </header>
 
       {isProcessing && (
@@ -274,20 +253,20 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
                   <td className="px-4 py-3 tabular-nums">{detail.order}</td>
                   <td className="px-4 py-3">{detail.affiliation ?? "—"}</td>
                   <td className="px-4 py-3">{detail.branch ?? "—"}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{money(detail.income)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{formatMoney(detail.income)}</td>
                   <td className="px-4 py-3 text-right tabular-nums">
-                    {money(detail.commission)}{detail.commission_percentage !== null && <span className="block text-xs text-muted-foreground">{detail.commission_percentage}%</span>}
+                    {formatMoney(detail.commission)}{detail.commission_percentage !== null && <span className="block text-xs text-muted-foreground">{detail.commission_percentage}%</span>}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{money(detail.return_amount)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{formatMoney(detail.return_amount)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot className="border-t bg-muted/30 font-semibold">
               <tr>
                 <th className="px-4 py-3" colSpan={3} scope="row">Totales calculados por el servidor</th>
-                <td className="px-4 py-3 text-right tabular-nums">{money(record.income_total)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{money(record.commission_total)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{money(record.return_total)}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.income_total)}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.commission_total)}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.return_total)}</td>
               </tr>
             </tfoot>
           </table>

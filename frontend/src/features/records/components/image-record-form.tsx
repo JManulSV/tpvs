@@ -3,20 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { formatFileSize } from "@/lib/format";
 import { useCreateRecordFromImage } from "../hooks/use-records";
 import { RecordsApiError } from "../types";
 
 const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxImageBytes = 10 * 1024 * 1024;
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-
-  const kilobytes = bytes / 1024;
-  if (kilobytes < 1024) return `${kilobytes.toFixed(1)} KB`;
-
-  return `${(kilobytes / 1024).toFixed(1)} MB`;
-}
 
 export function ImageRecordForm() {
   const router = useRouter();

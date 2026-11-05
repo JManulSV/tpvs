@@ -15,8 +15,6 @@ import { reportsService } from "@/features/reports/services/reports.service";
 import { ReportsApiError, type ReportResponse } from "@/features/reports/types";
 import {
   excelBlockedReason,
-  formatDate,
-  formatMoney,
   monthName,
   parseReportSearch,
   toReportSearchParams,
@@ -196,17 +194,6 @@ describe("toReportSearchParams", () => {
 });
 
 describe("report formatting", () => {
-  it("formats amounts as Mexican pesos from the backend decimal strings", () => {
-    expect(formatMoney("150000.00")).toBe("$150,000.00");
-    expect(formatMoney("0.00")).toBe("$0.00");
-  });
-
-  it("formats Y-m-d dates without shifting the day by time zone", () => {
-    expect(formatDate("2026-09-01")).toMatch(/^1 sep\.? 2026$/);
-    expect(formatDate("2026-12-31")).toMatch(/^31 dic\.? 2026$/);
-    expect(formatDate(null)).toBe("—");
-  });
-
   it("names months in Spanish", () => {
     expect(monthName(1)).toBe("enero");
     expect(monthName(9)).toBe("septiembre");

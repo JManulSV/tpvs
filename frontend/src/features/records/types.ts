@@ -1,17 +1,10 @@
 import axios from "axios";
+import type { RecordStatus } from "@/lib/status";
+
+export { recordStatuses, type RecordStatus } from "@/lib/status";
 
 export const recordSources = ["IMAGE", "MANUAL"] as const;
 export type RecordSource = (typeof recordSources)[number];
-
-export const recordStatuses = [
-  "PENDING",
-  "PROCESSING",
-  "NEEDS_REVIEW",
-  "ERROR",
-  "CONFIRMED",
-  "CANCELED",
-] as const;
-export type RecordStatus = (typeof recordStatuses)[number];
 
 export const aiProcessingStatuses = [
   "PENDING",

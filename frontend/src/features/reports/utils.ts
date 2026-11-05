@@ -1,4 +1,5 @@
 import type { ReportFilters, ReportSearch } from "./types";
+export { formatDate, formatMoney } from "@/lib/format";
 
 type ParamReader = { get(name: string): string | null };
 
@@ -40,23 +41,6 @@ export function toReportSearchParams(filters: ReportFilters, page = 1): URLSearc
   if (page > 1) params.set("page", String(page));
 
   return params;
-}
-
-export function formatMoney(value: string): string {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(value));
-}
-
-/** Formats a `Y-m-d` date without going through the local time zone. */
-export function formatDate(value: string | null): string {
-  if (value === null) return "—";
-
-  const [year, month, day] = value.split("-").map(Number);
-
-  if (!year || !month || !day) return value;
-
-  return new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(
-    new Date(Date.UTC(year, month - 1, day)),
-  );
 }
 
 export function monthName(month: number): string {

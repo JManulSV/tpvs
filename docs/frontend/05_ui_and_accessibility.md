@@ -1,5 +1,17 @@
 # UI and Accessibility
 
+## Design system
+
+- The INNOVA design tokens are the source of truth in `frontend/src/app/globals.css`; the reference theme is `docs/design/shadcn-theme.css`. Keep their `:root` and `.dark` color values synchronized.
+- Use semantic theme and status utilities such as `bg-background`, `text-foreground`, `bg-primary`, and `text-status-confirmed`. Do not add literal color values or Tailwind palette colors in feature UI; add or reuse a named token instead.
+- Always use `primary` with its paired `primary-foreground`. In dark mode, the sky-blue primary (`#64B3DD`) uses dark foreground text (`#0D1426`), never white text.
+- Follow the CSS radius scale: `rounded-sm` 8 px for inputs, `rounded-md` 12 px for metric icons/navigation/alerts, `rounded-lg` 16 px for cards, `rounded-xl` 24 px for hero/sidebar/dialogs, and `rounded-full` for pill controls, buttons, and badges.
+- Buttons and inputs use a visible keyboard focus ring of 2 px with a 2 px offset. Preserve `focus-visible` styling when composing or extending controls.
+- Pair status color with readable text and an icon; keep decorative icons `aria-hidden`. Use Lucide icons consistently, with 16 px icons in status badges. Animated status icons must honor reduced-motion preferences.
+- Apply `tabular-nums` to money, totals, and other columns of figures so digits align consistently.
+- Use `frontend/src/lib/status.ts` as the single source for record status labels, icons, and token classes. Render status with `StatusBadge` where the UI contract calls for a status indicator, and use the shared label for filters and history values.
+- Use `frontend/src/lib/format.ts` for money, calendar dates, date-times, and file sizes. Keep domain-specific date and amount calculations in their feature utilities.
+
 ## Status
 
 The project includes Tailwind CSS, shadcn/ui tooling, and initial UI primitives. The approved screen designs and flows are in [`../10_ui_ux.md`](../10_ui_ux.md); feature screens remain planned until implemented.

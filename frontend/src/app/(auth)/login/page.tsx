@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "@/features/auth/components/login-form";
 import { getSafeReturnTo } from "@/features/auth/safe-return-to";
 import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const instant = false;
 
@@ -33,14 +34,17 @@ async function LoginPageContent({ searchParams }: LoginPageProps) {
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center px-4 py-12">
-          <p className="text-sm text-muted-foreground">Cargando acceso…</p>
-        </main>
-      }
-    >
-      <LoginPageContent searchParams={searchParams} />
-    </Suspense>
+    <>
+      <ThemeToggle className="fixed right-4 top-4 z-10" />
+      <Suspense
+        fallback={
+          <main className="flex min-h-screen items-center justify-center px-4 py-12">
+            <p className="text-sm text-muted-foreground">Cargando acceso…</p>
+          </main>
+        }
+      >
+        <LoginPageContent searchParams={searchParams} />
+      </Suspense>
+    </>
   );
 }

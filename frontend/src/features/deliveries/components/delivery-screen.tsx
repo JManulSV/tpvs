@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/format";
 import { useRecord } from "@/features/records/hooks/use-records";
-import type { RecordStatus } from "@/features/records/types";
 import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";
 import {
@@ -12,20 +13,10 @@ import {
   denominationBreakdownKey,
   denominationsTotalCents,
   documentReturnOptions,
-  formatMoney,
   toCents,
 } from "../utils";
 import { DeliveryDocumentAction } from "./delivery-document-action";
 import { DeliveryForm } from "./delivery-form";
-
-const statusLabels: Record<RecordStatus, string> = {
-  PENDING: "Pendiente",
-  PROCESSING: "Procesando",
-  NEEDS_REVIEW: "Necesita revisión",
-  ERROR: "Error",
-  CONFIRMED: "Confirmado",
-  CANCELED: "Cancelado",
-};
 
 export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
   const recordQuery = useRecord(recordId);
@@ -92,9 +83,10 @@ export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; record
       <header className="space-y-2">
         <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href={`/records/${record.id}`}>← Registro</Link>
         <h1 className="text-2xl font-semibold tracking-tight" id="delivery-heading">Preparación de entrega</h1>
-        <p className="text-sm text-muted-foreground">
-          {record.company?.name ?? "Registro sin empresa"} · Semana {record.week ?? "—"}, {record.year ?? "—"} · {statusLabels[record.status]}
-        </p>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>{record.company?.name ?? "Registro sin empresa"} · Semana {record.week ?? "—"}, {record.year ?? "—"}</span>
+          <StatusBadge status={record.status} />
+        </div>
       </header>
 
       <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm, useWatch, type FieldPath } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/format";
 import { useUpsertDelivery } from "../hooks/use-deliveries";
 import { deliveryFormSchema, type DeliveryFormValues } from "../schemas/delivery.schema";
 import {
@@ -12,7 +13,7 @@ import {
   type Delivery,
   type DeliveryErrorDetails,
 } from "../types";
-import { centsToAmount, denominationsTotalCents, documentReturnOptions, formatMoney, toCents } from "../utils";
+import { centsToAmount, denominationsTotalCents, documentReturnOptions, toCents } from "../utils";
 
 type DeliveryFormProps = {
   recordId: number;
