@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Sidebar y topbar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+:root{--brand-navy:#324168;--brand-sky:#64B3DD;--canvas:#EEF3F8;--surface:#FFFFFF;--surface-muted:#F5F8FC;--border:#DBE4EE;--border-strong:#6F819C;--ink:#17203A;--ink-muted:#4F5B77;--primary:#324168;--primary-hover:#28345A;--on-primary:#FFFFFF;--accent-soft:#E3F1FA;--accent-soft-ink:#1B5C85;--ring:#324168;--status-error:#A3202A;--status-needs-review:#8A4B00;--status-needs-review-bg:#FDF0D8;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-pill:999px;--shadow-card:0 1px 2px rgba(23,32,58,.05),0 4px 16px rgba(23,32,58,.04);--shadow-popover:0 8px 32px rgba(23,32,58,.14);--font-sans:"Plus Jakarta Sans",system-ui,sans-serif}
+.root{box-sizing:border-box;min-height:900px;padding:16px;display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;background:var(--canvas);color:var(--ink);font-family:var(--font-sans);font-size:14px;line-height:20px}
+.root *,.root *::before,.root *::after{box-sizing:border-box}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sidebar{flex:none;display:flex;flex-direction:column;gap:4px;width:248px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl)}
+.brand{display:flex;align-items:center;gap:12px;padding:0 8px 16px;font:700 20px/28px var(--font-sans);letter-spacing:-.01em}
+.brand img{width:36px;height:36px;border-radius:var(--radius-pill);object-fit:cover}
+.nav-label{padding:16px 12px 8px;font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+.nav-item{position:relative;display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 12px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--ink-muted);font:600 14px/20px var(--font-sans);text-align:left;text-decoration:none;cursor:pointer;transition:background-color .15s ease}
+.nav-item:hover{background:var(--surface-muted);color:var(--ink)}
+.nav-item:focus-visible,.icon-btn:focus-visible,.btn:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.nav-item[aria-current="page"]{background:var(--accent-soft);color:var(--accent-soft-ink)}
+.nav-item .ic{width:20px;height:20px}
+.nav-item.danger{color:var(--status-error)}
+.nav-count{margin-left:auto;min-width:22px;height:22px;padding:0 6px;display:grid;place-items:center;border-radius:var(--radius-pill);background:var(--status-needs-review-bg);color:var(--status-needs-review);font:700 12px/16px var(--font-sans)}
+.avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:var(--radius-pill);background:var(--accent-soft);color:var(--accent-soft-ink);font:700 13px/16px var(--font-sans)}
+.user-row{display:flex;align-items:center;gap:12px;padding:8px 12px}
+.collapsed .sidebar{width:72px;padding:16px 12px}
+.collapsed .lbl{display:none}
+.collapsed .brand{justify-content:center;padding:0 0 16px;font-size:14px}
+.collapsed .nav-item{justify-content:center;padding:0}
+.collapsed .nav-count{position:absolute;top:2px;right:2px;margin:0;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:14px}
+.collapsed .user-row{justify-content:center;padding:8px 0}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card)}
+.search{flex:1 1 320px;max-width:640px;display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-pill);color:var(--ink-muted)}
+.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font:400 14px/20px var(--font-sans)}
+.search input::placeholder{color:var(--ink-muted)}
+.search:focus-within{outline:2px solid var(--ring);outline-offset:2px}
+.kbd{padding:2px 8px;border:1px solid var(--border);border-radius:var(--radius-pill);background:var(--surface-muted);color:var(--ink-muted);font:600 12px/16px var(--font-sans)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 20px;border:1px solid transparent;border-radius:var(--radius-pill);background:var(--accent-soft);color:var(--accent-soft-ink);font:600 14px/20px var(--font-sans);cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+.btn:hover{border-color:var(--accent-soft-ink)}
+.icon-btn{display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink-muted);cursor:pointer;transition:background-color .15s ease}
+.icon-btn:hover{background:var(--surface-muted);color:var(--ink)}
+.icon-btn .ic{width:20px;height:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card)}
+.sk{background:var(--surface-muted);border-radius:var(--radius-pill)}
+</style>
+</helmet>
+<div class="root {{ modeClass }}">
+  <nav class="sidebar" aria-label="Principal">
+    <div class="brand"><span>Tpvs</span></div>
+    <div class="nav-label lbl">Sistema</div>
+    <button type="button" class="nav-item" title="Dashboard" aria-current="{{ cur.dashboard }}" onClick="{{ go.dashboard }}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+      <span class="lbl">Dashboard</span>
+    </button>
+    <button type="button" class="nav-item" title="Registros" aria-current="{{ cur.registros }}" onClick="{{ go.registros }}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8"/></svg>
+      <span class="lbl">Registros</span>
+      <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ true }}">
+        <span class="nav-count" aria-label="4 registros por revisar">4</span>
+      </sc-if>
+    </button>
+    <button type="button" class="nav-item" title="Empresas" aria-current="{{ cur.empresas }}" onClick="{{ go.empresas }}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
+      <span class="lbl">Empresas</span>
+    </button>
+    <button type="button" class="nav-item" title="Reportes" aria-current="{{ cur.reportes }}" onClick="{{ go.reportes }}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"/></svg>
+      <span class="lbl">Reportes</span>
+    </button>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 4px">
+      <div class="nav-label lbl">Cuenta</div>
+      <div class="user-row">
+        <span class="avatar" aria-hidden="true">ML</span>
+        <span class="lbl"><span style="display: block; font-weight: 600">María López</span><span style="display: block; font: 500 12px/16px var(--font-sans); color: var(--ink-muted)">{{ roleLabel }}</span></span>
+      </div>
+      <button type="button" class="nav-item danger" title="Cerrar sesión">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        <span class="lbl">Cerrar sesión</span>
+      </button>
+    </div>
+  </nav>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+    <header class="topbar">
+      <label class="search">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" placeholder="Buscar empresa, afiliación o sucursal…" aria-label="Buscar">
+        <span class="kbd" aria-hidden="true">⌘K</span>
+      </label>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 12px">
+        <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ true }}">
+          <button type="button" class="btn">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>
+            Nuevo registro
+          </button>
+        </sc-if>
+        <button type="button" class="icon-btn" aria-label="Notificaciones">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+        </button>
+        <div style="display: flex; align-items: center; gap: 12px; padding-left: 12px; border-left: 1px solid var(--border)">
+          <span class="avatar" aria-hidden="true">ML</span>
+          <span><span style="display: block; font-weight: 600">María López</span><span style="display: block; font: 500 12px/16px var(--font-sans); color: var(--ink-muted)">{{ roleLabel }}</span></span>
+        </div>
+      </div>
+    </header>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font: 700 24px/32px var(--font-sans); letter-spacing: -0.01em">{{ pageTitle }}</h1>
+      <span style="font: 500 12px/16px var(--font-sans); color: var(--ink-muted)">Semana 38 · 28 ago – 15 sep</span>
+    </div>
+    <div aria-hidden="true" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px">
+      <div class="card" style="display: flex; align-items: center; gap: 16px; padding: 16px 20px"><div class="sk" style="width: 44px; height: 44px; border-radius: var(--radius-md)"></div><div style="flex: 1; display: flex; flex-direction: column; gap: 8px"><div class="sk" style="height: 20px; width: 50%"></div><div class="sk" style="height: 12px; width: 80%"></div></div></div>
+      <div class="card" style="display: flex; align-items: center; gap: 16px; padding: 16px 20px"><div class="sk" style="width: 44px; height: 44px; border-radius: var(--radius-md)"></div><div style="flex: 1; display: flex; flex-direction: column; gap: 8px"><div class="sk" style="height: 20px; width: 50%"></div><div class="sk" style="height: 12px; width: 80%"></div></div></div>
+      <div class="card" style="display: flex; align-items: center; gap: 16px; padding: 16px 20px"><div class="sk" style="width: 44px; height: 44px; border-radius: var(--radius-md)"></div><div style="flex: 1; display: flex; flex-direction: column; gap: 8px"><div class="sk" style="height: 20px; width: 50%"></div><div class="sk" style="height: 12px; width: 80%"></div></div></div>
+      <div class="card" style="display: flex; align-items: center; gap: 16px; padding: 16px 20px"><div class="sk" style="width: 44px; height: 44px; border-radius: var(--radius-md)"></div><div style="flex: 1; display: flex; flex-direction: column; gap: 8px"><div class="sk" style="height: 20px; width: 50%"></div><div class="sk" style="height: 12px; width: 80%"></div></div></div>
+    </div>
+    <div class="card" aria-hidden="true" style="flex: 1; min-height: 280px; display: flex; flex-direction: column; gap: 20px; padding: 24px">
+      <div class="sk" style="height: 20px; width: 220px"></div>
+      <div class="sk" style="height: 44px; border-radius: var(--radius-md)"></div>
+      <div class="sk" style="height: 44px; border-radius: var(--radius-md)"></div>
+      <div class="sk" style="height: 44px; border-radius: var(--radius-md)"></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"rol":{"editor":"enum","options":["editor","viewer"],"default":"editor"},"colapsado":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { active: 'dashboard' };
+  }
+  renderVals() {
+    const active = this.state.active;
+    const titles = { dashboard: 'Dashboard', registros: 'Registros', empresas: 'Empresas', reportes: 'Reportes' };
+    const ids = ['dashboard', 'registros', 'empresas', 'reportes'];
+    const cur = {};
+    const go = {};
+    ids.forEach((id) => {
+      cur[id] = id === active ? 'page' : 'false';
+      go[id] = () => this.setState({ active: id });
+    });
+    const isEditor = (this.props.rol ?? 'editor') === 'editor';
+    return {
+      cur: cur,
+      go: go,
+      pageTitle: titles[active],
+      isEditor: isEditor,
+      roleLabel: isEditor ? 'Editor' : 'Viewer',
+      modeClass: this.props.colapsado ? 'collapsed' : 'expanded'
+    };
+  }
+}
+</script>
+</body>
+</html>

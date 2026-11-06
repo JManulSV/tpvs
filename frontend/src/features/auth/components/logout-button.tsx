@@ -1,36 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { authService } from "../services/auth.service";
-import { AuthApiError } from "../types";
+import { useLogout } from "../hooks/use-logout";
 
 export function LogoutButton() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  async function handleLogout() {
-    setErrorMessage(null);
-    setIsLoggingOut(true);
-
-    try {
-      await authService.logout();
-      queryClient.clear();
-      router.replace("/login");
-    } catch (error) {
-      setErrorMessage(
-        error instanceof AuthApiError
-          ? error.message
-          : "No se pudo cerrar la sesión. Inténtalo nuevamente.",
-      );
-    } finally {
-      setIsLoggingOut(false);
-    }
-  }
+  const { logout, isLoggingOut, errorMessage } = useLogout();
 
   return (
     <div className="flex flex-col items-end gap-2">
@@ -38,7 +12,7 @@ export function LogoutButton() {
         type="button"
         variant="outline"
         disabled={isLoggingOut}
-        onClick={handleLogout}
+        onClick={() => void logout()}
       >
         {isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
       </Button>
