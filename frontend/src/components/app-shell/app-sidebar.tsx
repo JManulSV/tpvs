@@ -43,7 +43,11 @@ function SidebarNavigation({
   }
 
   return (
-    <Sidebar collapsible="icon" variant="floating" className="p-2">
+    <Sidebar
+      collapsible="icon"
+      variant="floating"
+      className="top-4 bottom-4 h-auto p-2"
+    >
       <SidebarHeader className="gap-0 px-4 pb-4 pt-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
         <span className="text-center text-xl font-bold leading-7 tracking-tight group-data-[collapsible=icon]:text-sm group-data-[collapsible=icon]:leading-5">
           TPVS
