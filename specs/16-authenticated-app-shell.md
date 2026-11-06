@@ -1,6 +1,6 @@
 # SPEC 16 — Shell de la aplicación autenticada
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 02, SPEC 04, SPEC 15
 > **Date:** 2026-11-05
 > **Objective:** Reemplazar el header plano de `(app)/layout.tsx` por un shell con sidebar colapsable de shadcn y topbar, construido con los tokens INNOVA de SPEC 15, sin cambiar el contenido de las pantallas.
@@ -187,34 +187,34 @@ type AppShellProps = {
 
 ## Acceptance criteria
 
-- [ ] Existen `sidebar.tsx`, `dropdown-menu.tsx`, `sheet.tsx` y `tooltip.tsx` en `frontend/src/components/ui/`, y solo usan clases de tokens (sin colores literales ni de la paleta de Tailwind).
-- [ ] Ningún archivo de `frontend/src/components/app-shell/` importa de `@/features/`.
-- [ ] El sidebar muestra «Dashboard», «Registros», «Empresas» y «Reportes» en ese orden, y el texto «Inicio» ya no aparece en `(app)/layout.tsx` ni en `components/app-shell/`.
-- [ ] En `/records/12/delivery` el ítem «Registros» tiene `aria-current="page"` y ningún otro ítem lo tiene.
-- [ ] `isNavItemActive("/recordsx", "/records")` devuelve `false` y `isNavItemActive("/records/new", "/records")` devuelve `true`.
-- [ ] `getInitials("María López")` devuelve `"ML"`, `getInitials("Ana")` devuelve `"A"` y `getInitials("")` devuelve `"?"`.
-- [ ] A 1440 px el sidebar mide 248 px expandido y 72 px colapsado.
-- [ ] Al pulsar el botón de colapso, o `Ctrl/⌘+B`, el sidebar alterna, y al recargar conserva el estado sin destello del estado contrario.
-- [ ] En colapsado, cada ítem muestra un tooltip con su etiqueta al recibir foco o hover.
-- [ ] A 375 px el sidebar no ocupa espacio, el botón «Abrir menú» abre un drawer con la navegación completa, y pulsar un enlace navega y cierra el drawer.
-- [ ] Como `EDITOR`, con 3 registros en `NEEDS_REVIEW`, junto a «Registros» aparece «3» con `aria-label="3 registros por revisar"`.
-- [ ] Como `EDITOR`, con 0 registros en `NEEDS_REVIEW`, no aparece el contador.
-- [ ] Como `VIEWER`, no aparece el contador ni se hace la petición `GET /api/records?status=NEEDS_REVIEW`.
-- [ ] Tras confirmar un registro en revisión, el contador baja en uno sin recargar la página.
-- [ ] «Nuevo registro» aparece en el topbar solo para `EDITOR` y lleva a `/records/new`.
-- [ ] El input del buscador está `disabled`, tiene `aria-label="Buscar (próximamente)"` y no muestra `⌘K`.
-- [ ] El botón de notificaciones está `disabled` y tiene `aria-label="Notificaciones (próximamente)"`.
-- [ ] `ThemeToggle` está en el topbar y sigue alternando el tema.
-- [ ] El bloque de usuario muestra iniciales, nombre y «Editor» o «Viewer» según el rol, en el sidebar expandido y en el topbar.
-- [ ] El menú del avatar abre con teclado (Enter/Espacio), muestra el correo y «Cerrar sesión», y se cierra con Esc devolviendo el foco al disparador.
-- [ ] «Cerrar sesión» desde el sidebar y desde el menú del avatar termina la sesión y lleva a `/login`.
-- [ ] Si el cierre de sesión falla, aparece el mensaje de error con `role="alert"`.
-- [ ] Con Tab se recorren en orden el botón de colapso, los ítems del sidebar y los controles habilitados del topbar, y todos muestran el anillo de foco de 2 px.
-- [ ] Si `getAuthenticatedUser` lanza error, se muestra el mensaje de sesión a pantalla completa sin sidebar ni topbar.
-- [ ] La consola del navegador no muestra advertencias de hidratación en `/dashboard`, `/records` ni `/reports`, con el sidebar expandido ni colapsado.
-- [ ] `docs/frontend/05_ui_and_accessibility.md` tiene la sección «Application shell» y `docs/frontend/features/auth.md` documenta `useLogout` y las dos ubicaciones de «Cerrar sesión».
-- [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
-- [ ] Las pantallas del paso 9 se revisaron en claro y oscuro, a 1440, 1024 y 375 px, sin texto ilegible, controles invisibles ni scroll horizontal de página.
+- [x] Existen `sidebar.tsx`, `dropdown-menu.tsx`, `sheet.tsx` y `tooltip.tsx` en `frontend/src/components/ui/`, y solo usan clases de tokens (sin colores literales ni de la paleta de Tailwind).
+- [x] Ningún archivo de `frontend/src/components/app-shell/` importa de `@/features/`.
+- [x] El sidebar muestra «Dashboard», «Registros», «Empresas» y «Reportes» en ese orden, y el texto «Inicio» ya no aparece en `(app)/layout.tsx` ni en `components/app-shell/`.
+- [x] En `/records/12/delivery` el ítem «Registros» tiene `aria-current="page"` y ningún otro ítem lo tiene.
+- [x] `isNavItemActive("/recordsx", "/records")` devuelve `false` y `isNavItemActive("/records/new", "/records")` devuelve `true`.
+- [x] `getInitials("María López")` devuelve `"ML"`, `getInitials("Ana")` devuelve `"A"` y `getInitials("")` devuelve `"?"`.
+- [x] A 1440 px el sidebar mide 248 px expandido y 72 px colapsado.
+- [x] Al pulsar el botón de colapso, o `Ctrl/⌘+B`, el sidebar alterna, y al recargar conserva el estado sin destello del estado contrario.
+- [x] En colapsado, cada ítem muestra un tooltip con su etiqueta al recibir foco o hover.
+- [x] A 375 px el sidebar no ocupa espacio, el botón «Abrir menú» abre un drawer con la navegación completa, y pulsar un enlace navega y cierra el drawer.
+- [x] Como `EDITOR`, con 3 registros en `NEEDS_REVIEW`, junto a «Registros» aparece «3» con `aria-label="3 registros por revisar"`.
+- [x] Como `EDITOR`, con 0 registros en `NEEDS_REVIEW`, no aparece el contador.
+- [x] Como `VIEWER`, no aparece el contador ni se hace la petición `GET /api/records?status=NEEDS_REVIEW`.
+- [x] Tras confirmar un registro en revisión, el contador baja en uno sin recargar la página.
+- [x] «Nuevo registro» aparece en el topbar solo para `EDITOR` y lleva a `/records/new`.
+- [x] El input del buscador está `disabled`, tiene `aria-label="Buscar (próximamente)"` y no muestra `⌘K`.
+- [x] El botón de notificaciones está `disabled` y tiene `aria-label="Notificaciones (próximamente)"`.
+- [x] `ThemeToggle` está en el topbar y sigue alternando el tema.
+- [x] El bloque de usuario muestra iniciales, nombre y «Editor» o «Viewer» según el rol, en el sidebar expandido y en el topbar.
+- [x] El menú del avatar abre con teclado (Enter/Espacio), muestra el correo y «Cerrar sesión», y se cierra con Esc devolviendo el foco al disparador.
+- [x] «Cerrar sesión» desde el sidebar y desde el menú del avatar termina la sesión y lleva a `/login`.
+- [x] Si el cierre de sesión falla, aparece el mensaje de error con `role="alert"`.
+- [x] Con Tab se recorren en orden el botón de colapso, los ítems del sidebar y los controles habilitados del topbar, y todos muestran el anillo de foco de 2 px.
+- [x] Si `getAuthenticatedUser` lanza error, se muestra el mensaje de sesión a pantalla completa sin sidebar ni topbar.
+- [x] La consola del navegador no muestra advertencias de hidratación en `/dashboard`, `/records` ni `/reports`, con el sidebar expandido ni colapsado.
+- [x] `docs/frontend/05_ui_and_accessibility.md` tiene la sección «Application shell» y `docs/frontend/features/auth.md` documenta `useLogout` y las dos ubicaciones de «Cerrar sesión».
+- [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
+- [x] Las pantallas del paso 9 se revisaron en claro y oscuro, a 1440, 1024 y 375 px, sin texto ilegible, controles invisibles ni scroll horizontal de página.
 
 ## Decisions
 

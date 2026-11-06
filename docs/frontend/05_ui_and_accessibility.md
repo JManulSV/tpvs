@@ -16,6 +16,14 @@
 
 The project includes Tailwind CSS, shadcn/ui tooling, and initial UI primitives. The approved screen designs and flows are in [`../10_ui_ux.md`](../10_ui_ux.md); feature screens remain planned until implemented.
 
+## Application shell
+
+- The authenticated shared shell lives in `frontend/src/components/app-shell/`. It composes the collapsible sidebar, topbar, and each screen's existing content; screens keep their own `<h1>`.
+- The shell does not import feature code. Feature-specific pieces, including the `NEEDS_REVIEW` records badge and logout actions, are passed through slots by `frontend/src/app/(app)/layout.tsx`.
+- The desktop sidebar uses shadcn's floating variant and collapses to icons. Its expanded/collapsed state is stored in the `sidebar_state` cookie and read by the server layout to avoid an incorrect initial state. At viewports below 768 px the same navigation is shown in a drawer; selecting a route closes it.
+- Navigation links use `aria-current="page"` for the exact route or nested routes. In collapsed mode, each icon has a tooltip with the link label.
+- The sidebar's Cuenta section and topbar show the authenticated user's name, initials, and role. Role-specific actions remain controlled by the app layout and feature slots.
+
 ## Design and Component Use
 
 - Treat [`../10_ui_ux.md`](../10_ui_ux.md) as the source for MVP navigation, screen content, and role-specific experience.

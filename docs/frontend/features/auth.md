@@ -19,6 +19,12 @@ Implemented authentication routes:
 
 Login provides field validation, pending state, invalid-credential feedback, and a successful navigation outcome. Logout clears the visible user state and returns to the unauthenticated experience. Authenticated visits to `/login` redirect to `/dashboard`; `/` redirects according to session state.
 
+## Logout UI
+
+- Shared logout behavior lives in `frontend/src/features/auth/hooks/use-logout.ts`. It calls `authService.logout()`, clears the TanStack Query client, and replaces the current route with `/login`. Pending and error state are returned for the invoking control.
+- The authenticated shell offers logout in two places: `frontend/src/features/auth/components/logout-nav-item.tsx` in the sidebar and `frontend/src/features/auth/components/logout-menu-item.tsx` in the topbar account menu. Both use `useLogout` and display any failure next to the item that initiated it.
+- The legacy `frontend/src/features/auth/components/logout-button.tsx` also uses `useLogout` for other screens that need a standalone logout button.
+
 ## Approved Backend Session Contract
 
 Laravel uses Sanctum stateful SPA authentication and owns the database-backed session. It sets the `tpvs_session` browser-session cookie with `HttpOnly` and `SameSite=Lax`. Secure-cookie mode is enabled by default in production, which must use HTTPS; local HTTPS requires `SESSION_SECURE_COOKIE=true`. Manual HTTP checks confirmed the cookie expires when the browser closes and has `HttpOnly`; the server session expires after 120 minutes of inactivity. Login regenerates the session and logout invalidates it with HTTP `200` and `{ "message": "Logged out successfully." }`.
