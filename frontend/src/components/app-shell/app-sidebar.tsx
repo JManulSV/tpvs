@@ -46,7 +46,7 @@ function SidebarNavigation({
     <Sidebar
       collapsible="icon"
       variant="floating"
-      className="top-4 bottom-4 h-auto p-2"
+      className="top-4 bottom-4 h-auto data-[side=left]:left-4"
     >
       <SidebarHeader className="gap-0 px-4 pb-4 pt-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
         <span className="text-center text-xl font-bold leading-7 tracking-tight group-data-[collapsible=icon]:text-sm group-data-[collapsible=icon]:leading-5">
@@ -81,7 +81,9 @@ function SidebarNavigation({
                         tooltip={item.label}
                       >
                         <Icon aria-hidden="true" />
-                        <span>{item.label}</span>
+                        <span className="group-data-[collapsible=icon]:hidden">
+                          {item.label}
+                        </span>
                       </SidebarMenuButton>
                       {item.id === "records" ? recordsBadge : null}
                     </SidebarMenuItem>

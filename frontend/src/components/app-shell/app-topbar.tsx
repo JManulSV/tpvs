@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -94,9 +95,11 @@ export function AppTopbar({ user, userMenuLogout }: AppTopbarProps) {
             </span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-56">
-            <DropdownMenuLabel className="max-w-64 truncate font-normal">
-              {user.email}
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="max-w-64 truncate font-normal">
+                {user.email}
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             {userMenuLogout}
           </DropdownMenuContent>

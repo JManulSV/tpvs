@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { LogoutButton } from "@/features/auth/components/logout-button";
+import { AppShell } from "@/components/app-shell/app-shell";
+import { LogoutMenuItem } from "@/features/auth/components/logout-menu-item";
+import { LogoutNavItem } from "@/features/auth/components/logout-nav-item";
 import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
 import type { AuthUser } from "@/features/auth/types";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { NeedsReviewNavBadge } from "@/features/records/components/needs-review-nav-badge";
 
 // Session validation may redirect before the authenticated segment can render.
 // It is intentionally blocking rather than an instant-navigation shell.
@@ -26,37 +28,20 @@ async function AuthenticatedLayout({ children }: { children: ReactNode }) {
 
   if (!user) redirect("/login?returnTo=%2Fdashboard");
 
+  const cookieStore = await cookies();
+  const sidebarState = cookieStore.get("sidebar_state")?.value;
+  const defaultOpen = sidebarState === undefined ? true : sidebarState === "true";
+
   return (
-    <div className="min-h-screen" data-authenticated-app>
-      <header className="flex items-center justify-between border-b px-6 py-4" data-authenticated-header>
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">TPVS</p>
-          <p className="font-medium">{user.name}</p>
-          <p className="text-sm text-muted-foreground">
-            {user.email} · {user.role}
-          </p>
-          <nav aria-label="Navegación principal" className="mt-3 flex gap-4 text-sm">
-            <Link className="underline-offset-4 hover:underline" href="/dashboard">
-              Inicio
-            </Link>
-            <Link className="underline-offset-4 hover:underline" href="/records">
-              Registros
-            </Link>
-            <Link className="underline-offset-4 hover:underline" href="/companies">
-              Empresas
-            </Link>
-            <Link className="underline-offset-4 hover:underline" href="/reports">
-              Reportes
-            </Link>
-          </nav>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <LogoutButton />
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">{children}</main>
-    </div>
+    <AppShell
+      user={user}
+      defaultOpen={defaultOpen}
+      recordsBadge={user.role === "EDITOR" ? <NeedsReviewNavBadge /> : undefined}
+      sidebarLogout={<LogoutNavItem />}
+      userMenuLogout={<LogoutMenuItem />}
+    >
+      {children}
+    </AppShell>
   );
 }
 

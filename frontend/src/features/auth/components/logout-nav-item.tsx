@@ -19,7 +19,9 @@ export function LogoutNavItem() {
         tooltip="Cerrar sesión"
       >
         <LogOut aria-hidden="true" />
-        <span>{isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}</span>
+        <span className="group-data-[collapsible=icon]:hidden">
+          {isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
+        </span>
       </SidebarMenuButton>
       {errorMessage && (
         <p className="px-2 py-1 text-xs text-destructive" role="alert">
