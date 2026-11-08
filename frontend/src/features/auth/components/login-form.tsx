@@ -1,11 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CircleAlert, Eye, EyeOff, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { getLoginErrorDisplay, type LoginErrorDisplay } from "../login-error";
 import { AuthApiError } from "../types";
 import { authService } from "../services/auth.service";
 
@@ -15,6 +20,17 @@ const loginSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
+
+const LOGIN_ERROR_ID = "login-error";
+
+// Replaces the base Input's destructive ring with a 2 px status-error border,
+// in both themes, while keeping the keyboard focus ring.
+const invalidFieldClassName =
+  "aria-invalid:border-2 aria-invalid:border-status-error aria-invalid:ring-0 aria-invalid:ring-ring aria-invalid:focus-visible:ring-2 dark:aria-invalid:border-status-error dark:aria-invalid:ring-ring";
+
+const labelClassName = "text-xs font-medium text-muted-foreground";
+
+const fieldErrorClassName = "text-xs text-status-error";
 
 function subscribeToHydration(onStoreChange: () => void) {
   const timer = window.setTimeout(onStoreChange, 0);
@@ -29,6 +45,11 @@ function getServerHydrationSnapshot() {
   return false;
 }
 
+function describedBy(...ids: Array<string | false | undefined>) {
+  const value = ids.filter(Boolean).join(" ");
+  return value || undefined;
+}
+
 export function LoginForm({ returnTo }: { returnTo: string }) {
   const router = useRouter();
   const isHydrated = useSyncExternalStore(
@@ -36,7 +57,8 @@ export function LoginForm({ returnTo }: { returnTo: string }) {
     getHydrationSnapshot,
     getServerHydrationSnapshot,
   );
-  const [formError, setFormError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<LoginErrorDisplay | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -48,8 +70,6 @@ export function LoginForm({ returnTo }: { returnTo: string }) {
   });
 
   async function onSubmit(values: LoginFormValues) {
-    setFormError(null);
-
     try {
       await authService.login(values);
       router.replace(returnTo);
@@ -60,100 +80,165 @@ export function LoginForm({ returnTo }: { returnTo: string }) {
             setError(field, { type: "server", message: messages[0] });
           }
         }
-        setFormError(error.message);
-        return;
       }
 
-      setFormError("No se pudo iniciar sesión. Inténtalo nuevamente.");
+      setLoginError(getLoginErrorDisplay(error));
     }
   }
 
+  const isDisabled = !isHydrated || isSubmitting;
+  const invalidCredentials = loginError?.invalidCredentials ?? false;
+  const emailInvalid = Boolean(errors.email) || invalidCredentials;
+  const passwordInvalid = Boolean(errors.password) || invalidCredentials;
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <section className="w-full max-w-md rounded-xl border bg-card p-8 shadow-sm">
-        <header className="mb-8 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">TPVS</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Iniciar sesión</h1>
+    <main className="flex min-w-0 flex-1 basis-[520px] flex-col justify-between gap-10 p-6 sm:p-14">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-2xl font-bold">TPVS</p>
+        <ThemeToggle />
+      </div>
+
+      <div className="mx-auto flex w-full max-w-[400px] flex-col gap-8">
+        <header className="flex flex-col gap-2">
+          <h1 className="text-[32px] font-bold leading-10 tracking-[-0.02em]">
+            Iniciar sesión
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Ingresa con tu cuenta para continuar.
+            Entra con tu correo y contraseña.
           </p>
         </header>
 
+        {loginError && (
+          <div
+            className="flex items-start gap-3 rounded-md bg-status-error-bg px-4 py-3 text-sm text-status-error"
+            id={LOGIN_ERROR_ID}
+            role="alert"
+          >
+            <CircleAlert aria-hidden="true" className="mt-px size-[18px] shrink-0" />
+            <div className="flex flex-col gap-0.5">
+              <p className="font-bold">No pudimos iniciar tu sesión</p>
+              <p>{loginError.message}</p>
+            </div>
+          </div>
+        )}
+
         <form
           action="/login"
-          className="space-y-5"
+          className="flex flex-col gap-5"
           method="post"
           onSubmit={(event) => {
             event.preventDefault();
+            setLoginError(null);
             void handleSubmit(onSubmit)(event);
           }}
           noValidate
         >
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="email">
+          <div className="flex flex-col gap-2">
+            <label className={labelClassName} htmlFor="email">
               Correo electrónico
             </label>
-            <input
+            <Input
               autoComplete="username"
-              className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
+              className={invalidFieldClassName}
               id="email"
               inputMode="email"
+              placeholder="tu.correo@ejemplo.com"
               type="email"
-              disabled={!isHydrated || isSubmitting}
-              aria-invalid={Boolean(errors.email)}
-              aria-describedby={errors.email ? "email-error" : undefined}
+              disabled={isDisabled}
+              aria-invalid={emailInvalid || undefined}
+              aria-describedby={describedBy(
+                errors.email && "email-error",
+                invalidCredentials && LOGIN_ERROR_ID,
+              )}
               {...register("email")}
             />
             {errors.email && (
-              <p className="text-sm text-destructive" id="email-error">
+              <p className={fieldErrorClassName} id="email-error">
                 {errors.email.message}
               </p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="password">
+          <div className="flex flex-col gap-2">
+            <label className={labelClassName} htmlFor="password">
               Contraseña
             </label>
-            <input
-              autoComplete="current-password"
-              className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
-              id="password"
-              type="password"
-              disabled={!isHydrated || isSubmitting}
-              aria-invalid={Boolean(errors.password)}
-              aria-describedby={errors.password ? "password-error" : undefined}
-              {...register("password")}
-            />
+            <div className="relative">
+              <Input
+                autoComplete="current-password"
+                className={cn("pr-12", invalidFieldClassName)}
+                id="password"
+                placeholder="Escribe tu contraseña"
+                type={showPassword ? "text" : "password"}
+                disabled={isDisabled}
+                aria-invalid={passwordInvalid || undefined}
+                aria-describedby={describedBy(
+                  errors.password && "password-error",
+                  invalidCredentials && LOGIN_ERROR_ID,
+                )}
+                {...register("password")}
+              />
+              <button
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                className="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:pointer-events-none disabled:opacity-50"
+                disabled={isDisabled}
+                onClick={() => setShowPassword((value) => !value)}
+                type="button"
+              >
+                {showPassword ? (
+                  <EyeOff aria-hidden="true" className="size-[18px]" />
+                ) : (
+                  <Eye aria-hidden="true" className="size-[18px]" />
+                )}
+              </button>
+            </div>
             {errors.password && (
-              <p className="text-sm text-destructive" id="password-error">
+              <p className={fieldErrorClassName} id="password-error">
                 {errors.password.message}
               </p>
             )}
           </div>
 
-          {formError && (
-            <p
-              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              role="alert"
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-sm opacity-50">
+              <input
+                aria-label="Mantener sesión iniciada (próximamente)"
+                className="size-[18px] accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed"
+                disabled
+                title="Próximamente"
+                type="checkbox"
+              />
+              Mantener sesión iniciada
+            </label>
+            <button
+              aria-label="¿Olvidaste tu contraseña? (próximamente)"
+              className="text-sm font-semibold text-accent-foreground opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed"
+              disabled
+              title="Próximamente"
+              type="button"
             >
-              {formError}
-            </p>
-          )}
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
 
           <Button
-            className="w-full"
+            className="h-10 w-full rounded-full"
             type="submit"
-            disabled={!isHydrated || isSubmitting}
+            disabled={isDisabled}
           >
+            <LogIn aria-hidden="true" className="size-4" />
             {!isHydrated
               ? "Preparando formulario…"
               : isSubmitting
-                ? "Ingresando…"
-                : "Ingresar"}
+                ? "Iniciando sesión…"
+                : "Iniciar sesión"}
           </Button>
         </form>
-      </section>
+      </div>
+
+      <p className="text-center text-xs font-medium text-muted-foreground">
+        ¿No tienes acceso? Solicítalo a tu administrador.
+      </p>
     </main>
   );
 }
