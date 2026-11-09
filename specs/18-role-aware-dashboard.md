@@ -148,7 +148,8 @@ export type DashboardSummary = {
 
 - `dashboardKeys.summary = [...recordKeys.lists(), "dashboard"]`.
 - Al quedar bajo `recordKeys.lists()`, las mutaciones actuales de crear, editar, confirmar, cancelar, reintentar IA y subir imagen lo invalidan sin cambios.
-- Sin `refetchInterval`. `refetchOnWindowFocus` queda en el valor por defecto del `QueryClient`.
+- Sin `refetchInterval`.
+- `useDashboard` pone `refetchOnWindowFocus: true` solo para esta consulta. El `QueryClient` global tiene `false` y no cambia. Con el `staleTime` global de 30 s, al volver a la pestaña solo se pide de nuevo si los datos tienen más de 30 s.
 
 ### Utilidades puras — `frontend/src/features/dashboard/utils.ts`
 
