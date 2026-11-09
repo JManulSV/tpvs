@@ -19,6 +19,22 @@ Implemented authentication routes:
 
 Login provides field validation, pending state, invalid-credential feedback, and a successful navigation outcome. Logout clears the visible user state and returns to the unauthenticated experience. Authenticated visits to `/login` redirect to `/dashboard`; `/` redirects according to session state.
 
+### Login screen (SPEC 17)
+
+- **Frame:** `frontend/src/app/(auth)/login/page.tsx` renders a full-height card (`rounded-xl`, `border-border`, `shadow-card`) with a 16 px margin on `bg-background`, matching the authenticated shell. The session-validation error state and the `Suspense` fallback keep their previous markup.
+- **Hero:** `frontend/src/features/auth/components/login-hero.tsx` is a static Server Component (`<section aria-label="Presentación">`, `bg-hero text-on-hero`) with the platform overline, the headline (a `<p>`, not a heading), the three "Cómo funciona" steps and a decorative `brand-sky` dot pattern. Step chips use `bg-brand-sky text-hero`. The hero is shown only from `lg` (1024 px); below that the form is the only column.
+- **Panel:** `frontend/src/features/auth/components/login-form.tsx` shows the "TPVS" brand and `ThemeToggle` in the top row, the page's only `<h1>` ("Iniciar sesión"), the form and the footer "¿No tienes acceso? Solicítalo a tu administrador.". `ThemeToggle` no longer floats fixed over the page.
+- **Error alert:** request errors show an alert (`id="login-error"`, `role="alert"`, `status-error` tokens) with the fixed title "No pudimos iniciar tu sesión" and a message from `getLoginErrorDisplay` in `frontend/src/features/auth/login-error.ts`:
+  - `401` → "El correo o la contraseña no coinciden. Revisa tus datos e inténtalo de nuevo." and both fields are marked `aria-invalid` and point to the alert with `aria-describedby`.
+  - Any other `AuthApiError` (`419`, `422`, `403`, network, 5xx) → its own message, without marking the fields.
+  - Anything else → "No se pudo iniciar sesión. Inténtalo nuevamente.".
+  - `toAuthApiError` is unchanged, so logout and `me` keep their messages. The alert and invalid marks clear on the next submit attempt.
+- **Fields:** both use `components/ui/input`. Zod and `422` field errors still render under each field (`email-error`, `password-error`). Invalid fields use a 2 px `border-status-error` passed through `className`; the base `Input` keeps its default `destructive` invalid style for other forms.
+- **Show password:** a `type="button"` toggle inside the password field switches the input between `password` and `text` with the labels "Mostrar contraseña" / "Ocultar contraseña". `autoComplete="current-password"`, `id` and `name` are unchanged.
+- **Coming soon controls:** "Mantener sesión iniciada" (checkbox) and "¿Olvidaste tu contraseña?" (a `<button>`, not a link) are rendered `disabled` with `title="Próximamente"` and an `aria-label` ending in "(próximamente)", following the SPEC 16 search/notifications pattern. Remember-me sessions and password recovery need backend work and their own specs.
+- **Submit:** the button reads "Preparando formulario…" before hydration, "Iniciando sesión…" while submitting and "Iniciar sesión" at rest. Fields and buttons stay disabled until hydration (`useSyncExternalStore`), and the form keeps `action`, `method` and `preventDefault` to block native `POST /login` submissions.
+- **Keyboard order:** `ThemeToggle`, email, password, show-password toggle, submit. Disabled "coming soon" controls are skipped.
+
 ## Logout UI
 
 - Shared logout behavior lives in `frontend/src/features/auth/hooks/use-logout.ts`. It calls `authService.logout()`, clears the TanStack Query client, and replaces the current route with `/login`. Pending and error state are returned for the invoking control.

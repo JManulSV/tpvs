@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/features/auth/components/login-form";
+import { LoginHero } from "@/features/auth/components/login-hero";
 import { getSafeReturnTo } from "@/features/auth/safe-return-to";
 import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export const instant = false;
 
@@ -29,22 +29,26 @@ async function LoginPageContent({ searchParams }: LoginPageProps) {
 
   if (user) redirect("/dashboard");
 
-  return <LoginForm returnTo={getSafeReturnTo(params.returnTo)} />;
+  return (
+    <div className="flex min-h-svh bg-background p-4">
+      <div className="flex flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-card">
+        <LoginHero />
+        <LoginForm returnTo={getSafeReturnTo(params.returnTo)} />
+      </div>
+    </div>
+  );
 }
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
   return (
-    <>
-      <ThemeToggle className="fixed right-4 top-4 z-10" />
-      <Suspense
-        fallback={
-          <main className="flex min-h-screen items-center justify-center px-4 py-12">
-            <p className="text-sm text-muted-foreground">Cargando acceso…</p>
-          </main>
-        }
-      >
-        <LoginPageContent searchParams={searchParams} />
-      </Suspense>
-    </>
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center px-4 py-12">
+          <p className="text-sm text-muted-foreground">Cargando acceso…</p>
+        </main>
+      }
+    >
+      <LoginPageContent searchParams={searchParams} />
+    </Suspense>
   );
 }
