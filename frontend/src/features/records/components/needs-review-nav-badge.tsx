@@ -3,7 +3,13 @@
 import { SidebarMenuBadge } from "@/components/ui/sidebar"
 import { useRecords } from "../hooks/use-records"
 
-export function NeedsReviewNavBadge() {
+type NeedsReviewNavBadgeProps = {
+  variant?: "sidebar" | "bottom-nav"
+}
+
+export function NeedsReviewNavBadge({
+  variant = "sidebar",
+}: NeedsReviewNavBadgeProps) {
   const { data } = useRecords({ status: "NEEDS_REVIEW", per_page: 1 })
   const total = data?.meta.total
 
@@ -11,9 +17,18 @@ export function NeedsReviewNavBadge() {
     return null
   }
 
-  return (
-    <SidebarMenuBadge aria-label={`${total} registros por revisar`}>
-      {total}
-    </SidebarMenuBadge>
-  )
+  const label = `${total} registros por revisar`
+
+  if (variant === "bottom-nav") {
+    return (
+      <span
+        aria-label={label}
+        className="pointer-events-none absolute top-0.5 left-[calc(50%+6px)] grid h-[18px] min-w-[18px] place-items-center rounded-full bg-status-needs-review-bg px-[5px] text-[11px] font-bold leading-[14px] text-status-needs-review tabular-nums"
+      >
+        {total}
+      </span>
+    )
+  }
+
+  return <SidebarMenuBadge aria-label={label}>{total}</SidebarMenuBadge>
 }

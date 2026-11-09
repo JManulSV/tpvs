@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell/app-shell";
 import { LogoutMenuItem } from "@/features/auth/components/logout-menu-item";
 import { LogoutNavItem } from "@/features/auth/components/logout-nav-item";
+import { LogoutSheetButton } from "@/features/auth/components/logout-sheet-button";
 import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
 import type { AuthUser } from "@/features/auth/types";
 import { NeedsReviewNavBadge } from "@/features/records/components/needs-review-nav-badge";
@@ -37,8 +38,12 @@ async function AuthenticatedLayout({ children }: { children: ReactNode }) {
       user={user}
       defaultOpen={defaultOpen}
       recordsBadge={user.role === "EDITOR" ? <NeedsReviewNavBadge /> : undefined}
+      mobileRecordsBadge={
+        user.role === "EDITOR" ? <NeedsReviewNavBadge variant="bottom-nav" /> : undefined
+      }
       sidebarLogout={<LogoutNavItem />}
       userMenuLogout={<LogoutMenuItem />}
+      sheetLogout={<LogoutSheetButton />}
     >
       {children}
     </AppShell>
