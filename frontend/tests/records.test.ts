@@ -10,6 +10,7 @@ vi.mock("@/lib/api-client", () => ({
 
 import { apiClient } from "@/lib/api-client";
 import { getRecordActionPermissions } from "@/features/records/record-actions";
+import { parseInitialRecordFilters } from "@/features/records/record-filters";
 import { manualRecordFormSchema, updateManualRecordFormSchema } from "@/features/records/schemas/record.schema";
 import { recordsService } from "@/features/records/services/records.service";
 import { RecordsApiError, type RecordSource, type RecordStatus } from "@/features/records/types";
@@ -312,5 +313,29 @@ describe("record action permissions", () => {
       canCancel: false,
       canRetryAiProcessing: false,
     });
+  });
+});
+
+describe("parseInitialRecordFilters", () => {
+  const parse = (query: string) => parseInitialRecordFilters(new URLSearchParams(query));
+
+  it("reads status, year and month from the URL", () => {
+    expect(parse("status=CONFIRMED&year=2026&month=11")).toEqual({ status: "CONFIRMED", year: 2026, month: 11 });
+    expect(parse("status=NEEDS_REVIEW")).toEqual({ status: "NEEDS_REVIEW" });
+  });
+
+  it("drops invalid values without failing", () => {
+    expect(parse("status=FOO&month=13")).toEqual({});
+    expect(parse("status=confirmed&year=-1&month=0")).toEqual({});
+    expect(parse("year=2026.5&month=1e1")).toEqual({});
+    expect(parse("year=10000&month=")).toEqual({});
+  });
+
+  it("ignores filters it does not handle", () => {
+    expect(parse("week=38&company_id=3&source=MANUAL&search=x")).toEqual({});
+  });
+
+  it("returns no filters without search params", () => {
+    expect(parseInitialRecordFilters(null)).toEqual({});
   });
 });

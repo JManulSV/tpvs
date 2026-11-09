@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
@@ -9,14 +10,27 @@ import { formatMoney } from "@/lib/format";
 import { recordStatusMeta } from "@/lib/status";
 import { recordSources, recordStatuses, type RecordListParams, type RecordStatus } from "../types";
 import { useRecords } from "../hooks/use-records";
+import { parseInitialRecordFilters } from "../record-filters";
 
 const PAGE_SIZE = 15;
+
+/** Last eight years, plus a URL-provided year outside that range so the select can show it. */
+function yearOptions(selected: number | undefined): number[] {
+  const years = Array.from({ length: 8 }, (_, index) => new Date().getFullYear() - index);
+  if (selected !== undefined && !years.includes(selected)) years.push(selected);
+
+  return years.sort((a, b) => b - a);
+}
 
 export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<Omit<RecordListParams, "search" | "page" | "per_page">>({});
+  const searchParams = useSearchParams();
+  // Read once on entry; later filter changes are not written back to the URL.
+  const [filters, setFilters] = useState<Omit<RecordListParams, "search" | "page" | "per_page">>(
+    () => parseInitialRecordFilters(searchParams),
+  );
   const companiesQuery = useCompanies({ per_page: 100 });
 
   useEffect(() => {
@@ -65,7 +79,7 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
         </FilterSelect>
         <FilterSelect label="Año" onChange={(value) => setFilter("year", value ? Number(value) : undefined)} value={filters.year?.toString() ?? ""}>
           <option value="">Todos</option>
-          {Array.from({ length: 8 }, (_, index) => new Date().getFullYear() - index).map((year) => <option key={year} value={year}>{year}</option>)}
+          {yearOptions(filters.year).map((year) => <option key={year} value={year}>{year}</option>)}
         </FilterSelect>
         <FilterSelect label="Mes (fecha final)" onChange={(value) => setFilter("month", value ? Number(value) : undefined)} value={filters.month?.toString() ?? ""}>
           <option value="">Todos</option>
