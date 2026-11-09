@@ -1,6 +1,6 @@
 # SPEC 17 — Rediseño de la pantalla de login
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 02, SPEC 15, SPEC 16
 > **Date:** 2026-11-08
 > **Objective:** Rediseñar `/login` con la plantilla entregada (hero de marca + panel de formulario) usando solo los tokens INNOVA existentes, sin cambiar el flujo de autenticación de SPEC 02.
