@@ -66,7 +66,7 @@ return [
 ### Mes actual
 
 - `now(config('tpvs.business_timezone'))` define `year` y `month`.
-- Un registro pertenece al mes si `week_end_date` cae en ese `year` y `month`. Es la misma regla que Reportes (`docs/10_ui_ux.md` §16.1).
+- Un registro pertenece al mes si `records.year = year` y el mes de `week_end_date` es `month`. Es exactamente el filtro de `ReportQuery::base` (`docs/10_ui_ux.md` §16.1). En las semanas que cruzan el año, manda el año de negocio del registro.
 - Los registros con `week_end_date = null` no cuentan en ningún total mensual.
 
 ### Contrato — `GET /api/dashboard`
