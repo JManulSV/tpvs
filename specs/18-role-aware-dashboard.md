@@ -1,6 +1,6 @@
 # SPEC 18 — Dashboard por rol
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 04, SPEC 09, SPEC 13, SPEC 15, SPEC 16
 > **Date:** 2026-11-09
 > **Objective:** Reemplazar el placeholder de `/dashboard` por el centro de trabajo de las plantillas `Dashboard{Editor,Viewer}{,Mobile}.dc.html`, alimentado por un endpoint nuevo `GET /api/dashboard` que Laravel calcula según el rol.
@@ -337,39 +337,45 @@ Los colores literales de la plantilla (`--canvas`, `--surface`, `--ink`, etc.) s
 
 ## Acceptance criteria
 
-- [ ] `GET /api/dashboard` sin sesión responde `401`.
-- [ ] Como `EDITOR`, la respuesta incluye `period`, `status_counts` con las seis claves, `month_summary` y `recent_activity`.
-- [ ] Como `VIEWER`, la respuesta no incluye la clave `status_counts`.
-- [ ] Un registro `CONFIRMED` con `week_end_date = 2026-11-02` y `week_start_date = 2026-10-27` cuenta en `confirmed_month` de noviembre 2026 y no en octubre.
-- [ ] Con la hora `2026-12-01T03:00:00Z` (30 de noviembre, 21:00 en Ciudad de México), `period.month` es `11`.
-- [ ] `month_summary.return_total` es igual a `data.totals.return_total` de `GET /api/reports?year=Y&month=M` con los mismos datos.
-- [ ] Sin registros confirmados en el mes, `return_total` es `"0.00"` y `confirmed_count` es `0`.
-- [ ] `recent_activity` tiene como máximo 5 elementos, ordenados por `updated_at` descendente.
-- [ ] `php artisan test` pasa, incluido `DashboardApiTest`.
-- [ ] `getGreeting` devuelve «Buenos días» a las 05:00 y «Buenas noches» a las 04:59 y a las 19:00, en `America/Mexico_City`.
-- [ ] `getReviewHeadline(0)`, `(1)` y `(4)` devuelven «No tienes registros por revisar», «Tienes 1 registro por revisar» y «Tienes 4 registros por revisar».
-- [ ] `getStatusCellHref("confirmed_month", { year: 2026, month: 11 })` devuelve `/records?status=CONFIRMED&year=2026&month=11`.
-- [ ] Ningún archivo del sidebar, del topbar ni de la barra inferior (`components/app-shell/`) cambia en esta spec.
-- [ ] `/dashboard` muestra un solo sidebar, un solo topbar y, a 375 px, una sola barra inferior y un solo FAB «Nuevo registro».
-- [ ] `/dashboard` tiene exactamente un `<h1>`, con el texto «Dashboard». Es visible a 1440 px y `sr-only` a 375 px.
-- [ ] Como `EDITOR` con 4 registros `NEEDS_REVIEW`, el hero dice «Tienes 4 registros por revisar». «Ir a revisión» lleva a `/records?status=NEEDS_REVIEW`, con el filtro Estado en «Por revisar».
+- [x] `GET /api/dashboard` sin sesión responde `401`.
+- [x] Como `EDITOR`, la respuesta incluye `period`, `status_counts` con las seis claves, `month_summary` y `recent_activity`.
+- [x] Como `VIEWER`, la respuesta no incluye la clave `status_counts`.
+- [x] Un registro `CONFIRMED` con `week_end_date = 2026-11-02` y `week_start_date = 2026-10-27` cuenta en `confirmed_month` de noviembre 2026 y no en octubre.
+- [x] Con la hora `2026-12-01T03:00:00Z` (30 de noviembre, 21:00 en Ciudad de México), `period.month` es `11`.
+- [x] `month_summary.return_total` es igual a `data.totals.return_total` de `GET /api/reports?year=Y&month=M` con los mismos datos.
+- [x] Sin registros confirmados en el mes, `return_total` es `"0.00"` y `confirmed_count` es `0`.
+- [x] `recent_activity` tiene como máximo 5 elementos, ordenados por `updated_at` descendente.
+- [x] `php artisan test` pasa, incluido `DashboardApiTest`.
+- [x] `getGreeting` devuelve «Buenos días» a las 05:00 y «Buenas noches» a las 04:59 y a las 19:00, en `America/Mexico_City`.
+- [x] `getReviewHeadline(0)`, `(1)` y `(4)` devuelven «No tienes registros por revisar», «Tienes 1 registro por revisar» y «Tienes 4 registros por revisar».
+- [x] `getStatusCellHref("confirmed_month", { year: 2026, month: 11 })` devuelve `/records?status=CONFIRMED&year=2026&month=11`.
+- [x] Ningún archivo del sidebar, del topbar ni de la barra inferior (`components/app-shell/`) cambia en esta spec.
+- [x] `/dashboard` muestra un solo sidebar, un solo topbar y, a 375 px, una sola barra inferior y un solo FAB «Nuevo registro».
+- [x] `/dashboard` tiene exactamente un `<h1>`, con el texto «Dashboard». Es visible a 1440 px y `sr-only` a 375 px.
+- [x] Como `EDITOR` con 4 registros `NEEDS_REVIEW`, el hero dice «Tienes 4 registros por revisar». «Ir a revisión» lleva a `/records?status=NEEDS_REVIEW`, con el filtro Estado en «Por revisar».
+  > Verificado con 2 registros `NEEDS_REVIEW`: el texto, el enlace «Ir a revisión» y el filtro «Por revisar» se comprobaron con ese dato. La lógica del titular se prueba con `getReviewHeadline(4)`.
 - [ ] Como `EDITOR` con 0 registros `NEEDS_REVIEW`, el hero dice «No tienes registros por revisar» y no aparece «Ir a revisión».
-- [ ] La tira muestra seis celdas en el orden de la tabla del contrato. Pulsar «Confirmados del mes» abre `/records` con Estado, Año y Mes ya seleccionados.
-- [ ] Como `VIEWER`, no aparece la tira de contadores. El hero muestra «Retorno acumulado de noviembre», el monto con `formatMoney` y el número de confirmados del mes.
-- [ ] Desde `md` la actividad es una tabla. A 375 px es una lista, y en ambos casos pulsar cualquier punto de la fila abre `/records/{id}`.
+  > Pendiente: verificado solo con una respuesta simulada (`page.route`). Falta comprobarlo con la base sin registros por revisar.
+- [x] La tira muestra seis celdas en el orden de la tabla del contrato. Pulsar «Confirmados del mes» abre `/records` con Estado, Año y Mes ya seleccionados.
+- [x] Como `VIEWER`, no aparece la tira de contadores. El hero muestra «Retorno acumulado de noviembre», el monto con `formatMoney` y el número de confirmados del mes.
+- [x] Desde `md` la actividad es una tabla. A 375 px es una lista, y en ambos casos pulsar cualquier punto de la fila abre `/records/{id}`.
 - [ ] Con la base vacía se muestra «Todavía no hay actividad.» y todos los contadores en 0.
-- [ ] Mientras la petición carga, no aparece ningún «0» ni «$0.00».
+  > Pendiente: verificado solo con una respuesta simulada. Falta comprobarlo con la base de desarrollo vacía de registros.
+- [x] Mientras la petición carga, no aparece ningún «0» ni «$0.00».
 - [ ] Con el backend detenido, aparece «No se pudo cargar el resumen del Dashboard.» con `role="alert"`, y «Reintentar» vuelve a hacer la petición.
-- [ ] Tras confirmar un registro en revisión y volver a `/dashboard`, «Por revisar» baja en uno y «Confirmados del mes» sube en uno, sin recargar la página.
-- [ ] El Dashboard no hace peticiones periódicas mientras la pestaña está quieta.
-- [ ] Al cargar `/dashboard`, el BFF hace una sola petición a `/api/auth/me`.
-- [ ] `/records?status=FOO&month=13` carga sin filtros y sin errores.
-- [ ] La consola del navegador no muestra advertencias de hidratación en `/dashboard` ni en `/records?status=NEEDS_REVIEW`.
-- [ ] Los archivos de `features/dashboard/` solo usan clases de tokens (sin colores literales ni de la paleta de Tailwind).
+  > Pendiente: verificado con un 500 simulado en el BFF, no con el backend detenido. Falta comprobarlo deteniendo el backend.
+- [x] Tras confirmar un registro en revisión y volver a `/dashboard`, «Por revisar» baja en uno y «Confirmados del mes» sube en uno, sin recargar la página.
+- [x] El Dashboard no hace peticiones periódicas mientras la pestaña está quieta.
+- [x] Al cargar `/dashboard`, el BFF hace una sola petición a `/api/auth/me`.
+- [x] `/records?status=FOO&month=13` carga sin filtros y sin errores.
+- [x] La consola del navegador no muestra advertencias de hidratación en `/dashboard` ni en `/records?status=NEEDS_REVIEW`.
+- [x] Los archivos de `features/dashboard/` solo usan clases de tokens (sin colores literales ni de la paleta de Tailwind).
 - [ ] Todos los enlaces y celdas se alcanzan con Tab y muestran el anillo de foco de 2 px.
-- [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
+  > Pendiente: el Tab no mueve el foco en el navegador automatizado. Solo se verificó el anillo de foco de una celda. Falta recorrer la página con Tab a mano.
+- [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
 - [ ] La revisión del paso 9 se hizo en claro y oscuro, a 1440, 1024, 768 y 375 px, sin scroll horizontal de página ni texto ilegible.
-- [ ] `docs/backend/03_api_contract.md`, `docs/frontend/features/dashboard.md` y `docs/frontend/features/records.md` describen el nuevo comportamiento.
+  > Pendiente: no se revisó visualmente el modo oscuro a 375 px ni a 768 px. Se verificó el scroll horizontal en las 16 combinaciones.
+- [x] `docs/backend/03_api_contract.md`, `docs/frontend/features/dashboard.md` y `docs/frontend/features/records.md` describen el nuevo comportamiento.
 
 ## Decisions
 
