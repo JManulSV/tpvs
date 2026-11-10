@@ -17,7 +17,17 @@ Support record consultation, manual capture, and the human review workflow. Phas
 /records/[recordId]/delivery
 ```
 
-The list supports case-insensitive substring search by company, affiliation, and branch (searching every movement); filters include company, business year, month, week, status, and source. Provisional IMAGE records may lack company, period, movements, or movement values; the list and detail screens render these as unavailable. Pagination uses `page` and `per_page` (default 15, maximum 100), sorted by `updated_at` descending. Month filtering uses the month containing `week_end_date`. The detail/review screen presents period, company, each movement's affiliation/branch, backend-calculated amounts, current backend status, the authorized image, and safe AI diagnostics. `/records/new` allows choosing manual capture or image upload. The same `/records/{id}` screen acts as detail and as the review workspace for `NEEDS_REVIEW` and `ERROR` records. Confirmed records also link to `/records/{id}/delivery` for delivery preparation.
+The list supports case-insensitive substring search by company, affiliation, and branch (searching every movement); filters include company, business year, month, week, status, and source. Provisional IMAGE records may lack company, period, movements, or movement values; the list and detail screens render these as unavailable. Pagination uses `page` and `per_page` (default 15, maximum 100), sorted by `updated_at` descending. Month filtering uses the month containing `week_end_date`. The list can start from `status`, `year`, and `month` in the URL; see [Initial filters from the URL](#initial-filters-from-the-url). The detail/review screen presents period, company, each movement's affiliation/branch, backend-calculated amounts, current backend status, the authorized image, and safe AI diagnostics. `/records/new` allows choosing manual capture or image upload. The same `/records/{id}` screen acts as detail and as the review workspace for `NEEDS_REVIEW` and `ERROR` records. Confirmed records also link to `/records/{id}/delivery` for delivery preparation.
+
+## Initial filters from the URL
+
+`/records` reads `status`, `year`, and `month` from the query string once, when the screen mounts, and uses them as the starting filters (SPEC 18). The Dashboard links use this: a status cell or «Ir a revisión» opens the list already filtered.
+
+- Accepted values: `status` must be one of the six record statuses; `year` must be a positive integer up to 9999; `month` must be an integer from 1 to 12. Any other value is dropped and the list loads without that filter. An invalid query never produces an error screen.
+- A year outside the last eight years is added to the year select so the value is visible.
+- Other parameters (`week`, `company_id`, `source`, `search`) are not read from the URL.
+- Changing filters on the screen afterwards does not update the URL. Navigating back or refreshing returns to the URL's filters.
+- Parsing lives in `frontend/src/features/records/record-filters.ts` and is covered by `frontend/tests/records.test.ts`.
 
 ## Capture and Review Flows
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-The health, authentication, Companies, Records, image, and AI pipeline endpoints are implemented and covered by backend feature tests. The Delivery Preparation contract for SPEC 11 / phase 8.12 is documented below and is implemented incrementally under that spec. The Reports and Excel contract for SPEC 13 / phase 8.14 is approved and documented below; it is implemented incrementally under that spec.
+The health, authentication, Companies, Records, image, and AI pipeline endpoints are implemented and covered by backend feature tests. The Delivery Preparation contract for SPEC 11 / phase 8.12 is documented below and is implemented incrementally under that spec. The Reports and Excel contract for SPEC 13 / phase 8.14 is approved and documented below; it is implemented incrementally under that spec. The Dashboard summary contract for SPEC 18 is implemented and documented below.
 
 ## Base Path
 
@@ -499,6 +499,50 @@ A successful response is `200` with a binary body and:
 The workbook has the sheets `Resumen`, `Registros`, `Detalles`, and `Efectivo`, and no AI extraction sheet. Sheet columns, number formats, and the file-name rules are defined in [`../08_document_generation.md`](../08_document_generation.md). An empty result still returns `200` with the four sheets. The file is written to a temporary location and deleted after it is sent; the export writes no `History`.
 
 Errors for both routes: `401` unauthenticated; `422` invalid filters, including a missing `year` or a non-existent `company_id`. A generic, safe `500` is returned if workbook construction fails, with no private details and no temporary file left behind.
+
+## Dashboard Contract — SPEC 18 (Implemented)
+
+`GET /api/dashboard` returns the role-aware summary for the Dashboard work center. It requires an authenticated Sanctum session (`auth:sanctum`) and is read-only, so it needs no CSRF token. `EDITOR` and `VIEWER` may call it. Without a session it returns `401`. It accepts no parameters; unknown parameters are ignored.
+
+The period is the current month in the business time zone `config('tpvs.business_timezone')` (`TPVS_BUSINESS_TIMEZONE`, default `America/Mexico_City`). `app.timezone` is not changed.
+
+Values in this example are illustrative.
+
+```json
+{
+  "data": {
+    "period": { "year": 2026, "month": 11, "timezone": "America/Mexico_City" },
+    "status_counts": {
+      "needs_review": 4,
+      "error": 1,
+      "pending": 3,
+      "processing": 2,
+      "confirmed_month": 128,
+      "canceled_month": 5
+    },
+    "month_summary": { "confirmed_count": 128, "return_total": "147000.00" },
+    "recent_activity": [
+      {
+        "id": 42,
+        "company": { "id": 3, "name": "Company ABC" },
+        "year": 2026,
+        "week": 38,
+        "status": "CONFIRMED",
+        "updated_at": "2026-11-09T19:48:00.000000Z"
+      }
+    ]
+  }
+}
+```
+
+- `status_counts` is present only for `EDITOR`. `VIEWER` receives `period`, `month_summary`, and `recent_activity` only.
+- `needs_review`, `error`, `pending`, and `processing` count all records in that status, without a period filter.
+- `confirmed_month` and `canceled_month` count records of the current period with the same rule as `GET /api/reports`: `records.year` equals the business year and the month of `week_end_date` equals the business month. Records with a null `week_end_date` are not counted in any month.
+- `month_summary.confirmed_count` equals `confirmed_month`. `month_summary.return_total` is the sum of `record_details.return_amount` for `CONFIRMED` records of the period, as a decimal string with 2 decimals (`"0.00"` when there is no data). It equals `totals.return_total` of `GET /api/reports` for the same year and month.
+- `recent_activity` has at most 5 records of any status, ordered by `updated_at` descending and then `id` descending. `company`, `year`, and `week` may be `null` for IMAGE records that are still provisional. `updated_at` is ISO 8601.
+- The response does not include history events, amounts other than the month return, or record details.
+
+Errors: `401` unauthenticated. No `403` exists, because both roles may read.
 
 ## Record Images Contract — Phase 8.7 (Implemented)
 
