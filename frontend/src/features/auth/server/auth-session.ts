@@ -1,10 +1,15 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { fetchLaravel } from "@/lib/server/laravel-api";
 import type { AuthUserResponse } from "../types";
 
-export async function getAuthenticatedUser() {
+/**
+ * Deduplicated per server request with React `cache()`, so the authenticated
+ * layout and its pages share one `/api/auth/me` call.
+ */
+export const getAuthenticatedUser = cache(async () => {
   const cookieStore = await cookies();
   const response = await fetchLaravel("/api/auth/me", {
     headers: {
@@ -21,4 +26,4 @@ export async function getAuthenticatedUser() {
 
   const body = (await response.json()) as AuthUserResponse;
   return body.data;
-}
+});

@@ -73,13 +73,13 @@ function ActivityTime({ item, now }: { item: DashboardActivityItem; now: Date })
 }
 
 const thClass =
-  "border-y border-border bg-muted px-6 py-2.5 text-left text-[11px] font-semibold uppercase leading-4 tracking-[0.08em] text-muted-foreground";
-const tdClass = "border-b border-border px-6 py-3.5 text-sm font-medium group-last/row:border-b-0";
+  "border-y border-border bg-muted px-4 py-2.5 text-left text-[11px] font-semibold uppercase leading-4 tracking-[0.08em] text-muted-foreground lg:px-6";
+const tdClass = "border-b border-border px-4 py-3.5 text-sm font-medium group-last/row:border-b-0 lg:px-6";
 
 function ActivityTable({ items, now }: { items: DashboardActivityItem[]; now: Date }) {
   return (
     <div className="hidden overflow-x-auto md:block">
-      <table className="w-full min-w-[520px] border-collapse">
+      <table className="w-full min-w-[460px] border-collapse lg:min-w-[520px]">
         <thead>
           <tr>
             <th className={thClass} scope="col">Empresa</th>
