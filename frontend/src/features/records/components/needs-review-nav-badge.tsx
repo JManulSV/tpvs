@@ -30,5 +30,12 @@ export function NeedsReviewNavBadge({
     )
   }
 
-  return <SidebarMenuBadge aria-label={label}>{total}</SidebarMenuBadge>
+  return (
+    <SidebarMenuBadge
+      aria-label={label}
+      className="top-0.5 right-auto left-[18px] group-data-[collapsible=icon]:left-[calc(50%+12px)]"
+    >
+      {total}
+    </SidebarMenuBadge>
+  )
 }
