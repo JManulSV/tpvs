@@ -1,34 +1,28 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/status-badge";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
-import { formatMoney } from "@/lib/format";
-import { recordStatusMeta } from "@/lib/status";
-import { recordSources, recordStatuses, type RecordListParams, type RecordStatus } from "../types";
 import { useRecords } from "../hooks/use-records";
 import { parseInitialRecordFilters } from "../record-filters";
+import { hasActiveRecordFilters } from "../record-list-utils";
+import { RecordsCardList } from "./records-card-list";
+import { RecordsPagination } from "./records-pagination";
+import { RecordsSkeleton } from "./records-skeleton";
+import { RecordsTable } from "./records-table";
+import { RecordsFilterBar, type RecordListFilters } from "./records-filter-bar";
 
 const PAGE_SIZE = 15;
 
-/** Last eight years, plus a URL-provided year outside that range so the select can show it. */
-function yearOptions(selected: number | undefined): number[] {
-  const years = Array.from({ length: 8 }, (_, index) => new Date().getFullYear() - index);
-  if (selected !== undefined && !years.includes(selected)) years.push(selected);
-
-  return years.sort((a, b) => b - a);
-}
-
-export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
+export function RecordsScreen({ role }: { role: "EDITOR" | "VIEWER" }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const searchParams = useSearchParams();
   // Read once on entry; later filter changes are not written back to the URL.
-  const [filters, setFilters] = useState<Omit<RecordListParams, "search" | "page" | "per_page">>(
+  const [filters, setFilters] = useState<RecordListFilters>(
     () => parseInitialRecordFilters(searchParams),
   );
   const companiesQuery = useCompanies({ per_page: 100 });
@@ -45,138 +39,90 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
   const rows = query.data?.data ?? [];
   const meta = query.data?.meta;
 
-  function setFilter<K extends keyof typeof filters>(key: K, value: (typeof filters)[K] | undefined) {
-    setFilters((current) => ({ ...current, [key]: value }));
+  function patchFilters(patch: Partial<RecordListFilters>) {
+    setFilters((current) => ({ ...current, ...patch }));
     setPage(1);
   }
 
+  function clearFilters() {
+    setSearchInput("");
+    setSearch("");
+    setFilters({});
+    setPage(1);
+  }
+
+  const filtered = hasActiveRecordFilters(search, filters);
+  const pagination = (variant: "footer" | "stacked") =>
+    meta && (
+      <RecordsPagination
+        currentPage={meta.current_page}
+        isFetching={query.isFetching}
+        lastPage={meta.last_page}
+        onNext={() => setPage((current) => Math.min(meta.last_page, current + 1))}
+        onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+        total={meta.total}
+        variant={variant}
+      />
+    );
+
   return (
-    <section aria-labelledby="records-heading" className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight" id="records-heading">Registros</h1>
-          <p className="text-sm text-muted-foreground">Consulta y revisa los registros del sistema.</p>
-        </div>
-        {canCreate && <Link className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/80 focus-visible:outline-2 focus-visible:outline-ring" href="/records/new">+ Nuevo registro</Link>}
-      </header>
+    <section aria-labelledby="records-heading" className="space-y-4 md:space-y-6">
+      <h1 className="text-2xl leading-8 font-bold tracking-[-0.01em]" id="records-heading">Registros</h1>
 
-      <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-2 sm:col-span-2">
-          <label className="text-sm font-medium" htmlFor="record-search">Buscar registros</label>
-          <input
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            id="record-search"
-            maxLength={255}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Empresa, afiliación o sucursal"
-            type="search"
-            value={searchInput}
-          />
-        </div>
-        <FilterSelect label="Empresa" onChange={(value) => setFilter("company_id", value ? Number(value) : undefined)} value={filters.company_id?.toString() ?? ""}>
-          <option value="">Todas</option>
-          {(companiesQuery.data?.data ?? []).map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Año" onChange={(value) => setFilter("year", value ? Number(value) : undefined)} value={filters.year?.toString() ?? ""}>
-          <option value="">Todos</option>
-          {yearOptions(filters.year).map((year) => <option key={year} value={year}>{year}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Mes (fecha final)" onChange={(value) => setFilter("month", value ? Number(value) : undefined)} value={filters.month?.toString() ?? ""}>
-          <option value="">Todos</option>
-          {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{new Intl.DateTimeFormat("es-MX", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2026, month - 1, 1)))}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Semana del negocio" onChange={(value) => setFilter("week", value ? Number(value) : undefined)} value={filters.week?.toString() ?? ""}>
-          <option value="">Todas</option>
-          {Array.from({ length: 53 }, (_, index) => index + 1).map((week) => <option key={week} value={week}>{week}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Estado" onChange={(value) => setFilter("status", (value || undefined) as RecordStatus | undefined)} value={filters.status ?? ""}>
-          <option value="">Todos</option>
-          {recordStatuses.map((status) => <option key={status} value={status}>{recordStatusMeta[status].label}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Origen" onChange={(value) => setFilter("source", (value || undefined) as "IMAGE" | "MANUAL" | undefined)} value={filters.source ?? ""}>
-          <option value="">Todos</option>
-          {recordSources.map((source) => <option key={source} value={source}>{source === "MANUAL" ? "Manual" : "Imagen"}</option>)}
-        </FilterSelect>
-      </div>
+      <RecordsFilterBar
+        companies={companiesQuery.data?.data ?? []}
+        filters={filters}
+        hasActiveFilters={hasActiveRecordFilters(searchInput, filters)}
+        onClear={clearFilters}
+        onFiltersChange={patchFilters}
+        onSearchChange={setSearchInput}
+        searchInput={searchInput}
+        total={meta?.total}
+      />
 
-      {query.isPending && <p aria-live="polite" className="py-8 text-center text-sm text-muted-foreground">Cargando registros…</p>}
+      {query.isPending && (
+        <div className="@container">
+          <RecordsSkeleton />
+        </div>
+      )}
       {query.isError && (
-        <div className="space-y-3 rounded-md border p-5 text-center" role="alert">
+        <div
+          className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-6 text-center shadow-card"
+          role="alert"
+        >
           <p>{query.error.message || "No se pudieron cargar los registros."}</p>
           <Button onClick={() => void query.refetch()} type="button" variant="outline">Reintentar</Button>
         </div>
       )}
       {query.isSuccess && rows.length === 0 && (
-        <p className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
-          {search || Object.values(filters).some(Boolean) ? "No se encontraron registros con esos criterios." : "Todavía no hay registros."}
-        </p>
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card px-6 py-14 text-center shadow-card">
+          {filtered ? (
+            <>
+              <span className="grid size-12 place-items-center rounded-md bg-accent text-accent-foreground">
+                <FileText aria-hidden="true" className="size-6" />
+              </span>
+              <h2 className="text-base leading-6 font-semibold">No hay registros con estos filtros</h2>
+              <p className="text-muted-foreground">Prueba con otra semana o quita algún filtro.</p>
+              <Button className="mt-2 h-11 md:h-10" onClick={clearFilters} type="button" variant="secondary">
+                Limpiar filtros
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground">Todavía no hay registros.</p>
+          )}
+        </div>
       )}
       {query.isSuccess && rows.length > 0 && (
-        <>
-          <div className="overflow-x-auto rounded-md border">
-            <table className="w-full min-w-[58rem] border-collapse text-left text-sm">
-              <caption className="sr-only">Registros, período, total de retorno, estado y origen</caption>
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 font-medium" scope="col">Empresa</th>
-                  <th className="px-4 py-3 font-medium" scope="col">Período</th>
-                  <th className="px-4 py-3 font-medium" scope="col">Afiliación / sucursal</th>
-                  <th className="px-4 py-3 text-right font-medium" scope="col">Retorno</th>
-                  <th className="px-4 py-3 font-medium" scope="col">Estado</th>
-                  <th className="px-4 py-3 font-medium" scope="col">Origen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((record) => (
-                  <tr className="border-t hover:bg-muted/30" key={record.id}>
-                    <th className="px-4 py-3 font-medium" scope="row">
-                      <Link className="underline-offset-4 hover:underline focus-visible:outline-2" href={`/records/${record.id}`}>
-                        {record.company?.name ?? "Sin empresa"}
-                      </Link>
-                    </th>
-                    <td className="px-4 py-3">{record.week ? `Semana ${record.week}` : "Sin semana"}{record.year ? ` · ${record.year}` : ""}<br /><span className="text-muted-foreground">{record.week_start_date ?? "—"} – {record.week_end_date ?? "—"}</span></td>
-                    <td className="px-4 py-3">{record.details.length ? record.details.map((detail) => <span className="block" key={detail.id}>{detail.affiliation ?? "—"}<br /><span className="text-muted-foreground">{detail.branch ?? "—"}</span></span>) : "—"}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.return_total)}</td>
-                    <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
-                    <td className="px-4 py-3">{record.source === "MANUAL" ? "Manual" : "Imagen"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="@container">
+          <div className="hidden @[60rem]:block">
+            <RecordsTable footer={pagination("footer")} records={rows} role={role} />
           </div>
-          {meta && (
-            <nav aria-label="Paginación de registros" className="flex items-center justify-between gap-4">
-              <p aria-live="polite" className="text-sm text-muted-foreground">Página {meta.current_page} de {meta.last_page} · {meta.total} registros</p>
-              <div className="flex gap-2">
-                <Button disabled={meta.current_page <= 1 || query.isFetching} onClick={() => setPage((current) => Math.max(1, current - 1))} type="button" variant="outline">Anterior</Button>
-                <Button disabled={meta.current_page >= meta.last_page || query.isFetching} onClick={() => setPage((current) => Math.min(meta.last_page, current + 1))} type="button" variant="outline">Siguiente</Button>
-              </div>
-            </nav>
-          )}
-        </>
+          <div className="@[60rem]:hidden">
+            <RecordsCardList records={rows} role={role} />
+            {pagination("stacked")}
+          </div>
+        </div>
       )}
     </section>
-  );
-}
-
-function FilterSelect({
-  children,
-  label,
-  onChange,
-  value,
-}: {
-  children: React.ReactNode;
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  const id = `record-filter-${label.toLowerCase().replace(/[^a-z]+/g, "-")}`;
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium" htmlFor={id}>{label}</label>
-      <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" id={id} onChange={(event) => onChange(event.target.value)} value={value}>
-        {children}
-      </select>
-    </div>
   );
 }

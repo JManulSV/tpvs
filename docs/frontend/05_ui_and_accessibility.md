@@ -22,6 +22,7 @@ The project includes Tailwind CSS, shadcn/ui tooling, and initial UI primitives.
 - The shell does not import feature code. Feature-specific pieces, including the `NEEDS_REVIEW` records badge and logout actions, are passed through slots by `frontend/src/app/(app)/layout.tsx`.
 - The desktop sidebar uses shadcn's floating variant and collapses to icons. Its expanded/collapsed state is stored in the `sidebar_state` cookie and read by the server layout to avoid an incorrect initial state. At viewports below 768 px the same navigation is shown in a drawer; selecting a route closes it.
 - Navigation links use `aria-current="page"` for the exact route or nested routes. In collapsed mode, each icon has a tooltip with the link label.
+- On mobile, the floating «Nuevo registro» button in `AppBottomNav` is shown to the `EDITOR` on `/dashboard` and `/records` only, decided by `shouldShowNewRecordFab` in `nav-items.ts`. On desktop the same action is the topbar button, so screens must not add their own «Nuevo registro» button.
 - The sidebar's Cuenta section and topbar show the authenticated user's name, initials, and role. Role-specific actions remain controlled by the app layout and feature slots.
 
 ## Design and Component Use
@@ -30,6 +31,8 @@ The project includes Tailwind CSS, shadcn/ui tooling, and initial UI primitives.
 - Use existing primitives in `src/components/ui/` and add shadcn components only when a feature needs them.
 - Keep domain-specific compositions inside their feature; promote a component to shared UI only after more than one feature needs a consistent primitive.
 - Prefer semantic HTML and native controls where suitable.
+- Choose between a table and a card list with a container query (`@container` and `@[60rem]:`), not the window width, so the result is correct whether the sidebar is expanded, collapsed, or a drawer. Render both and hide one with `display: none` so it leaves the accessibility tree and the Tab order.
+- Filter controls use the shadcn `Select` with a pill shape. Because it has no empty value, represent «all» with an internal sentinel and translate it to "no filter" before calling the API.
 - Keep visual consistency for spacing, typography, status indicators, forms, tables, dialogs, and feedback.
 - Do not add MVP navigation modules beyond those approved in the UX document without a product decision.
 

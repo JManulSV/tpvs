@@ -43,3 +43,11 @@ export const appNavItems: readonly AppNavItem[] = [
 export function isNavItemActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
+
+/** The mobile "Nuevo registro" FAB is shown to editors on the Dashboard and the records list only. */
+export function shouldShowNewRecordFab(
+  pathname: string,
+  role: "EDITOR" | "VIEWER",
+): boolean {
+  return role === "EDITOR" && (pathname === "/dashboard" || pathname === "/records")
+}

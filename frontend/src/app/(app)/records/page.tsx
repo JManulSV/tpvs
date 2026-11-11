@@ -9,5 +9,5 @@ export default async function RecordsPage() {
 
   if (!user) redirect("/login?returnTo=%2Frecords");
 
-  return <RecordsScreen canCreate={user.role === "EDITOR"} />;
+  return <RecordsScreen role={user.role} />;
 }
