@@ -245,33 +245,37 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 
 ## Acceptance criteria
 
-- [ ] `/records` tiene exactamente un `<h1>` con el texto «Registros», visible a 1440 px y a 375 px.
-- [ ] `/records` ya no contiene el botón «+ Nuevo registro» dentro de la página, ni el subtítulo «Consulta y revisa los registros del sistema.».
-- [ ] Como `EDITOR` a 1440 px, «Nuevo registro» aparece una sola vez (topbar). A 375 px aparece una sola vez (FAB).
-- [ ] Como `VIEWER`, «Nuevo registro» no aparece en ningún ancho.
-- [ ] `shouldShowNewRecordFab` devuelve `true` solo para `EDITOR` en `/dashboard` y `/records`, y `false` en `/records/new`, `/records/7`, `/companies`, `/reports` y para `VIEWER`.
-- [ ] Como `EDITOR`, una fila `NEEDS_REVIEW` muestra «Revisar» y una fila `ERROR` muestra «Ver error». El resto de estados muestra solo el chevrón.
-- [ ] Como `VIEWER`, ninguna fila muestra «Revisar» ni «Ver error».
-- [ ] Pulsar cualquier punto de una fila de la tabla o de una tarjeta abre `/records/{id}`.
-- [ ] Con el sidebar expandido a 1280 px, la tabla no genera scroll horizontal. Si el contenedor mide menos de 60 rem, se muestran tarjetas en su lugar.
-- [ ] A 375 px, la página no tiene scroll horizontal. Solo la fila de chips lo tiene.
-- [ ] Los seis filtros y el buscador envían los mismos parámetros que antes (`company_id`, `year`, `month`, `week`, `status`, `source`, `search`) y no envían `"all"`.
+- [x] `/records` tiene exactamente un `<h1>` con el texto «Registros», visible a 1440 px y a 375 px.
+- [x] `/records` ya no contiene el botón «+ Nuevo registro» dentro de la página, ni el subtítulo «Consulta y revisa los registros del sistema.».
+- [x] Como `EDITOR` a 1440 px, «Nuevo registro» aparece una sola vez (topbar). A 375 px aparece una sola vez (FAB).
+- [x] Como `VIEWER`, «Nuevo registro» no aparece en ningún ancho.
+- [x] `shouldShowNewRecordFab` devuelve `true` solo para `EDITOR` en `/dashboard` y `/records`, y `false` en `/records/new`, `/records/7`, `/companies`, `/reports` y para `VIEWER`.
+- [x] Como `EDITOR`, una fila `NEEDS_REVIEW` muestra «Revisar» y una fila `ERROR` muestra «Ver error». El resto de estados muestra solo el chevrón.
+- [x] Como `VIEWER`, ninguna fila muestra «Revisar» ni «Ver error».
+- [x] Pulsar cualquier punto de una fila de la tabla o de una tarjeta abre `/records/{id}`.
+- [x] Con el sidebar expandido a 1280 px, la tabla no genera scroll horizontal. Si el contenedor mide menos de 60 rem, se muestran tarjetas en su lugar.
+- [x] A 375 px, la página no tiene scroll horizontal. Solo la fila de chips lo tiene.
+- [x] Los seis filtros y el buscador envían los mismos parámetros que antes (`company_id`, `year`, `month`, `week`, `status`, `source`, `search`) y no envían `"all"`.
 - [ ] Cambiar cualquier filtro o la búsqueda regresa a la página 1.
-- [ ] «Limpiar filtros» restablece buscador y filtros y solo aparece si hay alguno activo.
-- [ ] `/records?status=NEEDS_REVIEW` carga con el filtro Estado en «Por revisar» y con «Limpiar filtros» visible.
-- [ ] `/records?status=FOO&month=13` carga sin filtros y sin errores.
-- [ ] Mientras carga, aparecen filas `Skeleton` y nunca «0 registros».
-- [ ] Con el backend detenido aparece una alerta con `role="alert"`, y «Reintentar» vuelve a hacer la petición.
+  > Pendiente: la base de desarrollo tiene 9 registros, todos en una página (`PAGE_SIZE = 15`). Falta comprobarlo con más de 15 registros.
+- [x] «Limpiar filtros» restablece buscador y filtros y solo aparece si hay alguno activo.
+- [x] `/records?status=NEEDS_REVIEW` carga con el filtro Estado en «Por revisar» y con «Limpiar filtros» visible.
+- [x] `/records?status=FOO&month=13` carga sin filtros y sin errores.
+- [x] Mientras carga, aparecen filas `Skeleton` y nunca «0 registros».
+- [x] Con el backend detenido aparece una alerta con `role="alert"`, y «Reintentar» vuelve a hacer la petición.
 - [ ] Sin registros ni filtros aparece «Todavía no hay registros.». Con filtros sin resultados aparece «No hay registros con estos filtros» y un botón «Limpiar filtros» que lo resuelve.
-- [ ] Un registro `IMAGE` sin empresa ni semana muestra «Sin empresa asignada», «—» en Semana y el importe «—». Un `CANCELED` muestra el importe atenuado.
-- [ ] El pie muestra `meta.total` y «Página X de Y», y «Anterior» y «Siguiente» se deshabilitan en los extremos.
-- [ ] La página no muestra ningún importe sumado en el cliente.
+  > Pendiente: el estado con filtros sin resultados y «Limpiar filtros» se comprobó. «Todavía no hay registros.» no se comprobó porque la base tiene 9 registros y no se vació para probarlo.
+- [x] Un registro `IMAGE` sin empresa ni semana muestra «Sin empresa asignada», «—» en Semana y el importe «—». Un `CANCELED` muestra el importe atenuado.
+- [x] El pie muestra `meta.total` y «Página X de Y», y «Anterior» y «Siguiente» se deshabilitan en los extremos.
+- [x] La página no muestra ningún importe sumado en el cliente.
 - [ ] Todos los controles, enlaces de fila y botones se alcanzan con Tab y muestran un anillo de foco de 2 px.
-- [ ] Los archivos nuevos o modificados de `features/records/` y `components/ui/select.tsx` solo usan clases de tokens, sin colores literales ni de la paleta de Tailwind.
-- [ ] La consola del navegador no muestra advertencias de hidratación en `/records`.
-- [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
+  > Pendiente: el recorrido con Tab cubrió filtros, enlaces de fila y navegación. Faltan «Limpiar filtros» y los botones «Anterior»/«Siguiente».
+- [x] Los archivos nuevos o modificados de `features/records/` y `components/ui/select.tsx` solo usan clases de tokens, sin colores literales ni de la paleta de Tailwind.
+- [x] La consola del navegador no muestra advertencias de hidratación en `/records`.
+- [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
 - [ ] La revisión visual del paso 7 se hizo en claro y oscuro, a 1440, 1024, 768 y 375 px, sin texto cortado ni solapamientos.
-- [ ] `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md` describen el nuevo comportamiento.
+  > Pendiente: se revisaron capturas en claro a 1024 px y en oscuro a 768 px, y se comprobó el scroll en las 8 combinaciones. Faltan las capturas restantes y la revisión del FAB de 375 px contra la paginación al final de la lista. El sidebar colapsado no se revisó.
+- [x] `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md` describen el nuevo comportamiento.
 
 ## Decisions
 
