@@ -8,7 +8,7 @@ type RecordsPaginationProps = {
   isFetching: boolean;
   onPrevious: () => void;
   onNext: () => void;
-  /** "footer" sits inside the desktop table card; "stacked" goes below the mobile list. */
+  /** "footer" sits inside the desktop table card; "stacked" goes below the mobile list, where the filter bar already shows the count. */
   variant: "footer" | "stacked";
 };
 
@@ -31,11 +31,13 @@ export function RecordsPagination({
         footer ? "border-t border-border bg-muted px-6 py-3" : "mt-4",
       )}
     >
-      <span>
-        <strong className="font-bold text-foreground tabular-nums">{total}</strong>{" "}
-        {total === 1 ? "registro" : "registros"}
-      </span>
-      <div className="flex items-center gap-3">
+      {footer && (
+        <span>
+          <strong className="font-bold text-foreground tabular-nums">{total}</strong>{" "}
+          {total === 1 ? "registro" : "registros"}
+        </span>
+      )}
+      <div className={cn("flex items-center gap-3", !footer && "ml-auto")}>
         <span aria-live="polite" className="tabular-nums">
           Página {currentPage} de {lastPage}
         </span>

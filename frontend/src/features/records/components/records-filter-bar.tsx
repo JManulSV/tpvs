@@ -95,7 +95,7 @@ function buildFilterDefinitions(
     {
       key: "year",
       label: "Año",
-      chipWidth: "9.25rem",
+      chipWidth: "10rem",
       options: [
         all("Todos", "Todos los años"),
         ...yearOptions(selectedYear).map((year) => ({
@@ -119,7 +119,7 @@ function buildFilterDefinitions(
     {
       key: "week",
       label: "Semana",
-      chipWidth: "10rem",
+      chipWidth: "11.5rem",
       options: [
         all("Todas", "Todas las semanas"),
         ...Array.from({ length: 53 }, (_, index) => index + 1).map((week) => ({
@@ -131,7 +131,7 @@ function buildFilterDefinitions(
     {
       key: "source",
       label: "Fuente",
-      chipWidth: "10rem",
+      chipWidth: "11.5rem",
       options: [
         all("Todas", "Todas las fuentes"),
         ...recordSources.map((source) => ({
