@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useDelivery } from "@/features/deliveries/hooks/use-deliveries";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
 import { getRecordActionPermissions } from "../record-actions";
 import { getRecordBanner } from "../record-detail-utils";
 import { RecordsApiError } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
 import { RecordActionDialog } from "./record-action-dialog";
+import { RecordDeliveryCard } from "./record-delivery-card";
 import { RecordDetailBanner } from "./record-detail-banner";
 import { RecordDetailHeader } from "./record-detail-header";
 import { RecordDetailHero } from "./record-detail-hero";
@@ -166,7 +166,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
 
       <RecordImageCard record={record} />
 
-      {record.status === "CONFIRMED" && <DeliveryLink canEdit={canEdit} recordId={record.id} />}
+      <RecordDeliveryCard canEdit={canEdit} record={record} />
 
       <RecordHistoryPanel recordId={record.id} />
 
@@ -209,20 +209,6 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
           </div>
         </RecordActionDialog>
       )}
-    </section>
-  );
-}
-
-function DeliveryLink({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
-  const deliveryQuery = useDelivery(recordId);
-  const label = !canEdit
-    ? "Ver entrega"
-    : deliveryQuery.data ? "Actualizar entrega" : "Preparar entrega";
-
-  return (
-    <section aria-labelledby="record-delivery-heading" className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-4">
-      <h2 className="text-lg font-semibold" id="record-delivery-heading">Preparación de entrega</h2>
-      <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href={`/records/${recordId}/delivery`}>{label}</Link>
     </section>
   );
 }
