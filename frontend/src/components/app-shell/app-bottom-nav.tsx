@@ -5,7 +5,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { appNavItems, isNavItemActive } from "./nav-items"
+import {
+  appNavItems,
+  isNavItemActive,
+  shouldShowNewRecordFab,
+} from "./nav-items"
 
 type AppBottomNavProps = {
   role: "EDITOR" | "VIEWER"
@@ -14,7 +18,7 @@ type AppBottomNavProps = {
 
 export function AppBottomNav({ role, recordsBadge }: AppBottomNavProps) {
   const pathname = usePathname()
-  const showNewRecord = role === "EDITOR" && pathname === "/dashboard"
+  const showNewRecord = shouldShowNewRecordFab(pathname, role)
 
   return (
     <>
