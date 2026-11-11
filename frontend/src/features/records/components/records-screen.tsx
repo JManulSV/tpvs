@@ -7,20 +7,12 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
 import { formatMoney } from "@/lib/format";
-import { recordStatusMeta } from "@/lib/status";
-import { recordSources, recordStatuses, type RecordListParams, type RecordStatus } from "../types";
 import { useRecords } from "../hooks/use-records";
 import { parseInitialRecordFilters } from "../record-filters";
+import { hasActiveRecordFilters } from "../record-list-utils";
+import { RecordsFilterBar, type RecordListFilters } from "./records-filter-bar";
 
 const PAGE_SIZE = 15;
-
-/** Last eight years, plus a URL-provided year outside that range so the select can show it. */
-function yearOptions(selected: number | undefined): number[] {
-  const years = Array.from({ length: 8 }, (_, index) => new Date().getFullYear() - index);
-  if (selected !== undefined && !years.includes(selected)) years.push(selected);
-
-  return years.sort((a, b) => b - a);
-}
 
 export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
   const [searchInput, setSearchInput] = useState("");
@@ -28,7 +20,7 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
   const [page, setPage] = useState(1);
   const searchParams = useSearchParams();
   // Read once on entry; later filter changes are not written back to the URL.
-  const [filters, setFilters] = useState<Omit<RecordListParams, "search" | "page" | "per_page">>(
+  const [filters, setFilters] = useState<RecordListFilters>(
     () => parseInitialRecordFilters(searchParams),
   );
   const companiesQuery = useCompanies({ per_page: 100 });
@@ -45,8 +37,15 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
   const rows = query.data?.data ?? [];
   const meta = query.data?.meta;
 
-  function setFilter<K extends keyof typeof filters>(key: K, value: (typeof filters)[K] | undefined) {
-    setFilters((current) => ({ ...current, [key]: value }));
+  function patchFilters(patch: Partial<RecordListFilters>) {
+    setFilters((current) => ({ ...current, ...patch }));
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setSearchInput("");
+    setSearch("");
+    setFilters({});
     setPage(1);
   }
 
@@ -60,44 +59,16 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
         {canCreate && <Link className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/80 focus-visible:outline-2 focus-visible:outline-ring" href="/records/new">+ Nuevo registro</Link>}
       </header>
 
-      <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-2 sm:col-span-2">
-          <label className="text-sm font-medium" htmlFor="record-search">Buscar registros</label>
-          <input
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            id="record-search"
-            maxLength={255}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Empresa, afiliación o sucursal"
-            type="search"
-            value={searchInput}
-          />
-        </div>
-        <FilterSelect label="Empresa" onChange={(value) => setFilter("company_id", value ? Number(value) : undefined)} value={filters.company_id?.toString() ?? ""}>
-          <option value="">Todas</option>
-          {(companiesQuery.data?.data ?? []).map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Año" onChange={(value) => setFilter("year", value ? Number(value) : undefined)} value={filters.year?.toString() ?? ""}>
-          <option value="">Todos</option>
-          {yearOptions(filters.year).map((year) => <option key={year} value={year}>{year}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Mes (fecha final)" onChange={(value) => setFilter("month", value ? Number(value) : undefined)} value={filters.month?.toString() ?? ""}>
-          <option value="">Todos</option>
-          {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{new Intl.DateTimeFormat("es-MX", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2026, month - 1, 1)))}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Semana del negocio" onChange={(value) => setFilter("week", value ? Number(value) : undefined)} value={filters.week?.toString() ?? ""}>
-          <option value="">Todas</option>
-          {Array.from({ length: 53 }, (_, index) => index + 1).map((week) => <option key={week} value={week}>{week}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Estado" onChange={(value) => setFilter("status", (value || undefined) as RecordStatus | undefined)} value={filters.status ?? ""}>
-          <option value="">Todos</option>
-          {recordStatuses.map((status) => <option key={status} value={status}>{recordStatusMeta[status].label}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Origen" onChange={(value) => setFilter("source", (value || undefined) as "IMAGE" | "MANUAL" | undefined)} value={filters.source ?? ""}>
-          <option value="">Todos</option>
-          {recordSources.map((source) => <option key={source} value={source}>{source === "MANUAL" ? "Manual" : "Imagen"}</option>)}
-        </FilterSelect>
-      </div>
+      <RecordsFilterBar
+        companies={companiesQuery.data?.data ?? []}
+        filters={filters}
+        hasActiveFilters={hasActiveRecordFilters(searchInput, filters)}
+        onClear={clearFilters}
+        onFiltersChange={patchFilters}
+        onSearchChange={setSearchInput}
+        searchInput={searchInput}
+        total={meta?.total}
+      />
 
       {query.isPending && <p aria-live="polite" className="py-8 text-center text-sm text-muted-foreground">Cargando registros…</p>}
       {query.isError && (
@@ -108,7 +79,7 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
       )}
       {query.isSuccess && rows.length === 0 && (
         <p className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
-          {search || Object.values(filters).some(Boolean) ? "No se encontraron registros con esos criterios." : "Todavía no hay registros."}
+          {hasActiveRecordFilters(search, filters) ? "No se encontraron registros con esos criterios." : "Todavía no hay registros."}
         </p>
       )}
       {query.isSuccess && rows.length > 0 && (
@@ -156,27 +127,5 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
         </>
       )}
     </section>
-  );
-}
-
-function FilterSelect({
-  children,
-  label,
-  onChange,
-  value,
-}: {
-  children: React.ReactNode;
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  const id = `record-filter-${label.toLowerCase().replace(/[^a-z]+/g, "-")}`;
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium" htmlFor={id}>{label}</label>
-      <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" id={id} onChange={(event) => onChange(event.target.value)} value={value}>
-        {children}
-      </select>
-    </div>
   );
 }

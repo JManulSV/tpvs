@@ -5,6 +5,7 @@ import {
   getRecordRowLabel,
   getRecordSubtitle,
   hasActiveRecordFilters,
+  selectValueToFilter,
 } from "@/features/records/record-list-utils";
 import { recordStatuses, type RecordListItem } from "@/features/records/types";
 
@@ -128,5 +129,19 @@ describe("hasActiveRecordFilters", () => {
     expect(hasActiveRecordFilters("abc", {})).toBe(true);
     expect(hasActiveRecordFilters("", { status: "ERROR" })).toBe(true);
     expect(hasActiveRecordFilters("", { company_id: 3, year: undefined })).toBe(true);
+  });
+});
+
+describe("selectValueToFilter", () => {
+  it("turns the all option into no filter", () => {
+    expect(selectValueToFilter("all")).toBeUndefined();
+    expect(selectValueToFilter("")).toBeUndefined();
+    expect(selectValueToFilter(null)).toBeUndefined();
+    expect(selectValueToFilter(undefined)).toBeUndefined();
+  });
+
+  it("keeps real values", () => {
+    expect(selectValueToFilter("NEEDS_REVIEW")).toBe("NEEDS_REVIEW");
+    expect(selectValueToFilter("38")).toBe("38");
   });
 });

@@ -68,3 +68,13 @@ export function hasActiveRecordFilters(search: string, filters: object): boolean
     (value) => value !== undefined && value !== null && value !== "",
   );
 }
+
+/** Internal value of the "all" option in filter selects; it is never sent to the backend. */
+export const ALL_FILTER_VALUE = "all";
+
+/** Maps a select value to the filter value: the "all" option clears the filter. */
+export function selectValueToFilter(value: string | null | undefined): string | undefined {
+  return value === null || value === undefined || value === ALL_FILTER_VALUE || value === ""
+    ? undefined
+    : value;
+}
