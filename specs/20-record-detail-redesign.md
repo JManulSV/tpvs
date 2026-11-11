@@ -1,6 +1,6 @@
 # SPEC 20 — Rediseño del detalle de registro
 
-> **Status:** Draft
+> **Status:** Approved
 > **Depends on:** SPEC 05, SPEC 09, SPEC 10, SPEC 11, SPEC 15, SPEC 16, SPEC 19
 > **Date:** 2026-11-11
 > **Objective:** Reemplazar la pantalla `/records/{id}` por la interfaz de las plantillas `RecordDetailEditor{,Mobile}.dc.html` (encabezado con acciones, hero de totales, tarjetas de periodo, movimientos, imagen, entrega e historial), con tokens de shadcn y dentro del shell existente, sin cambiar el backend ni los flujos de edición, confirmación y cancelación.
