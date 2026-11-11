@@ -4,17 +4,18 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/status-badge";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
-import { formatMoney } from "@/lib/format";
 import { useRecords } from "../hooks/use-records";
 import { parseInitialRecordFilters } from "../record-filters";
 import { hasActiveRecordFilters } from "../record-list-utils";
+import { RecordsCardList } from "./records-card-list";
+import { RecordsSkeleton } from "./records-skeleton";
+import { RecordsTable } from "./records-table";
 import { RecordsFilterBar, type RecordListFilters } from "./records-filter-bar";
 
 const PAGE_SIZE = 15;
 
-export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
+export function RecordsScreen({ canCreate, role }: { canCreate: boolean; role: "EDITOR" | "VIEWER" }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -70,7 +71,11 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
         total={meta?.total}
       />
 
-      {query.isPending && <p aria-live="polite" className="py-8 text-center text-sm text-muted-foreground">Cargando registros…</p>}
+      {query.isPending && (
+        <div className="@container">
+          <RecordsSkeleton />
+        </div>
+      )}
       {query.isError && (
         <div className="space-y-3 rounded-md border p-5 text-center" role="alert">
           <p>{query.error.message || "No se pudieron cargar los registros."}</p>
@@ -84,36 +89,13 @@ export function RecordsScreen({ canCreate }: { canCreate: boolean }) {
       )}
       {query.isSuccess && rows.length > 0 && (
         <>
-          <div className="overflow-x-auto rounded-md border">
-            <table className="w-full min-w-[58rem] border-collapse text-left text-sm">
-              <caption className="sr-only">Registros, período, total de retorno, estado y origen</caption>
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 font-medium" scope="col">Empresa</th>
-                  <th className="px-4 py-3 font-medium" scope="col">Período</th>
-                  <th className="px-4 py-3 font-medium" scope="col">Afiliación / sucursal</th>
-                  <th className="px-4 py-3 text-right font-medium" scope="col">Retorno</th>
-                  <th className="px-4 py-3 font-medium" scope="col">Estado</th>
-                  <th className="px-4 py-3 font-medium" scope="col">Origen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((record) => (
-                  <tr className="border-t hover:bg-muted/30" key={record.id}>
-                    <th className="px-4 py-3 font-medium" scope="row">
-                      <Link className="underline-offset-4 hover:underline focus-visible:outline-2" href={`/records/${record.id}`}>
-                        {record.company?.name ?? "Sin empresa"}
-                      </Link>
-                    </th>
-                    <td className="px-4 py-3">{record.week ? `Semana ${record.week}` : "Sin semana"}{record.year ? ` · ${record.year}` : ""}<br /><span className="text-muted-foreground">{record.week_start_date ?? "—"} – {record.week_end_date ?? "—"}</span></td>
-                    <td className="px-4 py-3">{record.details.length ? record.details.map((detail) => <span className="block" key={detail.id}>{detail.affiliation ?? "—"}<br /><span className="text-muted-foreground">{detail.branch ?? "—"}</span></span>) : "—"}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.return_total)}</td>
-                    <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
-                    <td className="px-4 py-3">{record.source === "MANUAL" ? "Manual" : "Imagen"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="@container">
+            <div className="hidden @[60rem]:block">
+              <RecordsTable records={rows} role={role} />
+            </div>
+            <div className="@[60rem]:hidden">
+              <RecordsCardList records={rows} role={role} />
+            </div>
           </div>
           {meta && (
             <nav aria-label="Paginación de registros" className="flex items-center justify-between gap-4">
