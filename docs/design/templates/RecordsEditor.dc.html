@@ -1,0 +1,344 @@
+<!doctype html>
+<meta charset="utf-8"><style data-dc-design-system-vars>@layer{:root{--brand-navy:#324168;--brand-sky:#64b3dd;--brand-sky-soft:#e3f1fa;--canvas:#eef3f8;--surface:#ffffff;--surface-muted:#f5f8fc;--border:#dbe4ee;--border-strong:#6f819c;--ink:#17203a;--ink-muted:#4f5b77;--primary:#324168;--primary-hover:#28345a;--on-primary:#ffffff;--accent:#64b3dd;--on-accent:#17203a;--accent-soft:#e3f1fa;--accent-soft-ink:#1b5c85;--ring:#324168;--danger:#b3261e;--on-danger:#ffffff;--hero:#324168;--on-hero:#ffffff;--chart-1:#324168;--chart-2:#2f88ba;--status-confirmed:#0f6b3a;--status-confirmed-bg:#e3f5ea;--status-needs-review:#8a4b00;--status-needs-review-bg:#fdf0d8;--status-error:#a3202a;--status-error-bg:#fce6e7;--status-processing:#4d3fa3;--status-processing-bg:#ece9fb;--status-pending:#46526c;--status-pending-bg:#e8edf4;--status-canceled:#5b6478;--status-canceled-bg:#eef0f4;--shadow-card:0 1px 2px rgba(23, 32, 58, 0.05), 0 4px 16px rgba(23, 32, 58, 0.04);--shadow-popover:0 8px 32px rgba(23, 32, 58, 0.14);--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-12:48px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-pill:999px;--font-sans:"Plus Jakarta Sans", system-ui, sans-serif;--font-mono:"JetBrains Mono", ui-monospace, monospace;--text-display-lg:700 32px/40px var(--font-sans);--text-display-md:700 24px/32px var(--font-sans);--text-heading-lg:700 20px/28px var(--font-sans);--text-heading-md:600 16px/24px var(--font-sans);--text-body:400 14px/20px var(--font-sans);--text-body-strong:600 14px/20px var(--font-sans);--text-caption:500 12px/16px var(--font-sans);--text-overline:600 11px/16px var(--font-sans);--text-figure-lg:700 28px/36px var(--font-sans);--text-figure-md:600 16px/24px var(--font-sans);--text-code:400 13px/20px var(--font-mono);}}</style>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Registros Editor</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+:root{--brand-navy:#324168;--brand-sky:#64B3DD;--canvas:#EEF3F8;--surface:#FFFFFF;--surface-muted:#F5F8FC;--border:#DBE4EE;--border-strong:#6F819C;--ink:#17203A;--ink-muted:#4F5B77;--primary:#324168;--primary-hover:#28345A;--on-primary:#FFFFFF;--accent-soft:#E3F1FA;--accent-soft-ink:#1B5C85;--ring:#324168;--hero:#324168;--on-hero:#FFFFFF;--hero-ink-muted:#C7D0E4;--hero-hover:rgba(255,255,255,.10);--status-confirmed:#0F6B3A;--status-confirmed-bg:#E3F5EA;--status-needs-review:#8A4B00;--status-needs-review-bg:#FDF0D8;--status-error:#A3202A;--status-error-bg:#FCE6E7;--status-processing:#4D3FA3;--status-processing-bg:#ECE9FB;--status-pending:#46526C;--status-pending-bg:#E8EDF4;--status-canceled:#5B6478;--status-canceled-bg:#EEF0F4;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-pill:999px;--shadow-card:0 1px 2px rgba(23,32,58,.05),0 4px 16px rgba(23,32,58,.04);--font-sans:"Plus Jakarta Sans",system-ui,sans-serif}
+.root{box-sizing:border-box;min-height:900px;display:flex;flex-wrap:wrap;align-items:stretch;background:var(--canvas);color:var(--ink);font-family:var(--font-sans);font-size:14px;line-height:20px}
+.root *,.root *::before,.root *::after{box-sizing:border-box}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.side{flex:none;display:flex;flex-direction:column;gap:4px;width:256px;padding:24px 16px;background:var(--hero);color:var(--on-hero)}
+.brand{padding:4px 12px 24px;font:700 24px/32px var(--font-sans);letter-spacing:-.01em}
+.nav-label{padding:16px 12px 8px;font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--hero-ink-muted)}
+.nav-item{display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 12px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--hero-ink-muted);font:600 14px/20px var(--font-sans);text-align:left;cursor:pointer;transition:background-color .15s ease}
+.nav-item:hover{background:var(--hero-hover);color:var(--on-hero)}
+.nav-item:focus-visible{outline:2px solid var(--brand-sky);outline-offset:2px}
+.nav-item[aria-current="page"]{background:var(--on-hero);color:var(--primary)}
+.nav-item .ic{width:20px;height:20px}
+.nav-count{margin-left:auto;min-width:22px;height:22px;padding:0 6px;display:grid;place-items:center;border-radius:var(--radius-pill);background:var(--status-needs-review-bg);color:var(--status-needs-review);font:700 12px/16px var(--font-sans)}
+.avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:var(--radius-pill);background:var(--brand-sky);color:var(--ink);font:700 13px/16px var(--font-sans)}
+.main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:24px;padding:32px 40px}
+.search{flex:1 1 260px;max-width:360px;display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-pill);color:var(--ink-muted)}
+.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font:400 14px/20px var(--font-sans)}
+.search input::placeholder{color:var(--ink-muted)}
+.search:focus-within{outline:2px solid var(--ring);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 20px;border:1px solid transparent;border-radius:var(--radius-pill);background:var(--primary);color:var(--on-primary);font:600 14px/20px var(--font-sans);cursor:pointer;transition:background-color .15s ease}
+.btn:hover{background:var(--primary-hover)}
+.btn.soft{background:var(--accent-soft);color:var(--accent-soft-ink)}
+.btn.soft:hover{border-color:var(--accent-soft-ink);background:var(--accent-soft)}
+.btn:focus-visible,.icon-btn:focus-visible,.clear:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.icon-btn{display:grid;place-items:center;width:40px;height:40px;border-radius:var(--radius-pill);background:var(--surface);color:var(--ink-muted);cursor:pointer;border:1px solid var(--border);transition:background-color .15s ease}
+.icon-btn:hover{background:var(--surface-muted);color:var(--ink)}
+.icon-btn .ic{width:20px;height:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card)}
+.fgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px}
+.f.wide{grid-column:span 2}
+@media (max-width:1100px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.f{display:flex;flex-direction:column;gap:6px}
+.fl{font:600 12px/16px var(--font-sans);color:var(--ink-muted)}
+.sel{position:relative;display:block}
+.sel select{appearance:none;-webkit-appearance:none;width:100%;height:40px;padding:0 40px 0 16px;border:1px solid var(--border-strong);border-radius:var(--radius-pill);background:var(--surface);color:var(--ink);font:500 14px/20px var(--font-sans);cursor:pointer}
+.sel select:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.sel .ic{position:absolute;right:14px;top:12px;pointer-events:none;color:var(--ink-muted)}
+.clear{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--accent-soft-ink);font:600 13px/16px var(--font-sans);cursor:pointer}
+.clear:hover{background:var(--accent-soft)}
+.tbl-wrap{overflow-x:auto}
+.gt{min-width:960px}
+.gh,.gr{display:grid;grid-template-columns:minmax(240px,2.4fr) 96px 120px 112px 120px 132px 104px;align-items:center;column-gap:16px;padding:0 24px}
+.gh{height:40px;background:var(--surface-muted);border-top:1px solid var(--border);border-bottom:1px solid var(--border);font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+.gr{position:relative;min-height:64px;padding-top:10px;padding-bottom:10px;border-bottom:1px solid var(--border);transition:background-color .15s ease}
+.gr:last-child{border-bottom:0}
+.gr:hover{background:var(--surface-muted)}
+.rl{color:var(--ink);text-decoration:none;font:600 14px/20px var(--font-sans)}
+.rl::after{content:"";position:absolute;inset:0}
+.rl:focus-visible{outline:none}
+.rl:focus-visible::after{outline:2px solid var(--ring);outline-offset:-2px;border-radius:var(--radius-sm)}
+.cname.none{color:var(--ink-muted);font-style:italic;font-weight:500}
+.sub{display:block;font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+.mu{color:var(--ink-muted)}
+.num{text-align:right;font:600 14px/20px var(--font-sans);font-variant-numeric:tabular-nums}
+.num.dim{color:var(--ink-muted);font-weight:500}
+.src{display:inline-flex;align-items:center;gap:8px;color:var(--ink-muted);font:500 14px/20px var(--font-sans)}
+.act{display:inline-flex;align-items:center;gap:4px;justify-self:end;color:var(--accent-soft-ink);font:600 13px/16px var(--font-sans)}
+.chev{justify-self:end;color:var(--ink-muted)}
+.s-review{background:var(--status-needs-review-bg);color:var(--status-needs-review)}
+.s-pending{background:var(--status-pending-bg);color:var(--status-pending)}
+.s-processing{background:var(--status-processing-bg);color:var(--status-processing)}
+.s-error{background:var(--status-error-bg);color:var(--status-error)}
+.s-confirmed{background:var(--status-confirmed-bg);color:var(--status-confirmed)}
+.s-canceled{background:var(--status-canceled-bg);color:var(--status-canceled)}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:var(--radius-pill);font:600 12px/16px var(--font-sans);white-space:nowrap}
+.foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 24px;padding:14px 24px;border-top:1px solid var(--border);background:var(--surface-muted);color:var(--ink-muted);font:500 13px/20px var(--font-sans)}
+.foot strong{color:var(--ink);font-variant-numeric:tabular-nums}
+.empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:56px 24px;text-align:center}
+.empty .badge{display:grid;place-items:center;width:48px;height:48px;border-radius:var(--radius-md);background:var(--accent-soft);color:var(--accent-soft-ink)}
+.empty .badge .ic{width:24px;height:24px}
+</style>
+</helmet>
+<div class="root">
+  <nav class="side" aria-label="Principal">
+    <div class="brand">Tpvs</div>
+    <div class="nav-label">Sistema</div>
+    <button type="button" class="nav-item" aria-current="{{ cur.dashboard }}" onClick="{{ go.dashboard }}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+      Dashboard
+    </button>
+    <button type="button" class="nav-item" aria-current="{{ cur.registros }}" onClick="{{ go.registros }}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8"></path></svg>
+      Registros
+      <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ true }}">
+        <span class="nav-count" aria-label="4 registros por revisar">4</span>
+      </sc-if>
+    </button>
+    <button type="button" class="nav-item" aria-current="{{ cur.empresas }}" onClick="{{ go.empresas }}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg>
+      Empresas
+    </button>
+    <button type="button" class="nav-item" aria-current="{{ cur.reportes }}" onClick="{{ go.reportes }}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"></path></svg>
+      Reportes
+    </button>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding-top: 24px">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-top: 1px solid var(--hero-hover)">
+        <span class="avatar" aria-hidden="true">{{ initials }}</span>
+        <span><span style="display: block; font-weight: 600">{{ userName }}</span><span style="display: block; font: 500 12px/16px var(--font-sans); color: var(--hero-ink-muted)">Editor</span></span>
+      </div>
+      <button type="button" class="nav-item">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg>
+        Cerrar sesión
+      </button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px">
+      <div style="display: flex; flex-direction: column; gap: 4px; margin-right: auto">
+        <h1 style="margin: 0; font: 700 24px/32px var(--font-sans); letter-spacing: -0.01em">Registros</h1>
+      </div>
+      <label class="search">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input type="search" placeholder="Buscar empresa, afiliación o sucursal…" aria-label="Buscar registros" value="{{ f.q }}" onChange="{{ on.q }}">
+      </label>
+      <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ true }}">
+        <button type="button" class="btn">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"></path></svg>
+          Nuevo registro
+        </button>
+      </sc-if>
+      <button type="button" class="icon-btn" aria-label="Notificaciones">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+      </button>
+    </header>
+
+    <section class="card" aria-label="Filtros" style="display: flex; flex-direction: column; gap: 16px; padding: 20px 24px">
+      <div class="fgrid">
+        <label class="f wide"><span class="fl">Buscar</span><span class="search" style="max-width: none; flex: none; height: 40px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input type="search" placeholder="Empresa, afiliación o sucursal…" value="{{ f.q }}" onChange="{{ on.q }}"></span></label>
+        <label class="f"><span class="fl">Empresa</span><span class="sel"><select value="{{ f.empresa }}" onChange="{{ on.empresa }}"><option value="all">Todas</option><option value="Company ABC">Company ABC</option><option value="Company XYZ">Company XYZ</option><option value="Company North">Company North</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+        <label class="f"><span class="fl">Estado</span><span class="sel"><select value="{{ f.status }}" onChange="{{ on.status }}"><option value="all">Todos</option><option value="PENDING">Pendiente</option><option value="PROCESSING">Procesando</option><option value="NEEDS_REVIEW">Por revisar</option><option value="ERROR">Error</option><option value="CONFIRMED">Confirmado</option><option value="CANCELED">Cancelado</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+        <label class="f"><span class="fl">Año</span><span class="sel"><select value="{{ f.year }}" onChange="{{ on.year }}"><option value="all">Todos</option><option value="2026">2026</option><option value="2025">2025</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+        <label class="f"><span class="fl">Mes</span><span class="sel"><select value="{{ f.month }}" onChange="{{ on.month }}"><option value="all">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+        <label class="f"><span class="fl">Semana</span><span class="sel"><select value="{{ f.week }}" onChange="{{ on.week }}"><option value="all">Todas</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option><option value="46">46</option><option value="47">47</option><option value="48">48</option><option value="49">49</option><option value="50">50</option><option value="51">51</option><option value="52">52</option><option value="53">53</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+        <label class="f"><span class="fl">Fuente</span><span class="sel"><select value="{{ f.source }}" onChange="{{ on.source }}"><option value="all">Todas</option><option value="IMAGE">Imagen</option><option value="MANUAL">Manual</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; min-height: 32px">
+        <span style="font: 500 12px/16px var(--font-sans); color: var(--ink-muted)">El mes se toma de la fecha de fin de la semana.</span>
+        <sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}">
+          <button type="button" class="clear" onClick="{{ clear }}">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+            Limpiar filtros
+          </button>
+        </sc-if>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Lista de registros" style="overflow: hidden">
+      <div class="tbl-wrap">
+        <div class="gt" role="table" aria-label="Registros">
+          <div class="gh" role="row">
+            <div role="columnheader">Empresa</div>
+            <div role="columnheader">Semana</div>
+            <div role="columnheader">Fin de semana</div>
+            <div role="columnheader">Fuente</div>
+            <div role="columnheader" style="text-align: right">Retorno</div>
+            <div role="columnheader">Estado</div>
+            <div role="columnheader"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Acción</span></div>
+          </div>
+          <div role="rowgroup">
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+              <div class="gr" role="row">
+                <div role="cell"><a class="rl" href="{{ r.href }}" aria-label="{{ r.aria }}"><span class="cname {{ r.nameClass }}">{{ r.companyLabel }}</span></a><span class="sub">{{ r.sub }}</span></div>
+                <div role="cell"><span style="display: block; font-weight: 600; font-variant-numeric: tabular-nums">{{ r.weekLabel }}</span><span class="sub">{{ r.yearLabel }}</span></div>
+                <div role="cell" class="mu" style="font-variant-numeric: tabular-nums">{{ r.endLabel }}</div>
+                <div role="cell">
+                  <span class="src">
+                    <sc-if value="{{ r.isImage }}" hint-placeholder-val="{{ true }}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg></sc-if>
+                    <sc-if value="{{ r.isManual }}" hint-placeholder-val="{{ false }}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg></sc-if>
+                    {{ r.sourceLabel }}
+                  </span>
+                </div>
+                <div role="cell" class="num {{ r.amountClass }}">{{ r.amountLabel }}</div>
+                <div role="cell"><span class="pill {{ r.statusClass }}">{{ r.statusLabel }}</span></div>
+                <div role="cell" style="display: flex; justify-content: flex-end">
+                  <sc-if value="{{ r.hasAction }}" hint-placeholder-val="{{ false }}">
+                    <span class="act">{{ r.action }}<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></span>
+                  </sc-if>
+                  <sc-if value="{{ r.noAction }}" hint-placeholder-val="{{ true }}">
+                    <span class="chev"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 20px; height: 20px"><path d="m9 18 6-6-6-6"></path></svg></span>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div class="empty">
+          <span class="badge"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8"></path></svg></span>
+          <h2 style="margin: 0; font: 600 16px/24px var(--font-sans)">No hay registros con estos filtros</h2>
+          <p style="margin: 0; color: var(--ink-muted)">Prueba con otra semana o quita algún filtro.</p>
+          <button type="button" class="btn soft" style="margin-top: 8px" onClick="{{ clear }}">Limpiar filtros</button>
+        </div>
+      </sc-if>
+      <div class="foot">
+        <span><strong>{{ count }}</strong> {{ countWord }}</span>
+        <span>Retorno confirmado en esta lista · <strong>{{ confirmedTotal }}</strong></span>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"nombre":{"editor":"text","default":"María López","section":"Usuario"},"$preview":{"width":1440,"height":1400}}'>
+const ROLE = 'editor';
+const INITIAL = { q: '', empresa: 'all', year: 'all', month: 'all', week: 'all', status: 'all', source: 'all' };
+const STATUS = {
+  PENDING: ['Pendiente', 's-pending'],
+  PROCESSING: ['Procesando', 's-processing'],
+  NEEDS_REVIEW: ['Por revisar', 's-review'],
+  ERROR: ['Error', 's-error'],
+  CONFIRMED: ['Confirmado', 's-confirmed'],
+  CANCELED: ['Cancelado', 's-canceled']
+};
+// id, empresa, año, semana, fin de semana, fuente, estado, retorno, afiliación, sucursal, movimientos adicionales
+const DATA = [
+  ['r01', null, null, null, null, 'IMAGE', 'PENDING', null, null, null, 0],
+  ['r02', null, null, null, null, 'IMAGE', 'PENDING', null, null, null, 0],
+  ['r03', null, null, null, null, 'IMAGE', 'PENDING', null, null, null, 0],
+  ['r04', null, null, null, null, 'IMAGE', 'PROCESSING', null, null, null, 0],
+  ['r05', 'Company ABC', 2026, 37, '2026-09-08', 'IMAGE', 'PROCESSING', null, null, null, 0],
+  ['r06', null, null, null, null, 'IMAGE', 'ERROR', null, null, null, 0],
+  ['r07', 'Company XYZ', 2026, 38, '2026-09-15', 'IMAGE', 'NEEDS_REVIEW', 9800, '123456', 'Guadalajara', 1],
+  ['r08', 'Company ABC', 2026, 38, '2026-09-15', 'IMAGE', 'NEEDS_REVIEW', 5100, '204518', 'Zapopan', 2],
+  ['r09', 'Company North', 2026, 37, '2026-09-08', 'IMAGE', 'NEEDS_REVIEW', 2640, '771902', 'Guadalajara', 0],
+  ['r10', 'Company XYZ', 2026, 37, '2026-09-08', 'IMAGE', 'NEEDS_REVIEW', 4880, '338105', 'Tonalá', 0],
+  ['r11', 'Company ABC', 2026, 38, '2026-09-15', 'IMAGE', 'CONFIRMED', 7200, '204518', 'Zapopan', 0],
+  ['r12', 'Company North', 2026, 38, '2026-09-15', 'MANUAL', 'CONFIRMED', 3450, '771902', 'Tlaquepaque', 0],
+  ['r13', 'Company ABC', 2026, 37, '2026-09-08', 'MANUAL', 'CONFIRMED', 5500, '204518', 'Zapopan', 0],
+  ['r14', 'Company XYZ', 2026, 36, '2026-09-01', 'IMAGE', 'CONFIRMED', 6310, '338105', 'Tonalá', 0],
+  ['r15', 'Company ABC', 2026, 35, '2026-08-25', 'IMAGE', 'CONFIRMED', 9120, '204518', 'Zapopan', 3],
+  ['r16', 'Company North', 2026, 37, '2026-09-08', 'IMAGE', 'CANCELED', 2100, '771902', 'Guadalajara', 0]
+];
+const money = (n) => '$' + n.toLocaleString('en-US');
+const fmtDate = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) : '—';
+const WAITING = {
+  PENDING: 'En cola para procesar',
+  PROCESSING: 'Extrayendo datos de la imagen',
+  ERROR: 'No se pudo leer la imagen'
+};
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { active: 'registros', q: '', empresa: 'all', year: 'all', month: 'all', week: 'all', status: 'all', source: 'all' };
+  }
+  renderVals() {
+    const s = this.state;
+    const isEditor = ROLE === 'editor';
+    const q = s.q.trim().toLowerCase();
+    const list = DATA.filter((d) => {
+      const hay = ((d[1] || '') + ' ' + (d[8] || '') + ' ' + (d[9] || '')).toLowerCase();
+      if (q && hay.indexOf(q) === -1) return false;
+      if (s.empresa !== 'all' && d[1] !== s.empresa) return false;
+      if (s.year !== 'all' && String(d[2]) !== s.year) return false;
+      if (s.month !== 'all' && !(d[4] && d[4].slice(5, 7) === s.month)) return false;
+      if (s.week !== 'all' && String(d[3]) !== s.week) return false;
+      if (s.status !== 'all' && d[6] !== s.status) return false;
+      if (s.source !== 'all' && d[5] !== s.source) return false;
+      return true;
+    });
+    let confirmed = 0;
+    const rows = list.map((d) => {
+      const st = STATUS[d[6]];
+      const hasCompany = !!d[1];
+      const company = hasCompany ? d[1] : 'Sin empresa asignada';
+      let sub = WAITING[d[6]] || '';
+      if (d[8]) sub = 'Afil. ' + d[8] + ' · ' + d[9] + (d[10] ? ' · +' + d[10] + (d[10] === 1 ? ' movimiento' : ' movimientos') : '');
+      if (d[6] === 'CONFIRMED') confirmed += d[7];
+      let action = '';
+      if (isEditor && d[6] === 'NEEDS_REVIEW') action = 'Revisar';
+      if (isEditor && d[6] === 'ERROR') action = 'Ver error';
+      const weekLabel = d[3] ? String(d[3]) : '—';
+      return {
+        href: '#registro-' + d[0],
+        aria: 'Abrir registro de ' + company + (d[3] ? ', semana ' + d[3] : '') + ', ' + st[0],
+        companyLabel: company,
+        nameClass: hasCompany ? '' : 'none',
+        sub: sub,
+        weekLabel: weekLabel,
+        yearLabel: d[2] ? String(d[2]) : '',
+        endLabel: fmtDate(d[4]),
+        isImage: d[5] === 'IMAGE',
+        isManual: d[5] === 'MANUAL',
+        sourceLabel: d[5] === 'IMAGE' ? 'Imagen' : 'Manual',
+        amountLabel: d[7] === null ? '—' : money(d[7]),
+        amountClass: (d[7] === null || d[6] === 'CANCELED') ? 'dim' : '',
+        statusLabel: st[0],
+        statusClass: st[1],
+        hasAction: action !== '',
+        noAction: action === '',
+        action: action
+      };
+    });
+    const ids = ['dashboard', 'registros', 'empresas', 'reportes'];
+    const cur = {};
+    const go = {};
+    ids.forEach((id) => {
+      cur[id] = id === s.active ? 'page' : 'false';
+      go[id] = () => this.setState({ active: id });
+    });
+    const set = (k) => (e) => this.setState({ [k]: e.target.value });
+    const on = { q: set('q'), empresa: set('empresa'), year: set('year'), month: set('month'), week: set('week'), status: set('status'), source: set('source') };
+    const hasFilters = Object.keys(INITIAL).some((k) => s[k] !== INITIAL[k]);
+    const name = this.props.nombre ?? 'María López';
+    const initials = name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+    return {
+      cur: cur,
+      go: go,
+      on: on,
+      f: { q: s.q, empresa: s.empresa, year: s.year, month: s.month, week: s.week, status: s.status, source: s.source },
+      rows: rows,
+      isEmpty: rows.length === 0,
+      hasFilters: hasFilters,
+      clear: () => this.setState(Object.assign({}, INITIAL)),
+      count: rows.length,
+      countWord: rows.length === 1 ? 'registro' : 'registros',
+      confirmedTotal: money(confirmed),
+      isEditor: isEditor,
+      userName: name,
+      initials: initials
+    };
+  }
+}
+</script>
+</body>
+</html>
