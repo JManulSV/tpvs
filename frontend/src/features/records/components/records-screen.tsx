@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
@@ -9,13 +9,14 @@ import { useRecords } from "../hooks/use-records";
 import { parseInitialRecordFilters } from "../record-filters";
 import { hasActiveRecordFilters } from "../record-list-utils";
 import { RecordsCardList } from "./records-card-list";
+import { RecordsPagination } from "./records-pagination";
 import { RecordsSkeleton } from "./records-skeleton";
 import { RecordsTable } from "./records-table";
 import { RecordsFilterBar, type RecordListFilters } from "./records-filter-bar";
 
 const PAGE_SIZE = 15;
 
-export function RecordsScreen({ canCreate, role }: { canCreate: boolean; role: "EDITOR" | "VIEWER" }) {
+export function RecordsScreen({ role }: { role: "EDITOR" | "VIEWER" }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -50,15 +51,23 @@ export function RecordsScreen({ canCreate, role }: { canCreate: boolean; role: "
     setPage(1);
   }
 
+  const filtered = hasActiveRecordFilters(search, filters);
+  const pagination = (variant: "footer" | "stacked") =>
+    meta && (
+      <RecordsPagination
+        currentPage={meta.current_page}
+        isFetching={query.isFetching}
+        lastPage={meta.last_page}
+        onNext={() => setPage((current) => Math.min(meta.last_page, current + 1))}
+        onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+        total={meta.total}
+        variant={variant}
+      />
+    );
+
   return (
-    <section aria-labelledby="records-heading" className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight" id="records-heading">Registros</h1>
-          <p className="text-sm text-muted-foreground">Consulta y revisa los registros del sistema.</p>
-        </div>
-        {canCreate && <Link className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/80 focus-visible:outline-2 focus-visible:outline-ring" href="/records/new">+ Nuevo registro</Link>}
-      </header>
+    <section aria-labelledby="records-heading" className="space-y-4 md:space-y-6">
+      <h1 className="text-2xl leading-8 font-bold tracking-[-0.01em]" id="records-heading">Registros</h1>
 
       <RecordsFilterBar
         companies={companiesQuery.data?.data ?? []}
@@ -77,36 +86,42 @@ export function RecordsScreen({ canCreate, role }: { canCreate: boolean; role: "
         </div>
       )}
       {query.isError && (
-        <div className="space-y-3 rounded-md border p-5 text-center" role="alert">
+        <div
+          className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-6 text-center shadow-card"
+          role="alert"
+        >
           <p>{query.error.message || "No se pudieron cargar los registros."}</p>
           <Button onClick={() => void query.refetch()} type="button" variant="outline">Reintentar</Button>
         </div>
       )}
       {query.isSuccess && rows.length === 0 && (
-        <p className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
-          {hasActiveRecordFilters(search, filters) ? "No se encontraron registros con esos criterios." : "Todavía no hay registros."}
-        </p>
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card px-6 py-14 text-center shadow-card">
+          {filtered ? (
+            <>
+              <span className="grid size-12 place-items-center rounded-md bg-accent text-accent-foreground">
+                <FileText aria-hidden="true" className="size-6" />
+              </span>
+              <h2 className="text-base leading-6 font-semibold">No hay registros con estos filtros</h2>
+              <p className="text-muted-foreground">Prueba con otra semana o quita algún filtro.</p>
+              <Button className="mt-2 h-11 md:h-10" onClick={clearFilters} type="button" variant="secondary">
+                Limpiar filtros
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground">Todavía no hay registros.</p>
+          )}
+        </div>
       )}
       {query.isSuccess && rows.length > 0 && (
-        <>
-          <div className="@container">
-            <div className="hidden @[60rem]:block">
-              <RecordsTable records={rows} role={role} />
-            </div>
-            <div className="@[60rem]:hidden">
-              <RecordsCardList records={rows} role={role} />
-            </div>
+        <div className="@container">
+          <div className="hidden @[60rem]:block">
+            <RecordsTable footer={pagination("footer")} records={rows} role={role} />
           </div>
-          {meta && (
-            <nav aria-label="Paginación de registros" className="flex items-center justify-between gap-4">
-              <p aria-live="polite" className="text-sm text-muted-foreground">Página {meta.current_page} de {meta.last_page} · {meta.total} registros</p>
-              <div className="flex gap-2">
-                <Button disabled={meta.current_page <= 1 || query.isFetching} onClick={() => setPage((current) => Math.max(1, current - 1))} type="button" variant="outline">Anterior</Button>
-                <Button disabled={meta.current_page >= meta.last_page || query.isFetching} onClick={() => setPage((current) => Math.min(meta.last_page, current + 1))} type="button" variant="outline">Siguiente</Button>
-              </div>
-            </nav>
-          )}
-        </>
+          <div className="@[60rem]:hidden">
+            <RecordsCardList records={rows} role={role} />
+            {pagination("stacked")}
+          </div>
+        </div>
       )}
     </section>
   );

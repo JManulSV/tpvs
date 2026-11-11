@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRight, ImageIcon, Pencil } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
@@ -24,7 +25,15 @@ const headClass =
 const cellClass = "px-4 py-2.5 align-middle first:px-6 last:px-6";
 
 /** Wide-container list. The whole row is clickable through the company link's overlay. */
-export function RecordsTable({ records, role }: { records: RecordListItem[]; role: AuthUser["role"] }) {
+export function RecordsTable({
+  footer,
+  records,
+  role,
+}: {
+  footer?: ReactNode;
+  records: RecordListItem[];
+  role: AuthUser["role"];
+}) {
   return (
     <div
       aria-label="Lista de registros"
@@ -50,6 +59,7 @@ export function RecordsTable({ records, role }: { records: RecordListItem[]; rol
           ))}
         </TableBody>
       </Table>
+      {footer}
     </div>
   );
 }
