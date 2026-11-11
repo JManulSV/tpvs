@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { formatFileSize, formatMoney } from "@/lib/format";
+import { formatFileSize } from "@/lib/format";
 import { useDelivery } from "@/features/deliveries/hooks/use-deliveries";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
 import { getRecordActionPermissions } from "../record-actions";
@@ -16,6 +16,8 @@ import { RecordActionDialog } from "./record-action-dialog";
 import { RecordDetailBanner } from "./record-detail-banner";
 import { RecordDetailHeader } from "./record-detail-header";
 import { RecordDetailHero } from "./record-detail-hero";
+import { RecordMovementsCard } from "./record-movements-card";
+import { RecordPeriodCard } from "./record-period-card";
 import { RecordHistoryPanel } from "./record-history-panel";
 
 const aiStatusLabels: Record<AiProcessingStatus, string> = {
@@ -185,18 +187,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
         </section>
       )}
 
-      <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Info label="Empresa" value={record.company?.name ?? "—"} />
-        <Info label="Año / semana del negocio" value={`${record.year ?? "—"} / ${record.week ?? "—"}`} />
-        <Info label="Inicio y fin" value={`${record.week_start_date ?? "—"} – ${record.week_end_date ?? "—"}`} />
-        <Info label="Origen" value={record.source === "MANUAL" ? "Manual" : "Imagen"} />
-      </div>
-
-      {companyHint !== null && (
-        <p className="rounded-md border px-4 py-3 text-sm" role="note">
-          Empresa detectada en la imagen: <strong>{companyHint}</strong>. Selecciónala al corregir el registro si corresponde.
-        </p>
-      )}
+      <RecordPeriodCard companyHint={companyHint} record={record} />
 
       {record.ai_processing !== null ? (
         <section aria-labelledby="ai-diagnostics-heading" className="space-y-3 rounded-md border p-4">
@@ -224,46 +215,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
         </p>
       ) : null}
 
-      <section aria-labelledby="record-movements-heading" className="space-y-3">
-        <h2 className="text-lg font-semibold" id="record-movements-heading">Movimientos</h2>
-        <div className="overflow-x-auto rounded-md border">
-          <table className="w-full min-w-[64rem] border-collapse text-left text-sm">
-            <caption className="sr-only">Movimientos y cantidades calculadas por el servidor</caption>
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-4 py-3 font-medium" scope="col">#</th>
-                <th className="px-4 py-3 font-medium" scope="col">Afiliación</th>
-                <th className="px-4 py-3 font-medium" scope="col">Sucursal</th>
-                <th className="px-4 py-3 text-right font-medium" scope="col">Ingreso</th>
-                <th className="px-4 py-3 text-right font-medium" scope="col">Comisión</th>
-                <th className="px-4 py-3 text-right font-medium" scope="col">Retorno</th>
-              </tr>
-            </thead>
-            <tbody>
-              {record.details.map((detail) => (
-                <tr className="border-t" key={detail.id}>
-                  <td className="px-4 py-3 tabular-nums">{detail.order}</td>
-                  <td className="px-4 py-3">{detail.affiliation ?? "—"}</td>
-                  <td className="px-4 py-3">{detail.branch ?? "—"}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{formatMoney(detail.income)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {formatMoney(detail.commission)}{detail.commission_percentage !== null && <span className="block text-xs text-muted-foreground">{detail.commission_percentage}%</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{formatMoney(detail.return_amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="border-t bg-muted/30 font-semibold">
-              <tr>
-                <th className="px-4 py-3" colSpan={3} scope="row">Totales calculados por el servidor</th>
-                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.income_total)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.commission_total)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.return_total)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </section>
+      <RecordMovementsCard details={record.details} />
 
       {record.status === "CONFIRMED" && <DeliveryLink canEdit={canEdit} recordId={record.id} />}
 
@@ -323,14 +275,5 @@ function DeliveryLink({ canEdit, recordId }: { canEdit: boolean; recordId: numbe
       <h2 className="text-lg font-semibold" id="record-delivery-heading">Preparación de entrega</h2>
       <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href={`/records/${recordId}/delivery`}>{label}</Link>
     </section>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-sm">{value}</p>
-    </div>
   );
 }
