@@ -4,15 +4,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/status-badge";
 import { formatFileSize, formatMoney } from "@/lib/format";
 import { useDelivery } from "@/features/deliveries/hooks/use-deliveries";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
 import { getRecordActionPermissions } from "../record-actions";
+import { getRecordBanner } from "../record-detail-utils";
 import { recordsService } from "../services/records.service";
 import { RecordsApiError, type AiProcessingStatus } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
 import { RecordActionDialog } from "./record-action-dialog";
+import { RecordDetailBanner } from "./record-detail-banner";
+import { RecordDetailHeader } from "./record-detail-header";
+import { RecordDetailHero } from "./record-detail-hero";
 import { RecordHistoryPanel } from "./record-history-panel";
 
 const aiStatusLabels: Record<AiProcessingStatus, string> = {
@@ -55,16 +58,12 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
     );
   }
 
-  const {
-    canCancel,
-    canConfirm,
-    canCorrect,
-    canRetryAiProcessing: canRetry,
-  } = getRecordActionPermissions(record, canEdit);
+  const permissions = getRecordActionPermissions(record, canEdit);
+  const { canCorrect } = permissions;
+  const banner = getRecordBanner(record, canEdit);
   const companyHint = record.company === null
     ? record.ai_processing?.normalized_extraction?.record.company_name?.value ?? null
     : null;
-  const isProcessing = record.status === "PENDING" || record.status === "PROCESSING";
 
   if (isEditing && canCorrect) {
     return <ManualRecordForm mode="edit" onEditComplete={() => setIsEditing(false)} record={record} />;
@@ -153,22 +152,21 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
 
   return (
     <section aria-labelledby="record-detail-heading" className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href="/records">← Registros</Link>
-          <h1 className="text-2xl font-semibold tracking-tight" id="record-detail-heading">{record.company?.name ?? "Registro sin empresa"}</h1>
-          <p className="text-sm text-muted-foreground">
-            Registro #{record.id} · {record.source === "MANUAL" ? "Captura manual" : "Origen imagen"} · Semana {record.week ?? "—"}, {record.year ?? "—"}
-          </p>
-        </div>
-        <StatusBadge status={record.status} />
-      </header>
+      <RecordDetailHeader
+        isRetrying={retryAiProcessing.isPending}
+        onCancel={openCancelDialog}
+        onConfirm={openConfirmDialog}
+        onEdit={() => setIsEditing(true)}
+        onRetry={() => void handleRetry()}
+        permissions={permissions}
+        record={record}
+      />
 
-      {isProcessing && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="status">
-          El registro se está procesando. Esta pantalla se actualiza automáticamente hasta que termine.
-        </p>
-      )}
+      {banner !== null && <RecordDetailBanner banner={banner} />}
+      {successMessage && <RecordDetailBanner banner={{ tone: "info", title: successMessage, text: null }} />}
+      {retryError && <RecordDetailBanner banner={{ tone: "error", title: retryError, text: null }} />}
+
+      <RecordDetailHero record={record} />
 
       {record.image !== null && record.status !== "CANCELED" && (
         <section aria-labelledby="record-image-heading" className="space-y-3">
@@ -185,12 +183,6 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
             {record.image.original_file_name} · {record.image.mime_type} · {formatFileSize(record.image.file_size)}
           </p>
         </section>
-      )}
-
-      {record.status === "CANCELED" && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          El registro fue cancelado. La imagen ya no está disponible, pero los datos permanecen consultables.
-        </p>
       )}
 
       <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -276,34 +268,6 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
       {record.status === "CONFIRMED" && <DeliveryLink canEdit={canEdit} recordId={record.id} />}
 
       <RecordHistoryPanel recordId={record.id} />
-
-      {record.status === "CONFIRMED" && canEdit && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          Este registro está confirmado. Si lo editas, volverá a necesitar revisión y deberás confirmarlo nuevamente.
-        </p>
-      )}
-
-      {successMessage && <p className="rounded-md border px-4 py-3 text-sm" role="status">{successMessage}</p>}
-      {retryError && <p className="rounded-md border border-destructive/40 px-4 py-3 text-sm text-destructive" role="alert">{retryError}</p>}
-
-      {(canCorrect || canConfirm || canCancel || canRetry) && (
-        <div className="flex flex-wrap justify-end gap-3 rounded-md border p-4">
-          {canRetry && (
-            <Button disabled={retryAiProcessing.isPending} onClick={() => void handleRetry()} type="button" variant="outline">
-              {retryAiProcessing.isPending ? "Reintentando…" : "Reintentar procesamiento"}
-            </Button>
-          )}
-          {canCorrect && <Button onClick={() => setIsEditing(true)} type="button" variant="outline">Editar registro</Button>}
-          {canCancel && <Button onClick={openCancelDialog} type="button" variant="destructive">Cancelar registro</Button>}
-          {canConfirm && <Button onClick={openConfirmDialog} type="button">Confirmar registro</Button>}
-        </div>
-      )}
-
-      {(record.status === "NEEDS_REVIEW" || record.status === "ERROR") && !canEdit && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          Puedes consultar este registro. Solo un Editor puede corregirlo, confirmarlo, cancelarlo o reintentar el procesamiento.
-        </p>
-      )}
 
       {isConfirmOpen && (
         <RecordActionDialog
