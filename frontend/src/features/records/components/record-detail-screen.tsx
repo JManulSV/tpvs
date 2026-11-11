@@ -1,32 +1,22 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { formatFileSize } from "@/lib/format";
 import { useDelivery } from "@/features/deliveries/hooks/use-deliveries";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
 import { getRecordActionPermissions } from "../record-actions";
 import { getRecordBanner } from "../record-detail-utils";
-import { recordsService } from "../services/records.service";
-import { RecordsApiError, type AiProcessingStatus } from "../types";
+import { RecordsApiError } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
 import { RecordActionDialog } from "./record-action-dialog";
 import { RecordDetailBanner } from "./record-detail-banner";
 import { RecordDetailHeader } from "./record-detail-header";
 import { RecordDetailHero } from "./record-detail-hero";
+import { RecordImageCard } from "./record-image-card";
 import { RecordMovementsCard } from "./record-movements-card";
 import { RecordPeriodCard } from "./record-period-card";
 import { RecordHistoryPanel } from "./record-history-panel";
-
-const aiStatusLabels: Record<AiProcessingStatus, string> = {
-  PENDING: "Pendiente",
-  PROCESSING: "Procesando",
-  NEEDS_REVIEW: "Revisión necesaria",
-  ERROR: "Error",
-  COMPLETED: "Completado",
-};
 
 export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
   const recordQuery = useRecord(recordId);
@@ -170,52 +160,11 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
 
       <RecordDetailHero record={record} />
 
-      {record.image !== null && record.status !== "CANCELED" && (
-        <section aria-labelledby="record-image-heading" className="space-y-3">
-          <h2 className="text-lg font-semibold" id="record-image-heading">Imagen del registro</h2>
-          <Image
-            alt={`Imagen del registro ${record.id}`}
-            className="h-auto max-h-[32rem] w-auto rounded-md border object-contain"
-            height={1600}
-            src={recordsService.imageUrl(record.id)}
-            unoptimized
-            width={1200}
-          />
-          <p className="text-sm text-muted-foreground">
-            {record.image.original_file_name} · {record.image.mime_type} · {formatFileSize(record.image.file_size)}
-          </p>
-        </section>
-      )}
-
       <RecordPeriodCard companyHint={companyHint} record={record} />
 
-      {record.ai_processing !== null ? (
-        <section aria-labelledby="ai-diagnostics-heading" className="space-y-3 rounded-md border p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold" id="ai-diagnostics-heading">Diagnóstico de IA</h2>
-            <span className="rounded-full border px-3 py-1 text-sm font-medium">{aiStatusLabels[record.ai_processing.status]}</span>
-          </div>
-
-          {record.ai_processing.issues.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sin observaciones de revisión.</p>
-          ) : (
-            <ul className="space-y-2">
-              {record.ai_processing.issues.map((issue, index) => (
-                <li className="rounded-md border px-3 py-2 text-sm" key={`${issue.path}-${issue.code}-${index}`}>
-                  <p>{issue.message}</p>
-                  <p className="text-xs text-muted-foreground">{issue.path} · {issue.code}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      ) : record.status === "ERROR" ? (
-        <p className="rounded-md border px-4 py-3 text-sm text-destructive" role="alert">
-          El procesamiento falló y no hay un diagnóstico de IA disponible. Puedes reintentar o cancelar el registro.
-        </p>
-      ) : null}
-
       <RecordMovementsCard details={record.details} />
+
+      <RecordImageCard record={record} />
 
       {record.status === "CONFIRMED" && <DeliveryLink canEdit={canEdit} recordId={record.id} />}
 
