@@ -35,6 +35,7 @@ export function RecordImageCard({ record }: { record: RecordListItem }) {
               alt={`Imagen del registro ${record.id}`}
               className="mx-auto h-auto max-h-[32rem] w-auto object-contain"
               height={1600}
+              loading="eager"
               src={imageUrl}
               unoptimized
               width={1200}
