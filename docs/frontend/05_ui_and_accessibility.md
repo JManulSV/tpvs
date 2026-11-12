@@ -36,6 +36,14 @@ The project includes Tailwind CSS, shadcn/ui tooling, and initial UI primitives.
 - Keep visual consistency for spacing, typography, status indicators, forms, tables, dialogs, and feedback.
 - Do not add MVP navigation modules beyond those approved in the UX document without a product decision.
 
+## Container-based layouts
+
+Layouts that depend on the space the content gets use container queries (`@container` with `@[60rem]:` and `@[45rem]:` variants), not the window width, because the sidebar expanded, collapsed, or as a drawer changes the usable space. The record list (SPEC 19) and the record detail (SPEC 20) follow this rule.
+
+When a container switches between a table and a list of cards, both are rendered and CSS hides one. The hidden one is outside the accessibility tree and the Tab order.
+
+The record history is a timeline (`<ol>` with a colored dot per row, `aria-hidden`). The color comes from status tokens, never from literal colors.
+
 ## Interaction States
 
 Interactive controls must communicate:

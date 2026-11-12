@@ -314,10 +314,12 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
    - Actualizar `docs/frontend/05_ui_and_accessibility.md`: el detalle usa el ancho del contenedor para elegir columnas y tabla o tarjetas, y el historial es una línea de tiempo.
 
 10. **Errores de sesión con el backend caído.**
-   - Crear `frontend/src/app/(app)/error.tsx` como componente cliente (`"use client"`), con las props `error` y `reset`. No se toca `page.tsx` ni `app/(app)/layout.tsx`.
-   - Mostrar una tarjeta dentro de `AppShell` con el contenido de «UI contract» de esta sección: título «No se pudo cargar esta página.», texto «Hubo un problema al validar tu sesión o al cargar los datos. Inténtalo de nuevo.», botón «Reintentar» (`reset()`) y enlace «Ir al dashboard».
+   - Crear `frontend/src/app/(app)/error.tsx` como componente cliente (`"use client"`), con las props `error` y `reset`, siguiendo la plantilla `docs/design/templates/ErrorBackend.dc.html`. No se toca `page.tsx` ni `app/(app)/layout.tsx`.
+   - Mostrar una tarjeta dentro de `AppShell` con los textos de la plantilla: título «No pudimos cargar la información», texto «El servidor no respondió como esperábamos. Puede ser un problema temporal: intenta de nuevo en unos segundos.», botón «Reintentar», enlace «Ir al dashboard» y «Detalles técnicos» (tipo y código). Si `navigator.onLine` es falso, la variante es «Sin conexión con el servidor».
+   - «Reintentar» llama a `router.refresh()` y luego a `reset()`. Sin `refresh()`, Next vuelve a renderizar el payload fallido y no pide de nuevo al servidor.
    - Registrar el error con `console.error` y no mostrar `error.message`.
    - Verificar con el backend detenido: navegar dentro de la app a `/records/{id}` debe mostrar la tarjeta y no la página «This page couldn't load» de Next. Iniciar el backend, pulsar «Reintentar» y confirmar que la página carga. Una carga completa con el backend detenido debe seguir mostrando el mensaje de `app/(app)/layout.tsx` sin cambios.
+   - Documentar el comportamiento en `docs/frontend/02_routing_and_rendering.md` (sección «Error Boundaries»).
 
 ## Acceptance criteria
 
@@ -349,8 +351,8 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 - [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
 - [ ] La revisión visual del paso 8 se hizo en claro y oscuro, a 1440, 1024, 768 y 375 px, sin texto cortado ni solapamientos.
 - [ ] `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md` describen el nuevo comportamiento.
-- [ ] Con el backend detenido, navegar dentro de la app a `/records/{id}` muestra la tarjeta «No se pudo cargar esta página.» con `role="alert"` y no la página de error de Next.
-- [ ] La tarjeta de error ofrece «Reintentar», que vuelve a cargar la página cuando el backend está disponible, y «Ir al dashboard».
+- [ ] Con el backend detenido, navegar dentro de la app a `/records/{id}` muestra la tarjeta «No pudimos cargar la información» con `role="alert"` y no la página de error de Next.
+- [ ] La tarjeta de error ofrece «Reintentar», que vuelve a cargar la página cuando el backend está disponible, y «Ir al dashboard». «Detalles técnicos» muestra el tipo y el código.
 - [ ] Una carga completa con el backend detenido sigue mostrando «No se pudo validar la sesión con el servidor…» sin cambios.
 - [ ] La tarjeta de error aparece dentro de `AppShell`: el sidebar y la barra superior siguen visibles.
 - [ ] El botón «Reintentar» de la tarjeta de error recibe foco con Tab y muestra el anillo de foco de 2 px.
@@ -384,7 +386,9 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 
 - **Sí:** el manejo de errores de sesión va en `error.tsx` de `(app)`. Es el cambio más pequeño, cubre todas las páginas autenticadas y no toca `page.tsx`. Cambiar `getAuthenticatedUser` a un resultado tipado queda fuera de esta spec, porque obligaría a tocar cada página.
 - **Sí:** el mensaje de la tarjeta de error es genérico. Next oculta el mensaje de los errores de servidor en producción, así que no se puede distinguir de forma fiable un fallo de sesión de otro error.
-- **Sí:** «Reintentar» llama a `reset()` y no a `location.reload()`, para que Next vuelva a renderizar el segmento sin perder el estado del shell.
+- **Sí:** «Reintentar» llama a `router.refresh()` y luego a `reset()`, para que Next vuelva a pedir el segmento al servidor sin recargar el shell.
+- **No:** el contador de intentos y el aviso de «Sigue sin responder después de 3 intentos» de la plantilla. Next remonta el error boundary en cada reintento, así que un contador dentro de la tarjeta volvería a 1 cada vez. Requeriría estado fuera del boundary, y eso obliga a tocar el layout. Queda fuera de esta spec.
+- **Sí:** la tarjeta usa los textos y la estructura de `ErrorBackend.dc.html`, con los tokens del proyecto en lugar de sus colores literales. Su sidebar no se repite, porque la tarjeta se muestra dentro de `AppShell`.
 
 ## Risks
 

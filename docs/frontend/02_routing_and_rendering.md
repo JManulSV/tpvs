@@ -43,6 +43,16 @@ Route Handlers must:
 - return stable error responses without leaking internal service URLs, stack traces, or secrets;
 - avoid business decisions that belong to Laravel.
 
+## Error Boundaries
+
+`frontend/src/app/(app)/error.tsx` is the error boundary for every authenticated page. It renders inside the shell, so the sidebar and top bar stay visible.
+
+- **Session failures:** `app/(app)/layout.tsx` catches a failed `getAuthenticatedUser` on full loads and shows «No se pudo validar la sesión con el servidor…». On client navigation the layout is already mounted, so the page's call throws and `error.tsx` shows its card instead of Next's default page.
+- **Message:** the card is generic («No pudimos cargar la información») because production builds hide server error messages. The technical details (type and digest) are behind a «Detalles técnicos» toggle. `error.tsx` logs the error with `console.error`.
+- **Retry:** «Reintentar» calls `router.refresh()` and then `reset()`. `reset()` alone re-renders the failed payload, and `refresh()` asks the server again.
+- **Offline:** when `navigator.onLine` is false the card shows the connection variant.
+- **Limit:** the card does not count attempts. Next remounts the boundary on each retry, so a counter inside it would restart at 1.
+
 ## Navigation and Access
 
 Protect authenticated navigation in the server/BFF boundary once authentication exists. Hiding a link or disabling an action based on role improves usability but is not authorization; Laravel Policies and endpoint checks remain authoritative. See the auth feature guide and backend security/API documentation.
