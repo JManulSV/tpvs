@@ -34,6 +34,7 @@ Las plantillas también muestran cosas que el sistema no tiene: «Creado por», 
 - Se conservan los diálogos `RecordActionDialog` para confirmar y cancelar, y `ManualRecordForm` para editar y reabrir.
 - Utilidades puras con pruebas unitarias.
 - Documentar en `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md`.
+- Manejo de errores de sesión del shell cuando el backend no responde: `error.tsx` en `frontend/src/app/(app)/` con una tarjeta dentro de `AppShell` y «Reintentar» (ver paso 10).
 
 **Out of scope (for future specs):**
 
@@ -312,6 +313,12 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
    - Actualizar `docs/frontend/features/records.md`: estructura del detalle, orden de tarjetas, acciones por rol y qué queda fuera.
    - Actualizar `docs/frontend/05_ui_and_accessibility.md`: el detalle usa el ancho del contenedor para elegir columnas y tabla o tarjetas, y el historial es una línea de tiempo.
 
+10. **Errores de sesión con el backend caído.**
+   - Crear `frontend/src/app/(app)/error.tsx` como componente cliente (`"use client"`), con las props `error` y `reset`. No se toca `page.tsx` ni `app/(app)/layout.tsx`.
+   - Mostrar una tarjeta dentro de `AppShell` con el contenido de «UI contract» de esta sección: título «No se pudo cargar esta página.», texto «Hubo un problema al validar tu sesión o al cargar los datos. Inténtalo de nuevo.», botón «Reintentar» (`reset()`) y enlace «Ir al dashboard».
+   - Registrar el error con `console.error` y no mostrar `error.message`.
+   - Verificar con el backend detenido: navegar dentro de la app a `/records/{id}` debe mostrar la tarjeta y no la página «This page couldn't load» de Next. Iniciar el backend, pulsar «Reintentar» y confirmar que la página carga. Una carga completa con el backend detenido debe seguir mostrando el mensaje de `app/(app)/layout.tsx` sin cambios.
+
 ## Acceptance criteria
 
 - [ ] `/records/{id}` tiene exactamente un `<h1>` con el nombre de la empresa (o «Registro sin empresa»), visible a 1440 px y a 375 px.
@@ -342,6 +349,12 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 - [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
 - [ ] La revisión visual del paso 8 se hizo en claro y oscuro, a 1440, 1024, 768 y 375 px, sin texto cortado ni solapamientos.
 - [ ] `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md` describen el nuevo comportamiento.
+- [ ] Con el backend detenido, navegar dentro de la app a `/records/{id}` muestra la tarjeta «No se pudo cargar esta página.» con `role="alert"` y no la página de error de Next.
+- [ ] La tarjeta de error ofrece «Reintentar», que vuelve a cargar la página cuando el backend está disponible, y «Ir al dashboard».
+- [ ] Una carga completa con el backend detenido sigue mostrando «No se pudo validar la sesión con el servidor…» sin cambios.
+- [ ] La tarjeta de error aparece dentro de `AppShell`: el sidebar y la barra superior siguen visibles.
+- [ ] El botón «Reintentar» de la tarjeta de error recibe foco con Tab y muestra el anillo de foco de 2 px.
+- [ ] No se modifican archivos `page.tsx` ni `app/(app)/layout.tsx`.
 
 ## Decisions
 
@@ -369,6 +382,10 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 - **Sí:** los importes y fechas usan `formatMoney` y `formatDate` (dos decimales y `dd/mm/aaaa`), aunque la plantilla muestre «$9,800» y «15/09/26». Es el formato oficial del resto del sistema.
 - **Sí:** no se repiten en la página el sidebar, la barra móvil ni la barra inferior de la plantilla. Ya existen en el shell.
 
+- **Sí:** el manejo de errores de sesión va en `error.tsx` de `(app)`. Es el cambio más pequeño, cubre todas las páginas autenticadas y no toca `page.tsx`. Cambiar `getAuthenticatedUser` a un resultado tipado queda fuera de esta spec, porque obligaría a tocar cada página.
+- **Sí:** el mensaje de la tarjeta de error es genérico. Next oculta el mensaje de los errores de servidor en producción, así que no se puede distinguir de forma fiable un fallo de sesión de otro error.
+- **Sí:** «Reintentar» llama a `reset()` y no a `location.reload()`, para que Next vuelva a renderizar el segmento sin perder el estado del shell.
+
 ## Risks
 
 | Risk | Mitigation |
@@ -381,11 +398,14 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 | El historial muestra muchas filas y alarga la página. | Se conserva la paginación de 20 y el historial va al final. |
 | Quitar la tabla de historial pierde la columna de correo. | Es una decisión aceptada; el nombre del usuario basta para el MVP. |
 | Un registro reabierto (`NEEDS_REVIEW` manual con entrega previa) muestra «Bloqueada». | Es coherente con `docs/10_ui_ux.md` §8: la entrega solo está disponible tras `CONFIRMED`. La entrega previa se conserva y se ve de nuevo al reconfirmar. |
+| `error.tsx` no captura errores lanzados en `app/(app)/layout.tsx`. | Ese layout ya captura el error de sesión con su propio `try/catch`. El paso 10 lo verifica con el backend detenido en carga completa. |
 
 ## What is **not** in this spec
 
 - Tarjeta «Procesamiento automático» o cualquier diagnóstico de IA en el detalle.
 - Cambios de backend o de `RecordResource` (creado por, intentos de IA).
+- Tipado de `getAuthenticatedUser` o páginas de «sesión no disponible».
+- Reintento automático de la sesión.
 - Edición en línea y barra «Guardar corrección».
 - Panel de motivo dentro de la página.
 - «Reemplazar imagen» y «Adjuntar imagen».

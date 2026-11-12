@@ -1,0 +1,216 @@
+<!doctype html>
+<meta charset="utf-8"><style data-dc-design-system-vars>@layer{:root{--brand-navy:#324168;--brand-sky:#64b3dd;--brand-sky-soft:#e3f1fa;--canvas:#eef3f8;--surface:#ffffff;--surface-muted:#f5f8fc;--border:#dbe4ee;--border-strong:#6f819c;--ink:#17203a;--ink-muted:#4f5b77;--primary:#324168;--primary-hover:#28345a;--on-primary:#ffffff;--accent:#64b3dd;--on-accent:#17203a;--accent-soft:#e3f1fa;--accent-soft-ink:#1b5c85;--ring:#324168;--danger:#b3261e;--on-danger:#ffffff;--hero:#324168;--on-hero:#ffffff;--chart-1:#324168;--chart-2:#2f88ba;--status-confirmed:#0f6b3a;--status-confirmed-bg:#e3f5ea;--status-needs-review:#8a4b00;--status-needs-review-bg:#fdf0d8;--status-error:#a3202a;--status-error-bg:#fce6e7;--status-processing:#4d3fa3;--status-processing-bg:#ece9fb;--status-pending:#46526c;--status-pending-bg:#e8edf4;--status-canceled:#5b6478;--status-canceled-bg:#eef0f4;--shadow-card:0 1px 2px rgba(23, 32, 58, 0.05), 0 4px 16px rgba(23, 32, 58, 0.04);--shadow-popover:0 8px 32px rgba(23, 32, 58, 0.14);--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-12:48px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-pill:999px;--font-sans:"Plus Jakarta Sans", system-ui, sans-serif;--font-mono:"JetBrains Mono", ui-monospace, monospace;--text-display-lg:700 32px/40px var(--font-sans);--text-display-md:700 24px/32px var(--font-sans);--text-heading-lg:700 20px/28px var(--font-sans);--text-heading-md:600 16px/24px var(--font-sans);--text-body:400 14px/20px var(--font-sans);--text-body-strong:600 14px/20px var(--font-sans);--text-caption:500 12px/16px var(--font-sans);--text-overline:600 11px/16px var(--font-sans);--text-figure-lg:700 28px/36px var(--font-sans);--text-figure-md:600 16px/24px var(--font-sans);--text-code:400 13px/20px var(--font-mono);}}</style>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Error del servidor</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+:root{--brand-sky:#64B3DD;--canvas:#EEF3F8;--surface:#FFFFFF;--surface-muted:#F5F8FC;--border:#DBE4EE;--border-strong:#6F819C;--ink:#17203A;--ink-muted:#4F5B77;--primary:#324168;--primary-hover:#28345A;--on-primary:#FFFFFF;--accent-soft:#E3F1FA;--accent-soft-ink:#1B5C85;--ring:#324168;--hero:#324168;--on-hero:#FFFFFF;--hero-ink-muted:#C7D0E4;--hero-hover:rgba(255,255,255,.10);--status-needs-review:#8A4B00;--status-needs-review-bg:#FDF0D8;--status-error:#A3202A;--status-error-bg:#FCE6E7;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-pill:999px;--shadow-card:0 1px 2px rgba(23,32,58,.05),0 4px 16px rgba(23,32,58,.04);--font-sans:"Plus Jakarta Sans",system-ui,sans-serif}
+.root{box-sizing:border-box;min-height:900px;display:flex;align-items:stretch;background:var(--canvas);color:var(--ink);font-family:var(--font-sans);font-size:14px;line-height:20px}
+.root *,.root *::before,.root *::after{box-sizing:border-box}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.side{flex:none;display:flex;flex-direction:column;gap:4px;width:256px;padding:24px 16px;background:var(--hero);color:var(--on-hero)}
+.brand{padding:4px 12px 24px;font:700 24px/32px var(--font-sans);letter-spacing:-.01em}
+.nav-label{padding:16px 12px 8px;font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--hero-ink-muted)}
+.nav-item{display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 12px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--hero-ink-muted);font:600 14px/20px var(--font-sans);text-align:left;text-decoration:none;cursor:pointer;transition:background-color .15s ease}
+.nav-item:hover{background:var(--hero-hover);color:var(--on-hero)}
+.nav-item:focus-visible{outline:2px solid var(--brand-sky);outline-offset:2px}
+.nav-item[aria-current="page"]{background:var(--on-hero);color:var(--primary)}
+.nav-item .ic{width:20px;height:20px}
+.avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:var(--radius-pill);background:var(--brand-sky);color:var(--ink);font:700 13px/16px var(--font-sans)}
+.wrap{flex:1 1 0;min-width:0;display:flex;flex-direction:column}
+.mtop,.mbar{display:none}
+.main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px}
+.panel{width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 32px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-card)}
+.badge{display:grid;place-items:center;width:72px;height:72px;border-radius:var(--radius-pill);background:var(--status-error-bg);color:var(--status-error)}
+.badge .ic{width:36px;height:36px}
+.panel h1{margin:0;font:700 24px/32px var(--font-sans);letter-spacing:-.01em}
+.panel .msg{margin:0;max-width:44ch;color:var(--ink-muted);font:500 15px/24px var(--font-sans)}
+.acts{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 24px;border:1px solid transparent;border-radius:var(--radius-pill);background:var(--primary);color:var(--on-primary);font:600 14px/20px var(--font-sans);text-decoration:none;white-space:nowrap;cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+.btn:hover{background:var(--primary-hover)}
+.btn:focus-visible,.link:focus-visible,.bt:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--border-strong)}
+.btn.ghost:hover{background:var(--surface-muted)}
+.btn[disabled]{background:var(--surface-muted);color:var(--ink-muted);border-color:var(--border);cursor:wait}
+.btn .ic{width:18px;height:18px}
+.spin{animation:rot .9s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.link{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--accent-soft-ink);font:600 13px/16px var(--font-sans);cursor:pointer}
+.link:hover{background:var(--accent-soft)}
+.alert{display:flex;gap:10px;align-items:flex-start;width:100%;padding:12px 14px;border-radius:var(--radius-md);background:var(--status-needs-review-bg);color:var(--status-needs-review);text-align:left;font:500 13px/20px var(--font-sans)}
+.alert .ic{width:20px;height:20px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;width:100%;margin:0;padding:16px;text-align:left;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-muted)}
+.kv dt{font:600 12px/16px var(--font-sans);color:var(--ink-muted)}
+.kv dd{margin:2px 0 0;font:600 14px/20px var(--font-sans);font-variant-numeric:tabular-nums}
+.kv .wide{grid-column:1/-1}
+@media (max-width:900px){
+.side{display:none}
+.mtop{display:flex;align-items:center;gap:4px;padding:8px 12px 8px 20px;background:var(--hero);color:var(--on-hero)}
+.mtop .brand{margin-right:auto;padding:0;font:700 22px/28px var(--font-sans)}
+.mbar{position:sticky;bottom:0;z-index:6;margin-top:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px;background:var(--surface);border-top:1px solid var(--border)}
+.bt{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:56px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--ink-muted);font:600 11px/16px var(--font-sans);text-decoration:none;cursor:pointer}
+.bt .pic{display:grid;place-items:center;width:56px;height:28px;border-radius:var(--radius-pill)}
+.bt .ic{width:20px;height:20px}
+.bt[aria-current="page"]{color:var(--ink)}
+.bt[aria-current="page"] .pic{background:var(--accent-soft);color:var(--accent-soft-ink)}
+.main{align-items:flex-start;padding:16px}
+.panel{padding:32px 20px;gap:16px}
+.acts{width:100%;flex-direction:column}
+.acts .btn{width:100%}
+.link{min-height:44px}
+.kv{grid-template-columns:1fr}
+}
+</style>
+</helmet>
+<div class="root">
+  <nav class="side" aria-label="Principal">
+    <div class="brand">Tpvs</div>
+    <div class="nav-label">Sistema</div>
+    <a class="nav-item" href="DashboardEditor.dc.html">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+      Dashboard
+    </a>
+    <a class="nav-item" href="RecordsEditor.dc.html" aria-current="page">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8"></path></svg>
+      Registros
+    </a>
+    <button type="button" class="nav-item">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg>
+      Empresas
+    </button>
+    <button type="button" class="nav-item">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"></path></svg>
+      Reportes
+    </button>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding-top: 24px">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-top: 1px solid var(--hero-hover)">
+        <span class="avatar" aria-hidden="true">ML</span>
+        <span><span style="display: block; font-weight: 600">María López</span><span style="display: block; font: 500 12px/16px var(--font-sans); color: var(--hero-ink-muted)">Editor</span></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <header class="mtop">
+      <span class="brand">Tpvs</span>
+      <span class="avatar" role="img" aria-label="María López, Editor">ML</span>
+    </header>
+
+    <main class="main">
+      <section class="panel" aria-labelledby="h-err">
+        <span class="badge" aria-hidden="true">
+          <svg class="ic" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+        </span>
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center">
+          <h1 id="h-err">{{ e.title }}</h1>
+          <p class="msg" role="alert">{{ e.text }}</p>
+        </div>
+
+        <sc-if value="{{ e.many }}" hint-placeholder-val="{{ false }}">
+          <div class="alert">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+            <span>Sigue sin responder después de {{ e.tries }} intentos. Si el problema continúa, avisa al administrador del sistema.</span>
+          </div>
+        </sc-if>
+
+        <div class="acts">
+          <button type="button" class="btn" disabled="{{ e.loading }}" onClick="{{ retry }}">
+            <svg class="ic {{ e.spin }}" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>
+            {{ e.btn }}
+          </button>
+          <a class="btn ghost" href="DashboardEditor.dc.html">Ir al dashboard</a>
+        </div>
+        <p role="status" aria-live="polite" style="margin: 0; min-height: 20px; color: var(--ink-muted); font: 500 12px/16px var(--font-sans)">{{ e.status }}</p>
+
+        <button type="button" class="link" aria-expanded="{{ e.open }}" onClick="{{ toggle }}">
+          Detalles técnicos
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{ e.isOpen }}" hint-placeholder-val="{{ false }}">
+          <dl class="kv">
+            <div><dt>Tipo</dt><dd>{{ e.kind }}</dd></div>
+            <div><dt>Código</dt><dd>{{ e.code }}</dd></div>
+            <div class="wide"><dt>Pantalla</dt><dd>Registros</dd></div>
+            <div class="wide"><dt>Intentos</dt><dd>{{ e.tries }}</dd></div>
+          </dl>
+        </sc-if>
+      </section>
+    </main>
+
+    <nav class="mbar" aria-label="Principal">
+      <a class="bt" href="DashboardEditor.dc.html">
+        <span class="pic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg></span>
+        Dashboard
+      </a>
+      <a class="bt" href="RecordsEditor.dc.html" aria-current="page">
+        <span class="pic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8"></path></svg></span>
+        Registros
+      </a>
+      <button type="button" class="bt">
+        <span class="pic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg></span>
+        Empresas
+      </button>
+      <button type="button" class="bt">
+        <span class="pic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"></path></svg></span>
+        Reportes
+      </button>
+    </nav>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tipo":{"editor":"enum","options":["servidor","conexion"],"default":"servidor","section":"Vista"},"$preview":{"width":1440,"height":900}}'>
+const KINDS = {
+  servidor: { title: 'No pudimos cargar la información', text: 'El servidor no respondió como esperábamos. Puede ser un problema temporal: intenta de nuevo en unos segundos.', kind: 'Error del servidor', code: '500' },
+  conexion: { title: 'Sin conexión con el servidor', text: 'No logramos comunicarnos con el sistema. Revisa tu conexión a internet e intenta de nuevo.', kind: 'Sin conexión', code: 'Red no disponible' }
+};
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loading: false, tries: 1, open: false };
+    this.timer = null;
+  }
+  componentWillUnmount() {
+    if (this.timer) clearTimeout(this.timer);
+  }
+  renderVals() {
+    const s = this.state;
+    const k = KINDS[this.props.tipo ?? 'servidor'];
+    return {
+      e: {
+        title: k.title,
+        text: k.text,
+        kind: k.kind,
+        code: k.code,
+        tries: s.tries,
+        many: !s.loading && s.tries >= 3,
+        loading: s.loading,
+        spin: s.loading ? 'spin' : '',
+        btn: s.loading ? 'Reintentando…' : 'Reintentar',
+        status: s.loading ? 'Intentando conectar con el servidor…' : (s.tries > 1 ? 'Intento ' + s.tries + ' sin éxito.' : ''),
+        open: s.open ? 'true' : 'false',
+        isOpen: s.open
+      },
+      retry: () => {
+        if (this.state.loading) return;
+        this.setState({ loading: true });
+        this.timer = setTimeout(() => this.setState({ loading: false, tries: this.state.tries + 1 }), 1600);
+      },
+      toggle: () => this.setState({ open: !this.state.open })
+    };
+  }
+}
+</script>
+</body>
+</html>
