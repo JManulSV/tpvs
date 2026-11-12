@@ -44,6 +44,18 @@ The list supports case-insensitive substring search by company, affiliation, and
 - **Footer:** the table card ends with a footer showing the total (`meta.total`) and «Página X de Y» with «Anterior»/«Siguiente»; on mobile the same pagination sits under the cards without repeating the count. No return total is shown, since the list is paginated and official totals are not computed in the browser.
 - **Code:** presentation lives in `frontend/src/features/records/components/` (`records-screen`, `records-filter-bar`, `records-table`, `records-card-list`, `records-skeleton`, `records-pagination`). Pure helpers are in `frontend/src/features/records/record-list-utils.ts`, covered by `frontend/tests/record-list-utils.test.ts`.
 
+## Detail layout (SPEC 20)
+
+`/records/{id}` renders inside the shared app shell with the content of `RecordDetailEditor{,Mobile}.dc.html`. Its components live in `frontend/src/features/records/components/` (`record-detail-screen`, `record-detail-header`, `record-detail-banner`, `record-detail-hero`, `record-period-card`, `record-movements-card`, `record-image-card`, `record-delivery-card`, `record-history-panel`, `record-detail-skeleton`). Pure helpers are in `frontend/src/features/records/record-detail-utils.ts`, covered by `frontend/tests/record-detail-utils.test.ts`.
+
+- **Header:** a «Registros» link, the only `<h1>` (the company name or «Registro sin empresa»), the status badge, the source badge, and the period line. Actions depend on the role and the status: «Reintentar procesamiento», «Cancelar registro», «Confirmar registro», and «Editar registro» or «Reabrir para corregir». They open the existing dialogs and `ManualRecordForm`. The `VIEWER` sees no action.
+- **Banner and hero:** the banner follows `getRecordBanner`, and a `CONFIRMED` record shows none. The hero shows «Retorno oficial», Ingreso, and Comisión from the backend totals. The client never adds amounts.
+- **Cards:** «Empresa y periodo» (read-only, with the report month), «Movimientos» (table at 45 rem or more, cards below), «Imagen recibida» (authorized image, file name, type, and size), and «Entrega» (summary with a link to `/records/{id}/delivery`).
+- **Delivery card:** only `CONFIRMED` records call `useDelivery`, so a blocked record makes no delivery request. The cash total uses `denominationsTotalCents` and `centsToAmount`, the same helpers as the delivery screen.
+- **History:** a timeline with one row per field change, the same query, `PAGE_SIZE = 20`, and the same pagination. The user's email is not shown.
+- **Two columns:** the content is in an `@container`. At 60 rem or more the main column holds the hero, period, movements, and history, and the side column holds the image and delivery cards. Below that there is one column. The DOM order is the single-column visual order, so Tab follows what is shown; the two-column layout uses explicit grid placement, not `order-*`.
+- **Removed:** the «Procesamiento automático» card, the AI diagnostic, «Creado por», AI attempts, the field chips, «Reemplazar imagen», and «Generar recibo (Word)». These are listed as out of scope in SPEC 20.
+
 ## Capture and Review Flows
 
 - **Origin selection:** `/records/new` lets the Editor choose manual capture or image upload. `VIEWER` cannot access mutation flows.
