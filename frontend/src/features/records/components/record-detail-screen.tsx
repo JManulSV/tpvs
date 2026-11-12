@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
 import { getRecordActionPermissions } from "../record-actions";
 import { getRecordBanner } from "../record-detail-utils";
@@ -15,6 +15,7 @@ import { RecordDetailHeader } from "./record-detail-header";
 import { RecordDetailHero } from "./record-detail-hero";
 import { RecordImageCard } from "./record-image-card";
 import { RecordMovementsCard } from "./record-movements-card";
+import { RecordDetailSkeleton } from "./record-detail-skeleton";
 import { RecordPeriodCard } from "./record-period-card";
 import { RecordHistoryPanel } from "./record-history-panel";
 
@@ -34,17 +35,20 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   const record = recordQuery.data;
 
   if (recordQuery.isPending) {
-    return <p aria-live="polite" className="py-10 text-center text-sm text-muted-foreground">Cargando registro…</p>;
+    return <RecordDetailSkeleton />;
   }
 
-  if (recordQuery.isError || !record) {
+  if (!record) {
     return (
-      <section className="space-y-4 rounded-md border p-6 text-center" role="alert">
-        <h1 className="text-xl font-semibold">No se pudo cargar el registro</h1>
+      <section
+        className="flex flex-col items-center gap-4 rounded-lg border bg-card p-6 text-center shadow-card"
+        role="alert"
+      >
+        <h1 className="text-xl/7 font-semibold">No se pudo cargar el registro</h1>
         <p className="text-sm text-muted-foreground">{recordQuery.error?.message ?? "El registro no está disponible."}</p>
-        <div className="flex justify-center gap-3">
-          <Button onClick={() => void recordQuery.refetch()} type="button" variant="outline">Reintentar</Button>
-          <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href="/records">Volver a registros</Link>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button className="min-h-11 md:min-h-10" onClick={() => void recordQuery.refetch()} type="button" variant="outline">Reintentar</Button>
+          <Link className={buttonVariants({ className: "min-h-11 md:min-h-10", variant: "outline" })} href="/records">Volver a registros</Link>
         </div>
       </section>
     );
@@ -53,6 +57,10 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   const permissions = getRecordActionPermissions(record, canEdit);
   const { canCorrect } = permissions;
   const banner = getRecordBanner(record, canEdit);
+  const isInReview = record.status === "NEEDS_REVIEW";
+  // Single-column order (full class names so Tailwind generates them).
+  const imageOrder = isInReview ? "order-4" : "order-5";
+  const deliveryOrder = isInReview ? "order-5" : "order-4";
   const companyHint = record.company === null
     ? record.ai_processing?.normalized_extraction?.record.company_name?.value ?? null
     : null;
@@ -143,7 +151,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   }
 
   return (
-    <section aria-labelledby="record-detail-heading" className="space-y-6">
+    <section aria-labelledby="record-detail-heading" className="flex flex-col gap-4 md:gap-6">
       <RecordDetailHeader
         isRetrying={retryAiProcessing.isPending}
         onCancel={openCancelDialog}
@@ -158,17 +166,32 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
       {successMessage && <RecordDetailBanner banner={{ tone: "info", title: successMessage, text: null }} />}
       {retryError && <RecordDetailBanner banner={{ tone: "error", title: retryError, text: null }} />}
 
-      <RecordDetailHero record={record} />
-
-      <RecordPeriodCard companyHint={companyHint} record={record} />
-
-      <RecordMovementsCard details={record.details} />
-
-      <RecordImageCard record={record} />
-
-      <RecordDeliveryCard canEdit={canEdit} record={record} />
-
-      <RecordHistoryPanel recordId={record.id} />
+      <div className="@container">
+        <div className="flex flex-col gap-4 @[60rem]:grid @[60rem]:grid-cols-[minmax(0,1fr)_340px] @[60rem]:items-start @[60rem]:gap-6">
+          <div className="contents @[60rem]:flex @[60rem]:flex-col @[60rem]:gap-6">
+            <div className="order-1 @[60rem]:order-none">
+              <RecordDetailHero record={record} />
+            </div>
+            <div className="order-2 @[60rem]:order-none">
+              <RecordPeriodCard companyHint={companyHint} record={record} />
+            </div>
+            <div className="order-3 @[60rem]:order-none">
+              <RecordMovementsCard details={record.details} />
+            </div>
+            <div className="order-6 @[60rem]:order-none">
+              <RecordHistoryPanel recordId={record.id} />
+            </div>
+          </div>
+          <div className="contents @[60rem]:flex @[60rem]:flex-col @[60rem]:gap-6">
+            <div className={`${imageOrder} @[60rem]:order-none`}>
+              <RecordImageCard record={record} />
+            </div>
+            <div className={`${deliveryOrder} @[60rem]:order-none`}>
+              <RecordDeliveryCard canEdit={canEdit} record={record} />
+            </div>
+          </div>
+        </div>
+      </div>
 
       {isConfirmOpen && (
         <RecordActionDialog
