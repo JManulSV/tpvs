@@ -65,7 +65,8 @@ export function useCreateRecordFromImage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (file: File) => recordsService.createFromImage(file),
+    mutationFn: ({ file, onProgress, signal }: { file: File; onProgress?: (percent: number) => void; signal?: AbortSignal }) =>
+      recordsService.createFromImage(file, { onProgress, signal }),
     retry: false,
     onSuccess: async (record) => {
       queryClient.setQueryData(recordKeys.detail(record.id), record);

@@ -56,7 +56,7 @@ export function ImageRecordForm() {
     }
 
     try {
-      const record = await uploadRecord.mutateAsync(file);
+      const record = await uploadRecord.mutateAsync({ file });
       router.push(`/records/${record.id}`);
     } catch (error) {
       if (error instanceof RecordsApiError) {

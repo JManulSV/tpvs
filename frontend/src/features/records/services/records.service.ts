@@ -40,11 +40,20 @@ export const recordsService = {
     }
   },
 
-  async createFromImage(file: File): Promise<RecordDetailView> {
+  async createFromImage(
+    file: File,
+    options: { onProgress?: (percent: number) => void; signal?: AbortSignal } = {},
+  ): Promise<RecordDetailView> {
     try {
       const formData = new FormData();
       formData.append("image", file);
-      const response = await apiClient.post<RecordResponse>("records/from-image", formData);
+      const response = await apiClient.post<RecordResponse>("records/from-image", formData, {
+        signal: options.signal,
+        onUploadProgress: (event) => {
+          const total = event.total ?? file.size;
+          options.onProgress?.(Math.round((event.loaded * 100) / total));
+        },
+      });
       return response.data.data;
     } catch (error) {
       throw toRecordsApiError(error);
