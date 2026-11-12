@@ -1,6 +1,6 @@
 # SPEC 20 — Rediseño del detalle de registro
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 05, SPEC 09, SPEC 10, SPEC 11, SPEC 15, SPEC 16, SPEC 19
 > **Date:** 2026-11-11
 > **Objective:** Reemplazar la pantalla `/records/{id}` por la interfaz de las plantillas `RecordDetailEditor{,Mobile}.dc.html` (encabezado con acciones, hero de totales, tarjetas de periodo, movimientos, imagen, entrega e historial), con tokens de shadcn y dentro del shell existente, sin cambiar el backend ni los flujos de edición, confirmación y cancelación.
@@ -323,40 +323,40 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 
 ## Acceptance criteria
 
-- [ ] `/records/{id}` tiene exactamente un `<h1>` con el nombre de la empresa (o «Registro sin empresa»), visible a 1440 px y a 375 px.
-- [ ] El encabezado muestra el enlace «Registros», el `StatusBadge`, la insignia de fuente y la línea de periodo («Semana N · inicio – fin» o «Sin periodo todavía»).
-- [ ] Como `EDITOR` con un registro `NEEDS_REVIEW`, el encabezado muestra «Cancelar registro», «Confirmar registro» y «Editar registro». Con `CONFIRMED` muestra solo «Reabrir para corregir».
-- [ ] Como `EDITOR` con un registro `ERROR`, el encabezado muestra «Cancelar registro» y, si la fuente es `IMAGE`, también «Reintentar procesamiento».
-- [ ] Como `VIEWER`, no aparece ningún botón de acción en el encabezado ni «Reintentar procesamiento».
-- [ ] Confirmar, cancelar (con motivo obligatorio), reabrir para corregir y reintentar siguen funcionando con los mismos diálogos y formulario. Tras un `409` el registro se refresca.
-- [ ] El hero muestra «Retorno oficial» con `formatMoney(return_total)`, y los importes de Ingreso y Comisión salen de `income_total` y `commission_total`. Con totales `null` muestra «—». La página no suma ningún importe en el cliente.
-- [ ] Un registro `NEEDS_REVIEW` de imagen muestra al `EDITOR` el banner «Información extraída automáticamente. Revisa antes de confirmar.» y al `VIEWER` el banner «Pendiente de revisión.».
-- [ ] El banner de cada estado coincide con la tabla de `getRecordBanner`, y un `CONFIRMED` no muestra banner.
-- [ ] La tarjeta «Empresa y periodo» muestra el mes del reporte («septiembre» para una semana que termina el 15/09) y «—» en los valores ausentes.
-- [ ] Con el sidebar expandido a 1280 px, la tabla de movimientos no genera scroll horizontal. Si el contenedor de la tarjeta mide menos de 45 rem, se muestran tarjetas.
-- [ ] A 375 px, la página no tiene scroll horizontal.
-- [ ] Con el contenedor de 60 rem o más hay dos columnas (principal y lateral de 340 px). Por debajo hay una columna con el orden: hero, periodo, movimientos, imagen y entrega (en `NEEDS_REVIEW`) o entrega e imagen (en los demás estados) e historial.
-- [ ] La tarjeta de imagen muestra la imagen autorizada y su archivo, tipo y tamaño; para `CANCELED` dice «La imagen ya no está disponible.» y para un registro manual sin imagen dice «Este registro no tiene imagen asociada.».
-- [ ] La tarjeta «Entrega» muestra «Bloqueada» y el candado en registros no confirmados, y no llama a `GET /api/records/{id}/delivery` en ese caso.
-- [ ] En un registro `CONFIRMED` sin entrega, el `EDITOR` ve «Preparar entrega» y el `VIEWER` no ve acción.
-- [ ] En un registro con entrega desactualizada se muestra «La entrega se preparó con un monto anterior.», el retorno actual contra la entrega preparada y, para el `EDITOR`, «Preparar nueva entrega».
-- [ ] Con entrega vigente se muestran fecha, monto preparado, entrega, recibe, el desglose de efectivo y el total, y el enlace lleva a `/records/{id}/delivery` («Editar entrega» o «Ver entrega» según el rol).
-- [ ] El detalle no muestra ninguna tarjeta ni bloque de «Procesamiento automático» ni «Diagnóstico de IA».
-- [ ] El historial es una línea de tiempo con campo, usuario, fecha, valor anterior → nuevo y motivo. Mantiene carga, error, vacío y paginación, y recarga tras confirmar, corregir o cancelar.
-- [ ] Mientras carga, aparecen esqueletos y nunca un importe. Con el backend detenido aparece una alerta con `role="alert"` y «Reintentar» vuelve a hacer la petición.
-- [ ] Un registro `PENDING` o `PROCESSING` sigue actualizándose solo y deja de hacerlo al llegar a un estado final.
-- [ ] Todos los controles, enlaces y botones se alcanzan con Tab y muestran un anillo de foco de 2 px.
-- [ ] Los archivos nuevos o modificados de `features/records/` solo usan clases de tokens, sin colores literales ni de la paleta de Tailwind.
-- [ ] La consola del navegador no muestra advertencias de hidratación en `/records/{id}`.
-- [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
-- [ ] La revisión visual del paso 8 se hizo en claro y oscuro, a 1440, 1024, 768 y 375 px, sin texto cortado ni solapamientos.
-- [ ] `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md` describen el nuevo comportamiento.
-- [ ] Con el backend detenido, navegar dentro de la app a `/records/{id}` muestra la tarjeta «No pudimos cargar la información» con `role="alert"` y no la página de error de Next.
-- [ ] La tarjeta de error ofrece «Reintentar», que vuelve a cargar la página cuando el backend está disponible, y «Ir al dashboard». «Detalles técnicos» muestra el tipo y el código.
-- [ ] Una carga completa con el backend detenido sigue mostrando «No se pudo validar la sesión con el servidor…» sin cambios.
-- [ ] La tarjeta de error aparece dentro de `AppShell`: el sidebar y la barra superior siguen visibles.
-- [ ] El botón «Reintentar» de la tarjeta de error recibe foco con Tab y muestra el anillo de foco de 2 px.
-- [ ] No se modifican archivos `page.tsx` ni `app/(app)/layout.tsx`.
+- [x] `/records/{id}` tiene exactamente un `<h1>` con el nombre de la empresa (o «Registro sin empresa»), visible a 1440 px y a 375 px.
+- [x] El encabezado muestra el enlace «Registros», el `StatusBadge`, la insignia de fuente y la línea de periodo («Semana N · inicio – fin» o «Sin periodo todavía»).
+- [x] Como `EDITOR` con un registro `NEEDS_REVIEW`, el encabezado muestra «Cancelar registro», «Confirmar registro» y «Editar registro». Con `CONFIRMED` muestra solo «Reabrir para corregir».
+- [x] Como `EDITOR` con un registro `ERROR`, el encabezado muestra «Cancelar registro» y, si la fuente es `IMAGE`, también «Reintentar procesamiento».
+- [x] Como `VIEWER`, no aparece ningún botón de acción en el encabezado ni «Reintentar procesamiento».
+- [x] Confirmar, cancelar (con motivo obligatorio), reabrir para corregir y reintentar siguen funcionando con los mismos diálogos y formulario. Tras un `409` el registro se refresca.
+- [x] El hero muestra «Retorno oficial» con `formatMoney(return_total)`, y los importes de Ingreso y Comisión salen de `income_total` y `commission_total`. Con totales `null` muestra «—». La página no suma ningún importe en el cliente.
+- [x] Un registro `NEEDS_REVIEW` de imagen muestra al `EDITOR` el banner «Información extraída automáticamente. Revisa antes de confirmar.» y al `VIEWER` el banner «Pendiente de revisión.».
+- [x] El banner de cada estado coincide con la tabla de `getRecordBanner`, y un `CONFIRMED` no muestra banner.
+- [x] La tarjeta «Empresa y periodo» muestra el mes del reporte («septiembre» para una semana que termina el 15/09) y «—» en los valores ausentes.
+- [x] Con el sidebar expandido a 1280 px, la tabla de movimientos no genera scroll horizontal. Si el contenedor de la tarjeta mide menos de 45 rem, se muestran tarjetas.
+- [x] A 375 px, la página no tiene scroll horizontal.
+- [x] Con el contenedor de 60 rem o más hay dos columnas (principal y lateral de 340 px). Por debajo hay una columna con el orden: hero, periodo, movimientos, imagen y entrega (en `NEEDS_REVIEW`) o entrega e imagen (en los demás estados) e historial.
+- [x] La tarjeta de imagen muestra la imagen autorizada y su archivo, tipo y tamaño; para `CANCELED` dice «La imagen ya no está disponible.» y para un registro manual sin imagen dice «Este registro no tiene imagen asociada.».
+- [x] La tarjeta «Entrega» muestra «Bloqueada» y el candado en registros no confirmados, y no llama a `GET /api/records/{id}/delivery` en ese caso.
+- [x] En un registro `CONFIRMED` sin entrega, el `EDITOR` ve «Preparar entrega» y el `VIEWER` no ve acción.
+- [x] En un registro con entrega desactualizada se muestra «La entrega se preparó con un monto anterior.», el retorno actual contra la entrega preparada y, para el `EDITOR`, «Preparar nueva entrega».
+- [x] Con entrega vigente se muestran fecha, monto preparado, entrega, recibe, el desglose de efectivo y el total, y el enlace lleva a `/records/{id}/delivery` («Editar entrega» o «Ver entrega» según el rol).
+- [x] El detalle no muestra ninguna tarjeta ni bloque de «Procesamiento automático» ni «Diagnóstico de IA».
+- [x] El historial es una línea de tiempo con campo, usuario, fecha, valor anterior → nuevo y motivo. Mantiene carga, error, vacío y paginación, y recarga tras confirmar, corregir o cancelar.
+- [x] Mientras carga, aparecen esqueletos y nunca un importe. Con el backend detenido aparece una alerta con `role="alert"` y «Reintentar» vuelve a hacer la petición.
+- [x] Un registro `PENDING` o `PROCESSING` sigue actualizándose solo y deja de hacerlo al llegar a un estado final.
+- [x] Todos los controles, enlaces y botones se alcanzan con Tab y muestran un anillo de foco de 2 px.
+- [x] Los archivos nuevos o modificados de `features/records/` solo usan clases de tokens, sin colores literales ni de la paleta de Tailwind.
+- [x] La consola del navegador no muestra advertencias de hidratación en `/records/{id}`.
+- [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
+- [x] La revisión visual del paso 8 se hizo en claro y oscuro, a 1440, 1024, 768 y 375 px, sin texto cortado ni solapamientos.
+- [x] `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md` describen el nuevo comportamiento.
+- [x] Con el backend detenido, navegar dentro de la app a `/records/{id}` muestra la tarjeta «No pudimos cargar la información» con `role="alert"` y no la página de error de Next.
+- [x] La tarjeta de error ofrece «Reintentar», que vuelve a cargar la página cuando el backend está disponible, y «Ir al dashboard». «Detalles técnicos» muestra el tipo y el código.
+- [x] Una carga completa con el backend detenido sigue mostrando «No se pudo validar la sesión con el servidor…» sin cambios.
+- [x] La tarjeta de error aparece dentro de `AppShell`: el sidebar y la barra superior siguen visibles.
+- [x] El botón «Reintentar» de la tarjeta de error recibe foco con Tab y muestra el anillo de foco de 2 px.
+- [x] No se modifican archivos `page.tsx` ni `app/(app)/layout.tsx`.
 
 ## Decisions
 
