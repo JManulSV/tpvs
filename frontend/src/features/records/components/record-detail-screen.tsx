@@ -57,10 +57,12 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   const permissions = getRecordActionPermissions(record, canEdit);
   const { canCorrect } = permissions;
   const banner = getRecordBanner(record, canEdit);
+  // DOM order matches the single-column visual order (Tab follows it). The
+  // side column reuses the same order so both layouts stay consistent.
   const isInReview = record.status === "NEEDS_REVIEW";
-  // Single-column order (full class names so Tailwind generates them).
-  const imageOrder = isInReview ? "order-4" : "order-5";
-  const deliveryOrder = isInReview ? "order-5" : "order-4";
+  const imageCard = <RecordImageCard key="image" record={record} />;
+  const deliveryCard = <RecordDeliveryCard key="delivery" canEdit={canEdit} record={record} />;
+  const sideCards = isInReview ? [imageCard, deliveryCard] : [deliveryCard, imageCard];
   const companyHint = record.company === null
     ? record.ai_processing?.normalized_extraction?.record.company_name?.value ?? null
     : null;
@@ -168,27 +170,20 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
 
       <div className="@container">
         <div className="flex flex-col gap-4 @[60rem]:grid @[60rem]:grid-cols-[minmax(0,1fr)_340px] @[60rem]:items-start @[60rem]:gap-6">
-          <div className="contents @[60rem]:flex @[60rem]:flex-col @[60rem]:gap-6">
-            <div className="order-1 @[60rem]:order-none">
-              <RecordDetailHero record={record} />
-            </div>
-            <div className="order-2 @[60rem]:order-none">
-              <RecordPeriodCard companyHint={companyHint} record={record} />
-            </div>
-            <div className="order-3 @[60rem]:order-none">
-              <RecordMovementsCard details={record.details} />
-            </div>
-            <div className="order-6 @[60rem]:order-none">
-              <RecordHistoryPanel recordId={record.id} />
-            </div>
+          <div className="@[60rem]:col-start-1 @[60rem]:row-start-1">
+            <RecordDetailHero record={record} />
           </div>
-          <div className="contents @[60rem]:flex @[60rem]:flex-col @[60rem]:gap-6">
-            <div className={`${imageOrder} @[60rem]:order-none`}>
-              <RecordImageCard record={record} />
-            </div>
-            <div className={`${deliveryOrder} @[60rem]:order-none`}>
-              <RecordDeliveryCard canEdit={canEdit} record={record} />
-            </div>
+          <div className="@[60rem]:col-start-1 @[60rem]:row-start-2">
+            <RecordPeriodCard companyHint={companyHint} record={record} />
+          </div>
+          <div className="@[60rem]:col-start-1 @[60rem]:row-start-3">
+            <RecordMovementsCard details={record.details} />
+          </div>
+          <div className="flex flex-col gap-4 @[60rem]:col-start-2 @[60rem]:row-span-4 @[60rem]:row-start-1 @[60rem]:gap-6">
+            {sideCards}
+          </div>
+          <div className="@[60rem]:col-start-1 @[60rem]:row-start-4">
+            <RecordHistoryPanel recordId={record.id} />
           </div>
         </div>
       </div>

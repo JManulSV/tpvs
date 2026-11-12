@@ -139,9 +139,9 @@ El contenido se renderiza dentro del contenedor de `AppShell` (`max-w-6xl`, `px-
 - El orden es: encabezado, banner, y luego el contenido en tarjetas.
 - El contenedor del contenido usa `@container`. El diseño depende del ancho del contenedor y no del de la ventana, porque el sidebar cambia el espacio disponible.
 - **Contenedor ≥ 60 rem:** dos columnas, `grid-cols-[minmax(0,1fr)_340px]` con 24 px de separación.
-  - Columna principal: hero, «Empresa y periodo», «Movimientos» e «Historial de cambios».
-  - Columna lateral: «Imagen recibida» y «Entrega».
-- **Contenedor < 60 rem:** una sola columna. Las dos columnas pasan a `contents` y cada tarjeta lleva una clase `order-*`:
+  - Columna principal: hero, «Empresa y periodo», «Movimientos» e «Historial de cambios», cada uno en su fila.
+  - Columna lateral: «Imagen recibida» y «Entrega», que ocupa las cuatro filas y empieza junto al hero. Va en el mismo orden que en una columna.
+- **Contenedor < 60 rem:** una sola columna. El orden del DOM es también el orden visual y el de Tab, así que no se usan clases `order-*`:
 
 | Orden | Tarjeta |
 | --- | --- |
@@ -152,7 +152,7 @@ El contenido se renderiza dentro del contenedor de `AppShell` (`max-w-6xl`, `px-
 | 5 | Entrega (si es `NEEDS_REVIEW`) o Imagen (en los demás) |
 | 6 | Historial de cambios |
 
-- Las clases `order-*` se escriben completas en el código, sin construirlas con texto.
+- Las clases de rejilla (`col-start-*`, `row-start-*`, `row-span-4`) se escriben completas en el código, sin construirlas con texto.
 
 ### Encabezado
 
@@ -298,7 +298,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 6. **Historial.**
    - Reescribir el marcado de `record-history-panel.tsx` como línea de tiempo con `getHistoryDotClass`, conservando `fieldLabel`, `displayValue`, la consulta y la paginación.
 7. **Composición, estados y orden.**
-   - Reescribir el retorno de `RecordDetailScreen`: contenedor `@container`, columnas y clases `order-*` según la tabla de la sección «Estructura y orden».
+   - Reescribir el retorno de `RecordDetailScreen`: contenedor `@container`, columnas y posiciones de rejilla según la sección «Estructura y orden».
    - Reescribir los estados de carga y error con los tokens.
    - Eliminar `Info`, `DeliveryLink`, `aiStatusLabels` y el bloque de diagnóstico de IA.
    - Verificar `npx tsc --noEmit` y `npm run lint`.
@@ -359,7 +359,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 - **Sí:** el componente que llama a `useDelivery` solo se monta con `CONFIRMED`. Evita una petición inútil y conserva el comportamiento del `DeliveryLink` actual.
 - **Sí:** el total de efectivo de la entrega usa `denominationsTotalCents` y `centsToAmount`, los mismos helpers de la pantalla de entrega. No es un total oficial: es un resumen de lo que el backend ya guardó.
 - **Sí:** el cambio entre una y dos columnas, y entre tabla y tarjetas de movimientos, usa el ancho del contenedor (`@container`, 60 rem y 45 rem). El sidebar expandido, el colapsado y el drawer cambian el espacio real.
-- **Sí:** el orden de las tarjetas en una columna sigue a la plantilla (`order-*`), con imagen antes que entrega solo en `NEEDS_REVIEW`. Es donde el Editor necesita la imagen junto a los datos.
+- **Sí:** el orden de las tarjetas en una columna sigue a la plantilla, con imagen antes que entrega solo en `NEEDS_REVIEW`. Es donde el Editor necesita la imagen junto a los datos. El orden está en el DOM y no con `order-*`, para que Tab siga el orden visual. La columna lateral de dos columnas usa el mismo orden.
 - **Sí:** se renderizan la tabla y la lista de movimientos a la vez y CSS oculta una, como en SPEC 19. Evita un hook de medidas y los desajustes de hidratación.
 - **Sí:** el historial es una línea de tiempo con una fila por cambio de campo, sin agrupar por evento. El backend entrega filas por campo y agrupar sería inferir eventos en el cliente.
 - **No:** mostrar el correo del usuario en el historial. La plantilla solo muestra el nombre.
@@ -373,8 +373,8 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 
 | Risk | Mitigation |
 | --- | --- |
-| `display: contents` y `order-*` pueden alterar el orden de Tab o de lectura en una columna. | El orden visual coincide con el del DOM para los controles (encabezado, tarjetas, historial). El paso 8 recorre la página con Tab en las dos presentaciones. |
-| Las clases `order-*` pueden no generarse si se construyen con texto. | Se escriben completas en el código y se confirma en la compilación. |
+| El posicionamiento de la rejilla puede alterar el orden de Tab o de lectura. | El DOM sigue el orden de una columna y las celdas de dos columnas se fijan con `col-start` y `row-start`. El paso 8 compara el orden del DOM con el visual en las dos presentaciones. |
+| Las clases de rejilla pueden no generarse si se construyen con texto. | Se escriben completas en el código y se confirma en la compilación. |
 | `@container` y `@[60rem]` de Tailwind 4 ya se usan en SPEC 19, pero la tarjeta de movimientos anida un segundo contenedor (`@[45rem]`). | El paso 3 lo verifica a mano a 1024 y 1280 px. Si falla, se usa el mismo ancho de contenedor para ambas decisiones. |
 | `useDelivery` en un registro `CONFIRMED` con error de red deja la tarjeta sin datos. | La tarjeta muestra su propio error con «Reintentar» y no bloquea el resto de la pantalla. |
 | La imagen es grande y empuja la columna lateral. | `max-h-[32rem]` con `object-contain`, como hoy. |
