@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Revisar y corregir registro</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+:root{--brand-navy:#324168;--brand-sky:#64B3DD;--canvas:#EEF3F8;--surface:#FFFFFF;--surface-muted:#F5F8FC;--border:#DBE4EE;--border-strong:#6F819C;--ink:#17203A;--ink-muted:#4F5B77;--primary:#324168;--primary-hover:#28345A;--on-primary:#FFFFFF;--accent-soft:#E3F1FA;--accent-soft-ink:#1B5C85;--ring:#324168;--hero:#324168;--on-hero:#FFFFFF;--hero-ink-muted:#C7D0E4;--hero-hover:rgba(255,255,255,.10);--destructive:#B3261E;--status-confirmed:#0F6B3A;--status-confirmed-bg:#E3F5EA;--status-needs-review:#8A4B00;--status-needs-review-bg:#FDF0D8;--status-error:#A3202A;--status-error-bg:#FCE6E7;--status-processing:#4D3FA3;--status-processing-bg:#ECE9FB;--status-pending:#46526C;--status-pending-bg:#E8EDF4;--status-canceled:#5B6478;--status-canceled-bg:#EEF0F4;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-pill:999px;--shadow-card:0 1px 2px rgba(23,32,58,.05),0 4px 16px rgba(23,32,58,.04);--shadow-popover:0 8px 32px rgba(23,32,58,.14);--font-sans:"Plus Jakarta Sans",system-ui,sans-serif}
+.root{box-sizing:border-box;min-height:900px;display:flex;align-items:stretch;background:var(--canvas);color:var(--ink);font-family:var(--font-sans);font-size:14px;line-height:20px}
+.root *,.root *::before,.root *::after{box-sizing:border-box}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.side{flex:none;display:flex;flex-direction:column;gap:4px;width:256px;padding:24px 16px;background:var(--hero);color:var(--on-hero)}
+.brand{padding:4px 12px 24px;font:700 24px/32px var(--font-sans);letter-spacing:-.01em}
+.nav-label{padding:16px 12px 8px;font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--hero-ink-muted)}
+.nav-item{display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 12px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--hero-ink-muted);font:600 14px/20px var(--font-sans);text-align:left;text-decoration:none;cursor:pointer;transition:background-color .15s ease}
+.nav-item:hover{background:var(--hero-hover);color:var(--on-hero)}
+.nav-item:focus-visible{outline:2px solid var(--brand-sky);outline-offset:2px}
+.nav-item[aria-current="page"]{background:var(--on-hero);color:var(--primary)}
+.nav-item .ic{width:20px;height:20px}
+.nav-count{margin-left:auto;min-width:22px;height:22px;padding:0 6px;display:grid;place-items:center;border-radius:var(--radius-pill);background:var(--status-needs-review-bg);color:var(--status-needs-review);font:700 12px/16px var(--font-sans)}
+.avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:var(--radius-pill);background:var(--brand-sky);color:var(--ink);font:700 13px/16px var(--font-sans)}
+.wrap{flex:1 1 0;min-width:0;display:flex;flex-direction:column}
+.mtop,.mbar{display:none}
+.main{flex:1;display:flex;flex-direction:column;gap:24px;padding:32px 40px}
+.crumb{display:inline-flex;align-items:center;gap:4px;min-height:32px;margin-left:-4px;padding:0 10px 0 6px;border-radius:var(--radius-pill);color:var(--accent-soft-ink);font:600 13px/16px var(--font-sans);text-decoration:none;transition:background-color .15s ease}
+.crumb:hover{background:var(--accent-soft)}
+.crumb:focus-visible,.btn:focus-visible,.lbtn:focus-visible,.bt:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.ph-row{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px 24px;margin-top:4px}
+.ph-title h1{margin:0;font:700 28px/36px var(--font-sans);letter-spacing:-.01em}
+.metaln{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:8px;color:var(--ink-muted);font:500 13px/20px var(--font-sans)}
+.ph-actions{display:flex;flex-wrap:wrap;gap:12px}
+.hint{margin:0;font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 20px;border:1px solid transparent;border-radius:var(--radius-pill);background:var(--primary);color:var(--on-primary);font:600 14px/20px var(--font-sans);text-decoration:none;white-space:nowrap;cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+.btn:hover{background:var(--primary-hover)}
+.btn.soft{background:var(--accent-soft);color:var(--accent-soft-ink)}
+.btn.soft:hover{background:var(--accent-soft);border-color:var(--accent-soft-ink)}
+.btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--border-strong)}
+.btn.ghost:hover{background:var(--surface-muted)}
+.btn.danger{background:var(--surface);color:var(--status-error);border-color:var(--status-error)}
+.btn.danger:hover{background:var(--status-error-bg)}
+.btn.dangerfill{background:var(--destructive);color:#FFFFFF}
+.btn.dangerfill:hover{background:#962019}
+.btn[disabled]{background:var(--surface-muted);color:var(--ink-muted);border-color:var(--border);cursor:not-allowed}
+.btn .ic{width:18px;height:18px}
+.lbtn{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--status-error);font:600 13px/16px var(--font-sans);cursor:pointer}
+.lbtn:hover{background:var(--status-error-bg)}
+.pill{display:inline-flex;align-items:center;gap:6px;flex:none;height:24px;padding:0 10px;border-radius:var(--radius-pill);font:600 12px/16px var(--font-sans);white-space:nowrap}
+.mini{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:var(--radius-pill);font:600 11px/16px var(--font-sans);white-space:nowrap}
+.pill.srcp{background:var(--surface);color:var(--ink-muted);border:1px solid var(--border)}
+.s-review{background:var(--status-needs-review-bg);color:var(--status-needs-review)}
+.s-pending{background:var(--status-pending-bg);color:var(--status-pending)}
+.s-error{background:var(--status-error-bg);color:var(--status-error)}
+.s-confirmed{background:var(--status-confirmed-bg);color:var(--status-confirmed)}
+.s-canceled{background:var(--status-canceled-bg);color:var(--status-canceled)}
+.banner{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:var(--radius-md);font:500 13px/20px var(--font-sans)}
+.banner strong{display:block;font-weight:700}
+.banner .ic{width:20px;height:20px}
+.bn-info{background:var(--accent-soft);color:var(--accent-soft-ink)}
+.bn-review{background:var(--status-needs-review-bg);color:var(--status-needs-review)}
+.bn-ok{background:var(--status-confirmed-bg);color:var(--status-confirmed)}
+.bn-cancel{background:var(--status-canceled-bg);color:var(--status-canceled)}
+.legend{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 8px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card)}
+.ch{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:18px 24px 0}
+.ch h2{margin:0;font:600 16px/24px var(--font-sans)}
+.ch .sub{display:block;margin-top:2px;font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+.cb{padding:16px 24px 24px}
+.content{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.col-main,.col-rail{display:flex;flex-direction:column;gap:24px;min-width:0}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:20px 40px;padding:28px 32px;background:var(--hero);color:var(--on-hero);border-radius:var(--radius-xl)}
+.hl{display:block;font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--hero-ink-muted)}
+.hv{display:block;margin-top:4px;font:700 40px/48px var(--font-sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hs{display:block;margin-top:4px;font:500 13px/20px var(--font-sans);color:var(--hero-ink-muted)}
+.hero-side{display:flex;gap:32px;margin:0}
+.hero-side dt{font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--hero-ink-muted)}
+.hero-side dd{margin:4px 0 0;font:700 20px/28px var(--font-sans);font-variant-numeric:tabular-nums}
+.vcheck{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:10px 16px;border-radius:var(--radius-md);font:500 13px/20px var(--font-sans)}
+.vcheck b{font-weight:700;font-variant-numeric:tabular-nums}
+.vc-ok{background:rgba(255,255,255,.12);color:var(--on-hero)}
+.vc-bad{background:var(--status-error-bg);color:var(--status-error)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px 20px}
+.f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fl{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:600 12px/16px var(--font-sans);color:var(--ink-muted)}
+.fv{margin:0;font:600 15px/24px var(--font-sans)}
+.inp{width:100%;height:40px;padding:0 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:500 14px/20px var(--font-sans)}
+.inp:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.inp[disabled]{background:var(--surface-muted);color:var(--ink);border-color:var(--border)}
+.inp.rt{text-align:right;font-variant-numeric:tabular-nums}
+.inp.ta{height:auto;min-height:80px;padding:10px 12px;resize:vertical}
+.selw{position:relative;display:block}
+.selw select{appearance:none;-webkit-appearance:none;padding-right:36px;cursor:pointer}
+.selw .ic{position:absolute;right:12px;top:12px;pointer-events:none;color:var(--ink-muted)}
+.note{margin:16px 0 0;font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+.mv{container-type:inline-size;overflow:hidden;border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+.mg{display:grid;grid-template-columns:36px 108px minmax(104px,1fr) 116px 76px 100px 116px;align-items:center;column-gap:10px}
+.mh{margin-top:16px;padding:0 20px;height:40px;background:var(--surface-muted);border-top:1px solid var(--border);border-bottom:1px solid var(--border);font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+.mrow{padding:12px 20px;border-bottom:1px solid var(--border)}
+.mrow:last-child{border-bottom:0}
+.c{min-width:0}
+.c::before{display:none}
+.c.r{text-align:right;font-variant-numeric:tabular-nums}
+.c.r.strong{font-weight:700}
+.nn{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-pill);background:var(--surface-muted);border:1px solid var(--border);font:700 12px/16px var(--font-sans)}
+.nl{display:none}
+.mx{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;padding-left:46px}
+.mx .lbtn{margin-left:auto}
+@container (max-width:719px){
+.mh{display:none}
+.mv .mg{grid-template-columns:1fr 1fr;gap:12px 16px}
+.c::before{display:block;content:attr(data-label);margin-bottom:4px;font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+.c.idx{grid-column:1/-1}
+.c.idx::before{display:none}
+.nn{display:none}
+.nl{display:block;font:700 14px/20px var(--font-sans)}
+.c.r{text-align:left}
+.inp.rt{text-align:left}
+.mx{padding-left:0}
+.mrow{padding:16px}
+.mv{margin-top:16px}
+.mh{margin-top:0}
+}
+.imgph{display:grid;place-items:center;aspect-ratio:4/3;padding:20px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-muted)}
+.paper{width:72%;max-width:220px;display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-card)}
+.sk{height:8px;border-radius:var(--radius-pill);background:var(--border)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin:0}
+.kv dt{font:600 12px/16px var(--font-sans);color:var(--ink-muted)}
+.kv dd{margin:2px 0 0;font:600 14px/20px var(--font-sans);overflow-wrap:anywhere}
+.kv .wide{grid-column:1/-1}
+.rbtns{display:flex;flex-wrap:wrap;gap:8px}
+.attempt{display:flex;flex-direction:column;gap:4px;padding:12px 0;border-top:1px solid var(--border)}
+.attempt:first-child{border-top:0;padding-top:0}
+.hw{font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+.lockrow{display:flex;gap:12px;align-items:flex-start;color:var(--ink-muted);font:500 13px/20px var(--font-sans)}
+.lockrow .ic{width:20px;height:20px}
+.dirty{position:sticky;bottom:16px;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:14px 20px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-lg);box-shadow:var(--shadow-popover)}
+.dirty .inp{flex:1 1 240px;width:auto}
+.panel{padding:20px 24px;display:flex;flex-direction:column;gap:12px;border-color:var(--border-strong)}
+.panel h2{margin:0;font:600 16px/24px var(--font-sans)}
+.panel p{margin:0;color:var(--ink-muted)}
+.panel .rbtns{justify-content:flex-end}
+@media (max-width:1359px){
+.content{display:flex;flex-direction:column;gap:24px}
+.col-main,.col-rail{display:contents}
+}
+@media (max-width:900px){
+.side{display:none}
+.mtop{display:flex;align-items:center;gap:4px;padding:8px 12px 8px 20px;background:var(--hero);color:var(--on-hero)}
+.mtop .brand{margin-right:auto;padding:0;font:700 22px/28px var(--font-sans)}
+.tbtn{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--on-hero);cursor:pointer}
+.tbtn:hover{background:var(--hero-hover)}
+.tbtn:focus-visible{outline:2px solid var(--brand-sky);outline-offset:2px}
+.tbtn .ic{width:20px;height:20px}
+.mbar{position:sticky;bottom:0;z-index:6;margin-top:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px;background:var(--surface);border-top:1px solid var(--border)}
+.bt{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:56px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--ink-muted);font:600 11px/16px var(--font-sans);text-decoration:none;cursor:pointer}
+.bt .pic{display:grid;place-items:center;width:56px;height:28px;border-radius:var(--radius-pill)}
+.bt .ic{width:20px;height:20px}
+.bt[aria-current="page"]{color:var(--ink)}
+.bt[aria-current="page"] .pic{background:var(--accent-soft);color:var(--accent-soft-ink)}
+.bt .cnt{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;display:grid;place-items:center;border-radius:var(--radius-pill);background:var(--status-needs-review-bg);color:var(--status-needs-review);font:700 11px/14px var(--font-sans)}
+.main{gap:16px;padding:16px}
+.content{gap:16px}
+.ph-title h1{font:700 24px/32px var(--font-sans)}
+.ph-row{flex-direction:column;align-items:stretch}
+.ph-actions .btn{flex:1 1 auto;height:44px}
+.hero{grid-template-columns:1fr;padding:24px 20px;gap:16px}
+.hv{font:700 32px/40px var(--font-sans)}
+.hero-side{gap:24px}
+.ch{padding:16px 16px 0}
+.cb{padding:16px}
+.dirty{bottom:80px;padding:12px 16px}
+.dirty .rbtns{width:100%}
+.dirty .btn{flex:1 1 auto;height:44px}
+.lbtn,.crumb{min-height:44px}
+.inp{height:44px}
+.selw .ic{top:14px}
+}
+</style>
+</helmet>
+<div class="root">
+  <nav class="side" aria-label="Principal">
+    <div class="brand">Tpvs</div>
+    <div class="nav-label">Sistema</div>
+    <a class="nav-item" href="DashboardEditor.dc.html">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+      Dashboard
+    </a>
+    <a class="nav-item" href="RecordsEditor.dc.html" aria-current="page">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8"></path></svg>
+      Registros
+      <span class="nav-count" aria-label="4 registros por revisar">4</span>
+    </a>
+    <button type="button" class="nav-item">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg>
+      Empresas
+    </button>
+    <button type="button" class="nav-item">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"></path></svg>
+      Reportes
+    </button>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding-top: 24px">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-top: 1px solid var(--hero-hover)">
+        <span class="avatar" aria-hidden="true">{{ initials }}</span>
+        <span><span style="display: block; font-weight: 600">{{ userName }}</span><span style="display: block; font: 500 12px/16px var(--font-sans); color: var(--hero-ink-muted)">Editor</span></span>
+      </div>
+      <button type="button" class="nav-item">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg>
+        Cerrar sesión
+      </button>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <header class="mtop">
+      <span class="brand">Tpvs</span>
+      <button type="button" class="tbtn" aria-label="Notificaciones">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+      </button>
+      <span class="avatar" role="img" aria-label="{{ userName }}, Editor">{{ initials }}</span>
+    </header>
+
+    <main class="main">
+      <header>
+        <a class="crumb" href="RecordDetailEditor.dc.html">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+          Detalle del registro
+        </a>
+        <div class="ph-row">
+          <div class="ph-title">
+            <h1>{{ head.title }}</h1>
+            <div class="metaln">
+              <span class="pill {{ head.statusCls }}">{{ head.statusLabel }}</span>
+              <span class="pill srcp">{{ head.source }}</span>
+              <span style="font-variant-numeric: tabular-nums">{{ head.period }}</span>
+            </div>
+          </div>
+          <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
+            <div class="ph-actions">
+              <button type="button" class="btn danger" onClick="{{ openCancel }}">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg>
+                Cancelar registro
+              </button>
+              <button type="button" class="btn" disabled="{{ confirmDisabled }}" onClick="{{ confirm }}">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                Confirmar registro
+              </button>
+            </div>
+          </sc-if>
+        </div>
+        <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
+          <p class="hint" role="status" style="margin-top: 8px; text-align: right">{{ confirmHint }}</p>
+        </sc-if>
+      </header>
+
+      <sc-if value="{{ cancelOpen }}" hint-placeholder-val="{{ false }}">
+        <section class="card panel" role="region" aria-label="Cancelar registro">
+          <h2>Cancelar este registro</h2>
+          <p>Un registro cancelado no cuenta en reportes ni totales. Esta acción queda en el historial.</p>
+          <div class="f">
+            <label class="fl" for="cancel-reason">Motivo (queda en el historial)</label>
+            <textarea id="cancel-reason" class="inp ta" rows="3" placeholder="Describe brevemente el motivo" value="{{ cancelReason }}" onChange="{{ onCancelReason }}"></textarea>
+          </div>
+          <div class="rbtns">
+            <button type="button" class="btn ghost" onClick="{{ closeCancel }}">Volver</button>
+            <button type="button" class="btn dangerfill" disabled="{{ cancelDisabled }}" onClick="{{ doCancel }}">Cancelar registro</button>
+          </div>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{ banner.show }}" hint-placeholder-val="{{ true }}">
+        <div class="banner {{ banner.cls }}">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+          <div>
+            <strong>{{ banner.title }}</strong>
+            <span>{{ banner.text }}</span>
+            <sc-if value="{{ banner.legend }}" hint-placeholder-val="{{ true }}">
+              <ul class="legend" aria-label="Estados de los campos extraídos">
+                <li><span class="mini s-confirmed">Alta confianza</span></li>
+                <li><span class="mini s-review">Revisar</span></li>
+                <li><span class="mini s-pending">Falta información</span></li>
+                <li><span class="mini s-error">Inconsistencia</span></li>
+              </ul>
+            </sc-if>
+            <sc-if value="{{ banner.link }}" hint-placeholder-val="{{ false }}">
+              <div class="rbtns" style="margin-top: 10px">
+                <a class="btn" style="height: 36px; padding: 0 16px" href="RecordDetailEditorConfirmed.dc.html">Ver registro</a>
+                <a class="btn ghost" style="height: 36px; padding: 0 16px" href="RecordsEditor.dc.html">Volver a registros</a>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <div class="content">
+        <div class="col-main">
+          <section class="hero" style="order: 1" aria-label="Totales del registro">
+            <div>
+              <span class="hl">Retorno oficial</span>
+              <span class="hv">{{ tot.ret }}</span>
+              <span class="hs">{{ hero.note }}</span>
+            </div>
+            <dl class="hero-side">
+              <div><dt>Ingreso</dt><dd>{{ tot.inc }}</dd></div>
+              <div><dt>Comisión</dt><dd>{{ tot.com }}</dd></div>
+            </dl>
+            <sc-if value="{{ check.show }}" hint-placeholder-val="{{ true }}">
+              <div class="vcheck {{ check.cls }}" role="status">
+                <span>Documento <b>{{ check.doc }}</b></span>
+                <span>Sistema <b>{{ check.sys }}</b></span>
+                <b>{{ check.label }}</b>
+              </div>
+            </sc-if>
+          </section>
+
+          <section class="card" style="order: 2" aria-labelledby="h-periodo">
+            <div class="ch">
+              <div>
+                <h2 id="h-periodo">Empresa y periodo</h2>
+                <span class="sub">La semana se identifica por semana y año.</span>
+              </div>
+            </div>
+            <div class="cb">
+              <div class="pgrid">
+                <div class="f">
+                  <label class="fl" for="f-company">Empresa<sc-if value="{{ cmp.miss }}" hint-placeholder-val="{{ false }}"><span class="mini s-pending">Falta información</span></sc-if></label>
+                  <span class="selw"><select id="f-company" class="inp" disabled="{{ ro }}" value="{{ cmp.value }}" onChange="{{ cmp.onChange }}"><option value="">Selecciona…</option><option value="Company ABC">Company ABC</option><option value="Company XYZ">Company XYZ</option><option value="Company North">Company North</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+                </div>
+                <sc-for list="{{ pfields }}" as="p" hint-placeholder-count="4">
+                  <div class="f">
+                    <label class="fl" for="{{ p.id }}">{{ p.label }}<sc-if value="{{ p.hasFlag }}" hint-placeholder-val="{{ false }}"><span class="mini {{ p.flagCls }}">{{ p.flag }}</span></sc-if></label>
+                    <input id="{{ p.id }}" class="inp" type="{{ p.type }}" disabled="{{ ro }}" value="{{ p.value }}" onChange="{{ p.onChange }}">
+                  </div>
+                </sc-for>
+              </div>
+              <p class="note">Mes del reporte: <strong style="color: var(--ink)">{{ monthName }}</strong>. Cuando una semana cruza dos meses se usa el mes de la fecha de fin.</p>
+            </div>
+          </section>
+
+          <section class="card" style="order: 3; overflow: hidden" aria-labelledby="h-mov">
+            <div class="ch">
+              <div>
+                <h2 id="h-mov">Movimientos</h2>
+                <span class="sub">La comisión y el retorno los calcula el servidor.</span>
+              </div>
+              <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
+                <button type="button" class="btn soft" style="height: 36px; padding: 0 16px" onClick="{{ addMov }}">
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"></path></svg>
+                  Agregar movimiento
+                </button>
+              </sc-if>
+            </div>
+            <div class="mv">
+              <div class="mg mh" aria-hidden="true">
+                <div>#</div>
+                <div>Afiliación</div>
+                <div>Sucursal</div>
+                <div style="text-align: right">Ingreso</div>
+                <div style="text-align: right">Com. %</div>
+                <div style="text-align: right">Comisión</div>
+                <div style="text-align: right">Retorno</div>
+              </div>
+              <sc-for list="{{ rows }}" as="m" hint-placeholder-count="2">
+                <div class="mrow">
+                  <div class="mg">
+                    <div class="c idx"><span class="nn">{{ m.n }}</span><span class="nl">Movimiento {{ m.n }}</span></div>
+                    <div class="c" data-label="Afiliación"><input class="inp" aria-label="Afiliación del movimiento {{ m.n }}" disabled="{{ ro }}" value="{{ m.aff }}" onChange="{{ m.onAff }}"></div>
+                    <div class="c" data-label="Sucursal"><input class="inp" aria-label="Sucursal del movimiento {{ m.n }}" disabled="{{ ro }}" value="{{ m.branch }}" onChange="{{ m.onBranch }}"></div>
+                    <div class="c r" data-label="Ingreso"><input class="inp rt" inputmode="decimal" aria-label="Ingreso del movimiento {{ m.n }}" disabled="{{ ro }}" value="{{ m.income }}" onChange="{{ m.onIncome }}"></div>
+                    <div class="c r" data-label="Comisión %"><input class="inp rt" inputmode="decimal" aria-label="Porcentaje de comisión del movimiento {{ m.n }}" disabled="{{ ro }}" value="{{ m.pct }}" onChange="{{ m.onPct }}"></div>
+                    <div class="c r" data-label="Comisión">{{ m.commission }}</div>
+                    <div class="c r strong" data-label="Retorno">{{ m.ret }}</div>
+                  </div>
+                  <sc-if value="{{ m.showMx }}" hint-placeholder-val="{{ true }}">
+                    <div class="mx">
+                      <sc-if value="{{ m.chipOk }}" hint-placeholder-val="{{ true }}"><span class="mini s-confirmed">Alta confianza</span></sc-if>
+                      <sc-if value="{{ m.hasRev }}" hint-placeholder-val="{{ false }}"><span class="mini s-review">{{ m.revText }}</span></sc-if>
+                      <sc-if value="{{ m.hasMiss }}" hint-placeholder-val="{{ false }}"><span class="mini s-pending">{{ m.missText }}</span></sc-if>
+                      <sc-if value="{{ m.canRemove }}" hint-placeholder-val="{{ true }}">
+                        <button type="button" class="lbtn" onClick="{{ m.remove }}">
+                          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                          Quitar movimiento
+                        </button>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-rail">
+          <sc-if value="{{ isImage }}" hint-placeholder-val="{{ true }}">
+            <section class="card" style="order: 4" aria-labelledby="h-img">
+              <div class="ch"><h2 id="h-img">Imagen recibida</h2></div>
+              <div class="cb" style="display: flex; flex-direction: column; gap: 16px">
+                <div class="imgph" role="img" aria-label="Vista previa de la imagen enviada por el proveedor">
+                  <div class="paper">
+                    <div class="sk" style="width: 55%"></div>
+                    <div class="sk" style="width: 90%"></div>
+                    <div class="sk" style="width: 80%"></div>
+                    <div class="sk" style="width: 85%"></div>
+                    <div class="sk" style="width: 40%; margin-top: 6px"></div>
+                    <div class="sk" style="width: 70%"></div>
+                  </div>
+                </div>
+                <dl class="kv">
+                  <div class="wide"><dt>Archivo</dt><dd>WhatsApp Image 2026-09-15.jpg</dd></div>
+                  <div><dt>Tipo</dt><dd>image/jpeg</dd></div>
+                  <div><dt>Tamaño</dt><dd>1.8 MB</dd></div>
+                </dl>
+                <div class="rbtns">
+                  <button type="button" class="btn ghost" style="height: 36px; padding: 0 16px">Ver imagen completa</button>
+                  <button type="button" class="btn soft" style="height: 36px; padding: 0 16px">Reemplazar imagen</button>
+                </div>
+              </div>
+            </section>
+            <section class="card" style="order: 5" aria-labelledby="h-ia">
+              <div class="ch">
+                <div>
+                  <h2 id="h-ia">Procesamiento automático</h2>
+                  <span class="sub">Cada intento queda registrado.</span>
+                </div>
+              </div>
+              <div class="cb" style="display: flex; flex-direction: column; gap: 12px">
+                <div>
+                  <div class="attempt">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><b style="font-weight: 600">Intento 2</b><span class="pill s-confirmed">Completado</span></div>
+                    <span class="hw">15/09/26 · 14:32</span>
+                    <span style="color: var(--ink-muted)">Datos extraídos y listos para revisión.</span>
+                  </div>
+                  <div class="attempt">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><b style="font-weight: 600">Intento 1</b><span class="pill s-error">Error</span></div>
+                    <span class="hw">15/09/26 · 14:31</span>
+                    <span style="color: var(--ink-muted)">No se pudo leer la imagen.</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </sc-if>
+          <sc-if value="{{ isManual }}" hint-placeholder-val="{{ false }}">
+            <section class="card" style="order: 4" aria-labelledby="h-man">
+              <div class="ch"><h2 id="h-man">Registro manual</h2></div>
+              <div class="cb">
+                <div class="lockrow">
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                  <span>Este registro se reabrió para corregirlo. Mientras esté Por revisar no cuenta en los reportes. Al confirmarlo vuelve a incluirse.</span>
+                </div>
+              </div>
+            </section>
+          </sc-if>
+          <section class="card" style="order: 6" aria-labelledby="h-hist">
+            <div class="ch"><h2 id="h-hist">Historial</h2></div>
+            <div class="cb">
+              <div class="lockrow">
+                <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>Cada corrección guarda quién la hizo, qué cambió y el motivo. El historial no se puede editar.</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <sc-if value="{{ dirty.show }}" hint-placeholder-val="{{ false }}">
+        <div class="dirty" role="region" aria-label="Cambios sin guardar">
+          <strong style="font-weight: 700">{{ dirty.label }}</strong>
+          <input class="inp" aria-label="Motivo de la corrección" placeholder="Motivo de la corrección" value="{{ dirty.reason }}" onChange="{{ dirty.onReason }}">
+          <div class="rbtns">
+            <button type="button" class="btn ghost" onClick="{{ dirty.discard }}">Descartar</button>
+            <button type="button" class="btn" disabled="{{ dirty.disabled }}" onClick="{{ dirty.save }}">Guardar corrección</button>
+          </div>
+        </div>
+      </sc-if>
+    </main>
+
+    <nav class="mbar" aria-label="Principal">
+      <a class="bt" href="DashboardEditor.dc.html">
+        <span class="pic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg></span>
+        Dashboard
+      </a>
+      <a class="bt" href="RecordsEditor.dc.html" aria-current="page">
+        <span class="pic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8"></path></svg></span>
+        Registros
+        <span class="cnt" aria-label="4 registros por revisar">4</span>
+      </a>
+      <button type="button" class="bt">
+        <span class="pic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg></span>
+        Empresas
+      </button>
+      <button type="button" class="bt">
+        <span class="pic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"></path></svg></span>
+        Reportes
+      </button>
+    </nav>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"origen":{"editor":"enum","options":["imagen","manual"],"default":"imagen","section":"Vista"},"vista":{"editor":"enum","options":["coincide","inconsistencia","faltantes"],"default":"coincide","section":"Vista"},"nombre":{"editor":"text","default":"María López","section":"Usuario"},"$preview":{"width":1440,"height":1500}}'>
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const MON3 = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const DOC_TOTAL = 980000;
+const FLAG_END = '2026-09-15';
+const toC = (v) => {
+  const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
+  return isNaN(n) ? 0 : Math.round(n * 100);
+};
+const money = (c) => '$' + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const dayMon = (iso) => parseInt(iso.slice(8, 10), 10) + ' ' + MON3[parseInt(iso.slice(5, 7), 10) - 1];
+const calc = (m) => {
+  const inc = toC(m.income);
+  const com = Math.round((inc * (parseFloat(m.pct) || 0)) / 100);
+  return { inc: inc, com: com, ret: inc - com };
+};
+const base = (vista) => ({
+  company: 'Company ABC',
+  year: '2026',
+  week: vista === 'faltantes' ? '' : '38',
+  start: '2026-08-28',
+  end: '2026-09-15',
+  movs: [
+    { id: 1, aff: '123456', branch: 'Guadalajara', income: '6000.00', pct: '2.00' },
+    { id: 2, aff: '123456', branch: vista === 'faltantes' ? '' : 'Guadalajara', income: vista === 'inconsistencia' ? '4200.00' : '4000.00', pct: '2.00' }
+  ]
+});
+const missOf = (m) => {
+  const out = [];
+  if (!String(m.aff).trim()) out.push('Afiliación');
+  if (!String(m.branch).trim()) out.push('Sucursal');
+  if (toC(m.income) <= 0) out.push('Ingreso');
+  if (!String(m.pct).trim()) out.push('Comisión %');
+  return out;
+};
+const snap = (f) => JSON.stringify([f.company, f.year, f.week, f.start, f.end, f.movs.map((m) => [m.aff, m.branch, toC(m.income), parseFloat(m.pct) || 0])]);
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { status: null, saved: null, form: null, reason: '', cancelOpen: false, cancelReason: '' };
+  }
+  vista() {
+    return this.props.vista ?? 'coincide';
+  }
+  base() {
+    return this.state.saved || base(this.vista());
+  }
+  cur() {
+    return this.state.form || this.base();
+  }
+  copy(f) {
+    return { company: f.company, year: f.year, week: f.week, start: f.start, end: f.end, movs: f.movs.map((m) => Object.assign({}, m)) };
+  }
+  setTop(k) {
+    return (e) => {
+      const f = this.copy(this.cur());
+      f[k] = e.target.value;
+      this.setState({ form: f });
+    };
+  }
+  setMov(i, k) {
+    return (e) => {
+      const f = this.copy(this.cur());
+      f.movs[i][k] = e.target.value;
+      this.setState({ form: f });
+    };
+  }
+  renderVals() {
+    const s = this.state;
+    const P = this.props;
+    const origen = P.origen ?? 'imagen';
+    const isImage = origen === 'imagen';
+    const status = s.status || 'NEEDS_REVIEW';
+    const saved = this.base();
+    const form = this.cur();
+    const editing = status === 'NEEDS_REVIEW';
+    const name = P.nombre ?? 'María López';
+    const initials = name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+    const isDirty = editing && snap(saved) !== snap(form);
+    const view = form;
+
+    const tot = view.movs.reduce((a, m) => {
+      const c = calc(m);
+      return { inc: a.inc + c.inc, com: a.com + c.com, ret: a.ret + c.ret };
+    }, { inc: 0, com: 0, ret: 0 });
+
+    let missCount = 0;
+    ['company', 'year', 'week', 'start', 'end'].forEach((k) => { if (!String(view[k] || '').trim()) missCount += 1; });
+    let revCount = 0;
+    if (isImage && view.end === FLAG_END) revCount += 1;
+
+    const rows = view.movs.map((m, i) => {
+      const c = calc(m);
+      const miss = missOf(m);
+      const rev = (isImage && m.id === 2 && String(m.pct) === '2.00') ? ['Comisión %'] : [];
+      missCount += miss.length;
+      revCount += rev.length;
+      return {
+        n: i + 1,
+        aff: m.aff,
+        branch: m.branch,
+        income: m.income,
+        pct: m.pct,
+        commission: money(c.com),
+        ret: money(c.ret),
+        onAff: this.setMov(i, 'aff'),
+        onBranch: this.setMov(i, 'branch'),
+        onIncome: this.setMov(i, 'income'),
+        onPct: this.setMov(i, 'pct'),
+        showMx: editing && isImage,
+        chipOk: miss.length === 0 && rev.length === 0,
+        hasRev: rev.length > 0,
+        revText: 'Revisar · ' + rev.join(', '),
+        hasMiss: miss.length > 0,
+        missText: 'Falta información · ' + miss.join(', '),
+        canRemove: editing && view.movs.length > 1,
+        remove: () => {
+          const g = this.copy(this.cur());
+          g.movs.splice(i, 1);
+          this.setState({ form: g });
+        }
+      };
+    });
+    // En registros manuales reabiertos no hay estados de IA, solo el botón de quitar
+    if (!isImage) {
+      rows.forEach((r) => { r.showMx = editing && r.canRemove; r.chipOk = false; r.hasRev = false; r.hasMiss = false; });
+    }
+
+    const pdefs = [
+      { key: 'year', id: 'f-year', label: 'Año', type: 'text' },
+      { key: 'week', id: 'f-week', label: 'Semana', type: 'text' },
+      { key: 'start', id: 'f-start', label: 'Inicio', type: 'date' },
+      { key: 'end', id: 'f-end', label: 'Fin', type: 'date' }
+    ];
+    const pfields = pdefs.map((d) => {
+      const v = view[d.key];
+      const missing = !String(v || '').trim();
+      const flagged = isImage && d.key === 'end' && v === FLAG_END;
+      let flag = '';
+      let flagCls = '';
+      if (editing && isImage && missing) { flag = 'Falta información'; flagCls = 's-pending'; }
+      else if (editing && flagged) { flag = 'Revisar'; flagCls = 's-review'; }
+      return { id: d.id, label: d.label, type: d.type, value: v, onChange: this.setTop(d.key), hasFlag: flag !== '', flag: flag, flagCls: flagCls };
+    });
+
+    const diffC = Math.abs(tot.ret - DOC_TOTAL);
+    const ok = diffC === 0;
+    const period = 'Semana ' + (view.week || '—') + ' · ' + (view.year || '—') + ((view.start && view.end) ? ' · ' + dayMon(view.start) + ' – ' + dayMon(view.end) : '');
+    const monthName = view.end ? MONTHS[parseInt(view.end.slice(5, 7), 10) - 1] : '—';
+
+    // Confirmación
+    let confirmDisabled = false;
+    let confirmHint = 'Revisa los datos y confirma. Hasta entonces no cuenta en los reportes.';
+    if (isDirty) { confirmDisabled = true; confirmHint = 'Guarda o descarta tus cambios para poder confirmar.'; }
+    else if (missCount > 0) { confirmDisabled = true; confirmHint = 'Completa la información que falta para poder confirmar.'; }
+    else if (isImage && !ok) { confirmDisabled = true; confirmHint = 'El total del documento no coincide con el del sistema. Corrige los datos para confirmar.'; }
+
+    const banners = {
+      NEEDS_REVIEW: isImage
+        ? { show: true, cls: 'bn-info', title: 'Información extraída automáticamente. Revisa antes de confirmar.', text: ' Corrige lo que haga falta: el servidor recalcula comisión y retorno con cada cambio.', legend: true, link: false }
+        : { show: true, cls: 'bn-review', title: 'Registro reabierto para corregir.', text: ' No cuenta en los reportes hasta que lo confirmes de nuevo.', legend: false, link: false },
+      CONFIRMED: { show: true, cls: 'bn-ok', title: 'Registro confirmado.', text: ' Ya se incluye en los totales y reportes oficiales.', legend: false, link: true },
+      CANCELED: { show: true, cls: 'bn-cancel', title: 'Registro cancelado.', text: ' No se incluye en los reportes. El motivo quedó en el historial.', legend: false, link: false }
+    };
+    const st = {
+      NEEDS_REVIEW: ['Por revisar', 's-review'],
+      CONFIRMED: ['Confirmado', 's-confirmed'],
+      CANCELED: ['Cancelado', 's-canceled']
+    }[status];
+    const heroNotes = {
+      NEEDS_REVIEW: 'Calculado por el sistema con los datos en pantalla. Aún no cuenta en los reportes.',
+      CONFIRMED: 'Registro confirmado. Se incluye en los totales y reportes oficiales.',
+      CANCELED: 'Registro cancelado. No se incluye en los reportes.'
+    };
+
+    return {
+      userName: name,
+      initials: initials,
+      editing: editing,
+      ro: !editing,
+      isImage: isImage,
+      isManual: !isImage,
+      head: { title: isImage ? 'Revisar registro' : 'Corregir registro', statusLabel: st[0], statusCls: st[1], source: isImage ? 'Imagen' : 'Manual', period: period },
+      banner: banners[status],
+      hero: { note: heroNotes[status] },
+      tot: { inc: money(tot.inc), com: money(tot.com), ret: money(tot.ret) },
+      check: {
+        show: editing && isImage,
+        cls: ok ? 'vc-ok' : 'vc-bad',
+        doc: money(DOC_TOTAL),
+        sys: money(tot.ret),
+        label: ok ? '✓ Coincide' : 'Inconsistencia · diferencia ' + money(diffC)
+      },
+      cmp: { value: view.company, onChange: this.setTop('company'), miss: editing && isImage && !String(view.company || '').trim() },
+      pfields: pfields,
+      rows: rows,
+      monthName: monthName,
+      confirmDisabled: confirmDisabled,
+      confirmHint: confirmHint,
+      confirm: () => this.setState({ status: 'CONFIRMED' }),
+      addMov: () => {
+        const g = this.copy(this.cur());
+        const last = g.movs[g.movs.length - 1];
+        g.movs.push({ id: Date.now(), aff: last ? last.aff : '', branch: last ? last.branch : '', income: '', pct: last ? last.pct : '' });
+        this.setState({ form: g });
+      },
+      dirty: {
+        show: isDirty,
+        label: 'Cambios sin guardar',
+        reason: s.reason,
+        onReason: (e) => this.setState({ reason: e.target.value }),
+        disabled: !String(s.reason).trim(),
+        discard: () => this.setState({ form: null, reason: '' }),
+        save: () => this.setState({ saved: this.copy(this.cur()), form: null, reason: '' })
+      },
+      cancelOpen: s.cancelOpen && editing,
+      openCancel: () => this.setState({ cancelOpen: true }),
+      closeCancel: () => this.setState({ cancelOpen: false, cancelReason: '' }),
+      cancelReason: s.cancelReason,
+      onCancelReason: (e) => this.setState({ cancelReason: e.target.value }),
+      cancelDisabled: !String(s.cancelReason).trim(),
+      doCancel: () => this.setState({ status: 'CANCELED', cancelOpen: false })
+    };
+  }
+}
+</script>
+</body>
+</html>
