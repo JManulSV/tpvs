@@ -36,7 +36,7 @@ Esta spec sigue las plantillas, con los cambios que impone el sistema (ver Decis
   - confirmar con diálogo (`RecordActionDialog`, como SPEC 20).
 - Chips por campo (`Alta confianza`, `Revisar`, `Falta información`, `Inconsistencia`) solo en registros `IMAGE` en `NEEDS_REVIEW`, derivados de `ai_processing.issues` (ver Data model).
 - Tarjeta «Procesamiento automático»: estado, proveedor, modelo, inicio, fin e issues de la última extracción. Sin lista de intentos.
-- Franja «Documento vs Sistema» solo si la respuesta de `GET /api/records/{id}` incluye los totales de origen (`source_totals`). Si no los incluye, se omite (ver paso 0).
+- Franja «Documento vs Sistema»: **fuera de esta spec** (ver Decisions). No se implementa.
 - Reintentar lectura en `ERROR` (`POST /api/records/{id}/ai-processing/retry`).
 - Utilidades puras con pruebas unitarias.
 - Documentar en `docs/frontend/features/records.md`, `docs/frontend/05_ui_and_accessibility.md` y `docs/10_ui_ux.md` §6 y §9.
@@ -358,7 +358,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 - **Sí:** las plantillas nuevas son la base de `/records/new` y de la edición. Reemplazan el plan previo de tomar `RecordDetailEditor` y definir los estados aparte.
 - **Sí (supersede SPEC 20):** la edición en línea, la barra «Guardar corrección», el panel de cancelar con motivo y los chips por campo se adoptan de `RecordEdit`. Por decisión del usuario, esta spec reemplaza las exclusiones de SPEC 20 en esos puntos.
 - **Sí (supersede SPEC 20):** la tarjeta «Procesamiento automático» se adopta, sin la lista de intentos. El backend no entrega intentos (SPEC 20), y la lista se omite para no inventar datos.
-- **Sí (supersede SPEC 20):** «Documento vs Sistema» se adopta solo si el backend entrega `source_totals`. Si no, se omite. El paso 0 lo verifica.
+- **No (supersede SPEC 20 en este punto):** «Documento vs Sistema» se omite en esta spec. El paso 0 verificó que `GET /api/records/{id}` no expone `source_totals` en la raíz; solo viene anidado en `ai_processing.normalized_extraction.source_totals`, que puede estar vacío. Por decisión del usuario no se usa esa ubicación ni se cambia el backend. La franja queda pendiente para una spec posterior.
 - **Sí (supersede SPEC 09):** tras el `202` el Editor se queda en `/records/new`. La revisión de un registro `IMAGE` `NEEDS_REVIEW` ocurre lado a lado en esa pantalla (`RecordNewImageSplit`). `/records/{id}` queda para consulta y correcciones posteriores.
 - **Sí:** «Confirmar registro» abre `RecordActionDialog` (decisión de SPEC 20). La plantilla pone el botón sin diálogo; se conserva el diálogo porque ya cubre el manejo de `409`.
 - **Sí:** reabrir un `CONFIRMED` no tiene llamada propia. Guardar el `PUT` lo reabre, como hace hoy `RecordController::update`.

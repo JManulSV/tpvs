@@ -254,3 +254,12 @@ export function toRecordsApiError(error: unknown): RecordsApiError {
       return new RecordsApiError("No se pudo completar la solicitud. Inténtalo nuevamente.", status);
   }
 }
+
+// Estado de la carga de imagen (solo cliente).
+export type ImageCaptureState =
+  | { kind: "empty" }
+  | { kind: "selected"; file: File }
+  | { kind: "uploading"; file: File; progress: number | null } // 0-100; null hasta el primer evento
+  | { kind: "error"; stage: "validation" | "upload"; message: string; file: File | null };
+
+export type FieldChip = "HIGH_CONFIDENCE" | "REVIEW" | "MISSING" | "INCONSISTENT";
