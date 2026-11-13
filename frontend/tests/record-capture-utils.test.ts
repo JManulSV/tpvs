@@ -5,6 +5,7 @@ import {
   getAiReadingView,
   getDirtyCount,
   getFieldChip,
+  getIssueCodes,
   getSaveBarState,
   getUploadProgressLabel,
   validateImageFile,
@@ -173,5 +174,18 @@ describe("getSaveBarState", () => {
 
   it("no permite guardar sin permiso de edición", () => {
     expect(getSaveBarState({ dirtyCount: 1, reason: "motivo", canEdit: false }).canSave).toBe(false);
+  });
+});
+
+describe("getIssueCodes", () => {
+  it("devuelve solo los códigos de la ruta pedida", () => {
+    const issues = [
+      { path: "details.0.income", code: "LOW_CONFIDENCE", severity: "review" as const, message: "" },
+      { path: "details.0.income", code: "MISSING_VALUE", severity: "review" as const, message: "" },
+      { path: "details.1.income", code: "UNCONVERTIBLE_NUMERIC", severity: "review" as const, message: "" },
+    ];
+
+    expect(getIssueCodes(issues, "details.0.income")).toEqual(["LOW_CONFIDENCE", "MISSING_VALUE"]);
+    expect(getIssueCodes(issues, "record.year")).toEqual([]);
   });
 });

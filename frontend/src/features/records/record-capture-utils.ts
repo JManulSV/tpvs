@@ -1,5 +1,5 @@
 import type { RecordStatus } from "@/lib/status";
-import type { FieldChip } from "./types";
+import type { AiProcessingIssue, FieldChip } from "./types";
 
 export const SLOW_READING_MS = 10 * 60 * 1000;
 
@@ -77,6 +77,11 @@ export function getFieldChip(input: {
   if (input.issueCodes.length > 0) return "REVIEW";
 
   return "HIGH_CONFIDENCE";
+}
+
+// Códigos de los issues de un campo, por su ruta (por ejemplo "details.0.income").
+export function getIssueCodes(issues: ReadonlyArray<AiProcessingIssue>, path: string): string[] {
+  return issues.filter((issue) => issue.path === path).map((issue) => issue.code);
 }
 
 // Cuenta cambios hoja a hoja. Un movimiento agregado o quitado cuenta como 1.
