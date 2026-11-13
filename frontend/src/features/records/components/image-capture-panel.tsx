@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { formatFileSize } from "@/lib/format";
@@ -17,8 +16,7 @@ function getUploadErrorMessage(error: unknown): string {
   return error.validationErrors.image?.[0] ?? error.message;
 }
 
-export function ImageCapturePanel() {
-  const router = useRouter();
+export function ImageCapturePanel({ onUploaded }: { onUploaded: (recordId: number) => void }) {
   const uploadRecord = useCreateRecordFromImage();
   const [state, setState] = useState<ImageCaptureState>({ kind: "empty" });
   const abortRef = useRef<AbortController | null>(null);
@@ -64,7 +62,7 @@ export function ImageCapturePanel() {
         signal: controller.signal,
         onProgress: (progress) => setState((current) => (current.kind === "uploading" ? { ...current, progress } : current)),
       });
-      router.push(`/records/${record.id}`);
+      onUploaded(record.id);
     } catch (error) {
       if (controller.signal.aborted) {
         setState({ kind: "selected", file });
