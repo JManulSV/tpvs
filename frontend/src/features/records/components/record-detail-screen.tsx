@@ -18,6 +18,7 @@ import { RecordMovementsCard } from "./record-movements-card";
 import { RecordDetailSkeleton } from "./record-detail-skeleton";
 import { RecordPeriodCard } from "./record-period-card";
 import { RecordHistoryPanel } from "./record-history-panel";
+import { RecordProcessingCard } from "./record-processing-card";
 import { RecordEditor } from "./record-editor";
 
 export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
@@ -62,17 +63,15 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   const banner = usesEditor ? null : getRecordBanner(record, canEdit);
   // DOM order matches the single-column visual order (Tab follows it). The
   // side column reuses the same order so both layouts stay consistent.
-  const isInReview = record.status === "NEEDS_REVIEW";
-  const imageCard = <RecordImageCard key="image" record={record} />;
+  // Orden de la columna lateral (SPEC 21): imagen, procesamiento automático y entrega.
+  // Un registro manual sin imagen no muestra la columna de imagen.
+  const imageCard = record.image !== null ? <RecordImageCard key="image" record={record} /> : null;
+  const processingCard = record.source === "IMAGE" ? <RecordProcessingCard key="processing" record={record} /> : null;
   const deliveryCard = <RecordDeliveryCard key="delivery" canEdit={canEdit} record={record} />;
-  const sideCards = isInReview ? [imageCard, deliveryCard] : [deliveryCard, imageCard];
+  const sideCards = [imageCard, processingCard, deliveryCard];
   const companyHint = record.company === null
     ? record.ai_processing?.normalized_extraction?.record.company_name?.value ?? null
     : null;
-
-  if (isEditing && canCorrect) {
-    return <ManualRecordForm mode="edit" onEditComplete={() => setIsEditing(false)} record={record} />;
-  }
 
   async function reportActionError(
     error: unknown,
@@ -173,7 +172,16 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
 
       <div className="@container">
         <div className="flex flex-col gap-4 @[60rem]:grid @[60rem]:grid-cols-[minmax(0,1fr)_340px] @[60rem]:items-start @[60rem]:gap-6">
-          {usesEditor ? (
+          {isEditing && canCorrect ? (
+            <div className="@[60rem]:col-start-1 @[60rem]:row-span-3 @[60rem]:row-start-1">
+              <ManualRecordForm
+                mode="edit"
+                onCancelEdit={() => setIsEditing(false)}
+                onEditComplete={() => setIsEditing(false)}
+                record={record}
+              />
+            </div>
+          ) : usesEditor ? (
             <div className="@[60rem]:col-start-1 @[60rem]:row-span-3 @[60rem]:row-start-1">
               <RecordEditor canEdit={canEdit} record={record} />
             </div>

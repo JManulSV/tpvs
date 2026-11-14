@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useFieldArray, useForm, type FieldPath, type FieldErrors } from "react-hook-form";
+import { useFieldArray, useForm, useWatch, type FieldPath, type FieldErrors } from "react-hook-form";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -23,6 +23,7 @@ type ManualRecordFormProps = {
   mode: "edit";
   record: RecordDetailView;
   onEditComplete: () => void;
+  onCancelEdit: () => void;
 };
 
 function initialValues(record?: RecordDetailView): ManualRecordFormValues {
@@ -84,7 +85,8 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
   );
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
   const isSubmitting = form.formState.isSubmitting || mutation.isPending;
-  const reportMonth = getReportMonthName(form.watch("week_end_date") || null);
+  const weekEndDate = useWatch({ control: form.control, name: "week_end_date" });
+  const reportMonth = getReportMonthName(weekEndDate || null);
 
   async function onSubmit(values: ManualRecordFormValues) {
     setFormError(null);
@@ -157,15 +159,18 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
     return <ManualRecordSummary onCreateAnother={startNewRecord} record={createdRecord} />;
   }
 
+  const HeadingTag = isEdit ? "h2" : "h1";
+
   const globalError = (field: "company_id" | "year" | "week" | "week_start_date" | "week_end_date") =>
     (form.formState.errors as FieldErrors<ManualRecordFormValues>)[field]?.message as string | undefined;
 
   return (
     <section aria-labelledby="manual-record-heading" className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight" id="manual-record-heading">
+        {/* En edición va dentro del detalle, que ya tiene el h1 de la página. */}
+        <HeadingTag className="text-2xl font-semibold tracking-tight" id="manual-record-heading">
           {isEdit ? "Editar registro" : "Nuevo registro"}
-        </h1>
+        </HeadingTag>
         <p className="text-sm text-muted-foreground">
           {isEdit
             ? props.record.status === "CONFIRMED"
@@ -294,7 +299,10 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
             {companiesQuery.isSuccess && companiesQuery.data.data.length === 0 && <p className="text-sm" role="status">Primero debe existir al menos una empresa en el catálogo.</p>}
 
             <div className="flex flex-wrap justify-end gap-3">
-              <Button disabled={isSubmitting} onClick={() => router.push(isEdit ? `/records/${props.record.id}` : "/records")} type="button" variant="outline">Cancelar</Button>
+              <Button disabled={isSubmitting} onClick={() => {
+                if (props.mode === "edit") props.onCancelEdit();
+                else router.push("/records");
+              }} type="button" variant="outline">Cancelar</Button>
               <Button disabled={isSubmitting || companiesQuery.isPending || (isEdit && !editReason.trim())} type="submit">
                 {isSubmitting ? "Guardando…" : isEdit ? "Guardar cambios" : "Guardar y confirmar"}
               </Button>
