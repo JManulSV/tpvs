@@ -6,7 +6,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
 import { getRecordActionPermissions } from "../record-actions";
 import { getRecordBanner } from "../record-detail-utils";
-import { RecordsApiError } from "../types";
+import { RecordsApiError, type RecordStatus } from "../types";
 import { ManualRecordForm } from "./manual-record-form";
 import { RecordActionDialog } from "./record-action-dialog";
 import { RecordDeliveryCard } from "./record-delivery-card";
@@ -18,6 +18,8 @@ import { RecordMovementsCard } from "./record-movements-card";
 import { RecordDetailSkeleton } from "./record-detail-skeleton";
 import { RecordPeriodCard } from "./record-period-card";
 import { RecordHistoryPanel } from "./record-history-panel";
+import { RecordProcessingCard } from "./record-processing-card";
+import { RecordEditor } from "./record-editor";
 
 export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
   const recordQuery = useRecord(recordId);
@@ -27,6 +29,10 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
+  // Edición: estado de partida (para el aviso de reapertura) y cambios sin guardar (para bloquear confirmar).
+  const [editStartStatus, setEditStartStatus] = useState<RecordStatus | null>(null);
+  const [editDirtyCount, setEditDirtyCount] = useState(0);
+  const [reopenNotice, setReopenNotice] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [retryError, setRetryError] = useState<string | null>(null);
@@ -56,20 +62,20 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
 
   const permissions = getRecordActionPermissions(record, canEdit);
   const { canCorrect } = permissions;
-  const banner = getRecordBanner(record, canEdit);
+  // Registros IMAGE pendientes de revisión muestran los datos extraídos con chips (SPEC 21).
+  const usesEditor = record.source === "IMAGE" && record.status === "NEEDS_REVIEW";
+  const banner = usesEditor ? null : getRecordBanner(record, canEdit);
   // DOM order matches the single-column visual order (Tab follows it). The
   // side column reuses the same order so both layouts stay consistent.
-  const isInReview = record.status === "NEEDS_REVIEW";
-  const imageCard = <RecordImageCard key="image" record={record} />;
+  // Orden de la columna lateral (SPEC 21): imagen, procesamiento automático y entrega.
+  // Un registro manual sin imagen no muestra la columna de imagen.
+  const imageCard = record.image !== null ? <RecordImageCard key="image" record={record} /> : null;
+  const processingCard = record.source === "IMAGE" ? <RecordProcessingCard key="processing" record={record} /> : null;
   const deliveryCard = <RecordDeliveryCard key="delivery" canEdit={canEdit} record={record} />;
-  const sideCards = isInReview ? [imageCard, deliveryCard] : [deliveryCard, imageCard];
+  const sideCards = [imageCard, processingCard, deliveryCard];
   const companyHint = record.company === null
     ? record.ai_processing?.normalized_extraction?.record.company_name?.value ?? null
     : null;
-
-  if (isEditing && canCorrect) {
-    return <ManualRecordForm mode="edit" onEditComplete={() => setIsEditing(false)} record={record} />;
-  }
 
   async function reportActionError(
     error: unknown,
@@ -145,6 +151,24 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
     setIsConfirmOpen(true);
   }
 
+  function startEditing() {
+    setEditStartStatus(record?.status ?? null);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setEditDirtyCount(0);
+    setIsEditing(false);
+  }
+
+  function finishEditing() {
+    // Un registro CONFIRMED pasa a NEEDS_REVIEW al guardar; se avisa una sola vez.
+    if (editStartStatus === "CONFIRMED") setReopenNotice(true);
+    setEditStartStatus(null);
+    setEditDirtyCount(0);
+    setIsEditing(false);
+  }
+
   function openCancelDialog() {
     setCancelError(null);
     cancelRecord.reset();
@@ -156,29 +180,97 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
     <section aria-labelledby="record-detail-heading" className="flex flex-col gap-4 md:gap-6">
       <RecordDetailHeader
         isRetrying={retryAiProcessing.isPending}
+        confirmBlocked={isEditing && editDirtyCount > 0}
         onCancel={openCancelDialog}
         onConfirm={openConfirmDialog}
-        onEdit={() => setIsEditing(true)}
+        onEdit={startEditing}
         onRetry={() => void handleRetry()}
         permissions={permissions}
         record={record}
       />
 
+      {isCancelOpen && (
+        <section
+          aria-labelledby="cancel-record-heading"
+          className="space-y-3 rounded-lg border border-status-error bg-card p-5 shadow-card"
+          role="region"
+        >
+          <div className="space-y-1">
+            <h2 className="text-base/6 font-semibold" id="cancel-record-heading">Cancelar este registro</h2>
+            <p className="text-sm text-muted-foreground">
+              Un registro cancelado no cuenta en reportes ni totales. Esta acción queda en el historial.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="record-cancel-reason">Motivo (obligatorio)</label>
+            <textarea
+              className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              disabled={cancelRecord.isPending}
+              id="record-cancel-reason"
+              maxLength={2000}
+              onChange={(event) => setCancelReason(event.target.value)}
+              value={cancelReason}
+            />
+          </div>
+          {cancelError && <p className="text-sm text-destructive" role="alert">{cancelError}</p>}
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button disabled={cancelRecord.isPending} onClick={() => { setIsCancelOpen(false); setCancelError(null); }} type="button" variant="outline">
+              Volver
+            </Button>
+            <Button
+              disabled={cancelRecord.isPending || cancelReason.trim() === ""}
+              onClick={() => void handleCancel()}
+              type="button"
+              variant="destructive"
+            >
+              {cancelRecord.isPending ? "Cancelando…" : "Confirmar cancelación"}
+            </Button>
+          </div>
+        </section>
+      )}
+
       {banner !== null && <RecordDetailBanner banner={banner} />}
       {successMessage && <RecordDetailBanner banner={{ tone: "info", title: successMessage, text: null }} />}
       {retryError && <RecordDetailBanner banner={{ tone: "error", title: retryError, text: null }} />}
+      {reopenNotice && record.status === "NEEDS_REVIEW" && (
+        <RecordDetailBanner
+          banner={{
+            tone: "review",
+            title: "Este registro se reabrió para corregirlo.",
+            text: "Mientras esté Por revisar no cuenta en los reportes. Al confirmarlo vuelve a incluirse.",
+          }}
+        />
+      )}
 
       <div className="@container">
         <div className="flex flex-col gap-4 @[60rem]:grid @[60rem]:grid-cols-[minmax(0,1fr)_340px] @[60rem]:items-start @[60rem]:gap-6">
-          <div className="@[60rem]:col-start-1 @[60rem]:row-start-1">
-            <RecordDetailHero record={record} />
-          </div>
-          <div className="@[60rem]:col-start-1 @[60rem]:row-start-2">
-            <RecordPeriodCard companyHint={companyHint} record={record} />
-          </div>
-          <div className="@[60rem]:col-start-1 @[60rem]:row-start-3">
-            <RecordMovementsCard details={record.details} />
-          </div>
+          {isEditing && canCorrect ? (
+            <div className="@[60rem]:col-start-1 @[60rem]:row-span-3 @[60rem]:row-start-1">
+              <ManualRecordForm
+                mode="edit"
+                onCancelEdit={cancelEditing}
+                onDirtyChange={setEditDirtyCount}
+                onEditComplete={finishEditing}
+                record={record}
+              />
+            </div>
+          ) : usesEditor ? (
+            <div className="@[60rem]:col-start-1 @[60rem]:row-span-3 @[60rem]:row-start-1">
+              <RecordEditor canEdit={canEdit} record={record} />
+            </div>
+          ) : (
+            <>
+              <div className="@[60rem]:col-start-1 @[60rem]:row-start-1">
+                <RecordDetailHero record={record} />
+              </div>
+              <div className="@[60rem]:col-start-1 @[60rem]:row-start-2">
+                <RecordPeriodCard companyHint={companyHint} record={record} />
+              </div>
+              <div className="@[60rem]:col-start-1 @[60rem]:row-start-3">
+                <RecordMovementsCard details={record.details} />
+              </div>
+            </>
+          )}
           <div className="flex flex-col gap-4 @[60rem]:col-start-2 @[60rem]:row-span-4 @[60rem]:row-start-1 @[60rem]:gap-6">
             {sideCards}
           </div>
@@ -200,33 +292,6 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
         />
       )}
 
-      {isCancelOpen && (
-        <RecordActionDialog
-          confirmDisabled={cancelReason.trim() === ""}
-          confirmLabel="Cancelar registro"
-          description="El registro quedará cancelado y ya no podrá editarse ni confirmarse. La imagen y el diagnóstico de IA se conservan, pero la imagen dejará de estar disponible."
-          destructive
-          error={cancelError}
-          isPending={cancelRecord.isPending}
-          onClose={() => setIsCancelOpen(false)}
-          onConfirm={() => void handleCancel()}
-          title="Cancelar registro"
-        >
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="record-cancel-reason">Motivo de la cancelación</label>
-            <textarea
-              className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
-              data-autofocus
-              disabled={cancelRecord.isPending}
-              id="record-cancel-reason"
-              maxLength={2000}
-              onChange={(event) => setCancelReason(event.target.value)}
-              value={cancelReason}
-            />
-            <p className="text-xs text-muted-foreground">Obligatorio, máximo 2000 caracteres.</p>
-          </div>
-        </RecordActionDialog>
-      )}
     </section>
   );
 }

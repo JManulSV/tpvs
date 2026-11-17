@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ImageRecordForm } from "./image-record-form";
+import { ImageCaptureWorkspace } from "./image-capture-workspace";
 import { ManualRecordForm } from "./manual-record-form";
 
 type RecordOrigin = "manual" | "image";
@@ -12,10 +12,11 @@ export function NewRecordScreen() {
 
   if (origin !== null) {
     return (
-      <div className="space-y-4">
+      <section aria-labelledby="new-record-heading" className="space-y-4">
         <Button onClick={() => setOrigin(null)} type="button" variant="outline">← Cambiar origen</Button>
-        {origin === "manual" ? <ManualRecordForm mode="create" /> : <ImageRecordForm />}
-      </div>
+        <h1 className="text-2xl font-semibold tracking-tight" id="new-record-heading">Nuevo registro</h1>
+        {origin === "manual" ? <ManualRecordForm mode="create" /> : <ImageCaptureWorkspace />}
+      </section>
     );
   }
 

@@ -159,6 +159,53 @@ describe("records service", () => {
     expect((body as FormData).get("image")).toBe(file);
   });
 
+  it("reports upload progress from 0 to 100 percent", async () => {
+    const file = new File(["image-bytes"], "capture.png", { type: "image/png" });
+    const onProgress = vi.fn();
+    apiClientMock.post.mockImplementationOnce(async (_url, _body, config) => {
+      config?.onUploadProgress?.({ loaded: 0, total: 200 } as never);
+      config?.onUploadProgress?.({ loaded: 100, total: 200 } as never);
+      config?.onUploadProgress?.({ loaded: 200, total: 200 } as never);
+      return { data: { data: { id: 11, status: "PENDING" } } };
+    });
+
+    await recordsService.createFromImage(file, { onProgress });
+
+    expect(onProgress.mock.calls.map(([percent]) => percent)).toEqual([0, 50, 100]);
+  });
+
+  it("uses the file size when the upload event has no total", async () => {
+    const file = new File([new Uint8Array(400)], "capture.png", { type: "image/png" });
+    const onProgress = vi.fn();
+    apiClientMock.post.mockImplementationOnce(async (_url, _body, config) => {
+      config?.onUploadProgress?.({ loaded: 100 } as never);
+      return { data: { data: { id: 11, status: "PENDING" } } };
+    });
+
+    await recordsService.createFromImage(file, { onProgress });
+
+    expect(onProgress).toHaveBeenCalledWith(25);
+  });
+
+  it("passes the abort signal to the request so it can be cancelled", async () => {
+    const file = new File(["image-bytes"], "capture.png", { type: "image/png" });
+    const controller = new AbortController();
+    apiClientMock.post.mockImplementationOnce(
+      (_url, _body, config) =>
+        new Promise((_resolve, reject) => {
+          const signal = config?.signal as AbortSignal | undefined;
+          signal?.addEventListener("abort", () => reject(new Error("canceled")));
+        }),
+    );
+
+    const upload = recordsService.createFromImage(file, { signal: controller.signal });
+    controller.abort();
+
+    await expect(upload).rejects.toBeInstanceOf(RecordsApiError);
+    const [, , config] = apiClientMock.post.mock.calls[0];
+    expect(config?.signal).toBe(controller.signal);
+  });
+
   it("sends cancellation with a reason and retries AI processing", async () => {
     const record = { id: 9, status: "CANCELED" };
     apiClientMock.post.mockResolvedValueOnce({ data: { data: record } });

@@ -100,6 +100,8 @@ The full row is clickable.
 
 This is the most important screen in the system for image-based records that require human review. A valid manual record is reviewed by the Editor during capture and is confirmed by Laravel when saved; it does not pass through a separate review or confirmation screen.
 
+Current implementation (SPEC 21): image review happens side by side on `/records/new` (the image on the left, the extracted data on the right), and the record detail keeps a read-only review with field chips for `NEEDS_REVIEW`. The mockup below still shows «Document» and «System» totals; the «Documento vs Sistema» strip is not implemented yet and is pending a follow-up spec.
+
 ### Image-based record: review and confirmation
 
 ```text
@@ -246,6 +248,8 @@ If cash exceeds the selected document amount by more than $1.00:
 The cash table represents gross cash. The document prints the selected document amount and the calculated customer change, when applicable. The selection and declaration are sent only when generating Word; the official return remains the persisted preparation amount.
 
 ## 9. Record Image
+
+Current implementation (SPEC 21): the image column appears only when the record has an image. Attaching an image to a manual record or replacing an image is still out of scope.
 
 New decision for the MVP:
 
