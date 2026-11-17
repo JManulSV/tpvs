@@ -12,10 +12,11 @@ export function NewRecordScreen() {
 
   if (origin !== null) {
     return (
-      <div className="space-y-4">
+      <section aria-labelledby="new-record-heading" className="space-y-4">
         <Button onClick={() => setOrigin(null)} type="button" variant="outline">← Cambiar origen</Button>
+        <h1 className="text-2xl font-semibold tracking-tight" id="new-record-heading">Nuevo registro</h1>
         {origin === "manual" ? <ManualRecordForm mode="create" /> : <ImageCaptureWorkspace />}
-      </div>
+      </section>
     );
   }
 

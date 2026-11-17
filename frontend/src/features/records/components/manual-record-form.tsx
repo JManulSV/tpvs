@@ -192,7 +192,8 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
     return <ManualRecordSummary onCreateAnother={startNewRecord} record={createdRecord} />;
   }
 
-  const HeadingTag = isEdit ? "h2" : "h1";
+  // El título de página (h1) lo pone la pantalla que contiene el formulario.
+  const HeadingTag = "h2";
 
   const globalError = (field: "company_id" | "year" | "week" | "week_start_date" | "week_end_date") =>
     (form.formState.errors as FieldErrors<ManualRecordFormValues>)[field]?.message as string | undefined;
@@ -202,7 +203,7 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
       <header className="space-y-1">
         {/* En edición va dentro del detalle, que ya tiene el h1 de la página. */}
         <HeadingTag className="text-2xl font-semibold tracking-tight" id="manual-record-heading">
-          {isEdit ? "Editar registro" : "Nuevo registro"}
+          {isEdit ? "Editar registro" : "Captura manual"}
         </HeadingTag>
         <p className="text-sm text-muted-foreground">
           {isEdit
