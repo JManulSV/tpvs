@@ -44,6 +44,15 @@ When a container switches between a table and a list of cards, both are rendered
 
 The record history is a timeline (`<ol>` with a colored dot per row, `aria-hidden`). The color comes from status tokens, never from literal colors.
 
+## Record capture and review (SPEC 21)
+
+- **Upload progress:** the progress bar uses `role="progressbar"` with `aria-valuemin`, `aria-valuemax`, and `aria-valuenow` from 0 to 100. Until the first upload event it has no value (indeterminate), and the text «Subiendo imagen… n%» is `aria-live="polite"`.
+- **Reading states:** the queued and reading messages use `role="status"` and `aria-live="polite"`. Errors and the canceled state use `role="alert"`.
+- **Cancel panel:** the record cancel action is an inline `role="region"` with a labelled heading and a required reason field, not a dialog.
+- **Save bar:** the fixed «Guardar corrección» region has an accessible name and is placed above `AppBottomNav` with `bottom-[calc(5.25rem+env(safe-area-inset-bottom))]` on mobile and `md:bottom-4` on desktop. Its change count is `aria-live="polite"`.
+- **Zoom:** the image zoom controls are labelled «Acercar» and «Alejar»; the level is shown as text.
+- **Origin selector:** the screen uses two option cards, not the `radiogroup` with arrow keys that SPEC 21 specifies. This is a known gap.
+
 ## Interaction States
 
 Interactive controls must communicate:
