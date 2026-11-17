@@ -3,12 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm, useWatch, type FieldPath, type FieldErrors } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
 import { formatDate, formatMoney } from "@/lib/format";
-import { useCreateRecord, useUpdateRecord } from "../hooks/use-records";
+import { recordKeys, useCreateRecord, useUpdateRecord } from "../hooks/use-records";
+import { getDirtyCount, getSaveBarState } from "../record-capture-utils";
 import { getReportMonthName } from "../record-detail-utils";
 import {
   manualRecordFormSchema,
@@ -24,6 +26,7 @@ type ManualRecordFormProps = {
   record: RecordDetailView;
   onEditComplete: () => void;
   onCancelEdit: () => void;
+  onDirtyChange?: (dirtyCount: number) => void;
 };
 
 function initialValues(record?: RecordDetailView): ManualRecordFormValues {
@@ -46,6 +49,10 @@ function initialValues(record?: RecordDetailView): ManualRecordFormValues {
         }))
       : [{ affiliation: "", branch: "", income: "", commission_percentage: "" }],
   } as ManualRecordFormValues;
+}
+
+function commissionModesFor(record: RecordDetailView): Array<"percentage" | "fixed"> {
+  return record.details.map((detail) => detail.commission_percentage === null ? "fixed" : "percentage");
 }
 
 function fieldErrorKey(field: string) {
@@ -79,14 +86,35 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
   const [editReason, setEditReason] = useState("");
   // Un modo por movimiento. El alta empieza con un movimiento vacío (ver initialValues).
   const [commissionModes, setCommissionModes] = useState<Array<"percentage" | "fixed">>(() =>
-    isEdit
-      ? props.record.details.map((detail) => detail.commission_percentage === null ? "fixed" : "percentage")
-      : ["percentage"],
+    isEdit ? commissionModesFor(props.record) : ["percentage"],
   );
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
   const isSubmitting = form.formState.isSubmitting || mutation.isPending;
   const weekEndDate = useWatch({ control: form.control, name: "week_end_date" });
   const reportMonth = getReportMonthName(weekEndDate || null);
+
+  // Cambios sin guardar (solo en edición): compara con el registro cargado.
+  const queryClient = useQueryClient();
+  const editRecord = props.mode === "edit" ? props.record : null;
+  const onDirtyChange = props.mode === "edit" ? props.onDirtyChange : undefined;
+  const initialEditValues = useMemo(() => (editRecord ? initialValues(editRecord) : null), [editRecord]);
+  const currentValues = useWatch({ control: form.control });
+  const dirtyCount = initialEditValues ? getDirtyCount(initialEditValues, currentValues) : 0;
+  const saveBar = getSaveBarState({ dirtyCount, reason: editReason, canEdit: true });
+
+  useEffect(() => {
+    onDirtyChange?.(dirtyCount);
+  }, [dirtyCount, onDirtyChange]);
+
+  function discardChanges() {
+    if (!initialEditValues || !editRecord) return;
+    form.reset(initialEditValues);
+    setCommissionModes(commissionModesFor(editRecord));
+    setEditReason("");
+    setDetailErrors({});
+    setFormError(null);
+    form.clearErrors();
+  }
 
   async function onSubmit(values: ManualRecordFormValues) {
     setFormError(null);
@@ -124,6 +152,11 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
       }
     } catch (error) {
       if (error instanceof RecordsApiError) {
+        // 409: el registro cambió en otra sesión; se recarga para mostrar su estado actual.
+        if (error.status === 409 && props.mode === "edit") {
+          void queryClient.invalidateQueries({ queryKey: recordKeys.detail(props.record.id) });
+        }
+
         let mapped = false;
         for (const [field, messages] of Object.entries(error.validationErrors)) {
           if (messages[0] && field !== "reason") {
@@ -283,16 +316,6 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
               {form.formState.errors.details?.message && <p className="text-sm text-destructive" role="alert">{form.formState.errors.details.message}</p>}
             </section>
 
-            {isEdit && (
-              <Field id="manual-record-reason" label="Motivo de la edición (obligatorio)" error={!editReason.trim() && formError ? "El motivo de la edición es obligatorio." : undefined}>
-                <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm" id="manual-record-reason" maxLength={2000} onChange={(event) => setEditReason(event.target.value)} value={editReason} />
-                <p className="text-xs text-muted-foreground">
-                  {props.record.status === "CONFIRMED"
-                    ? "Explica por qué reabres este registro. El motivo quedará registrado en el historial junto con los cambios."
-                    : "El motivo quedará registrado en el historial junto con los cambios."}
-                </p>
-              </Field>
-            )}
 
             {formError && <p className="rounded-md border border-destructive/40 px-4 py-3 text-sm text-destructive" role="alert">{formError}</p>}
             {companiesQuery.isError && <p className="text-sm text-destructive" role="alert">No se pudieron cargar las empresas. Recarga e inténtalo nuevamente.</p>}
@@ -303,10 +326,44 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
                 if (props.mode === "edit") props.onCancelEdit();
                 else router.push("/records");
               }} type="button" variant="outline">Cancelar</Button>
-              <Button disabled={isSubmitting || companiesQuery.isPending || (isEdit && !editReason.trim())} type="submit">
-                {isSubmitting ? "Guardando…" : isEdit ? "Guardar cambios" : "Guardar y confirmar"}
-              </Button>
+              {!isEdit && (
+                <Button disabled={isSubmitting || companiesQuery.isPending} type="submit">
+                  {isSubmitting ? "Guardando…" : "Guardar y confirmar"}
+                </Button>
+              )}
             </div>
+
+            {isEdit && saveBar.visible && (
+              <>
+                <div aria-hidden className="h-44" />
+                <div
+                  aria-label="Guardar corrección"
+                  className="fixed inset-x-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-40 mx-auto max-w-6xl space-y-3 rounded-lg border bg-card p-4 shadow-card md:bottom-4"
+                  role="region"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm font-medium" aria-live="polite">
+                      {dirtyCount} {dirtyCount === 1 ? "cambio sin guardar" : "cambios sin guardar"}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button disabled={isSubmitting} onClick={discardChanges} type="button" variant="outline">Descartar</Button>
+                      <Button disabled={isSubmitting || !saveBar.canSave} type="submit">
+                        {isSubmitting ? "Guardando…" : "Guardar corrección"}
+                      </Button>
+                    </div>
+                  </div>
+                  <Field id="manual-record-reason" label="Motivo de la corrección (obligatorio)">
+                    <textarea
+                      className="min-h-16 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      id="manual-record-reason"
+                      maxLength={2000}
+                      onChange={(event) => setEditReason(event.target.value)}
+                      value={editReason}
+                    />
+                  </Field>
+                </div>
+              </>
+            )}
           </div>
 
           <aside aria-labelledby="server-validates-heading" className={`${cardClass} @[60rem]:sticky @[60rem]:top-4`}>

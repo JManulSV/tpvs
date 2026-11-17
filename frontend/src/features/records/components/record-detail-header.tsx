@@ -9,6 +9,7 @@ import type { RecordListItem } from "../types";
 const actionClass = "h-11 flex-1 md:h-10 md:flex-none";
 
 export function RecordDetailHeader({
+  confirmBlocked = false,
   isRetrying,
   onCancel,
   onConfirm,
@@ -17,6 +18,7 @@ export function RecordDetailHeader({
   permissions,
   record,
 }: {
+  confirmBlocked?: boolean;
   isRetrying: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -57,7 +59,7 @@ export function RecordDetailHeader({
       </div>
 
       {hasActions && (
-        <div className="flex flex-wrap gap-2 md:justify-end">
+        <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
           {canRetryAiProcessing && (
             <Button className={actionClass} disabled={isRetrying} onClick={onRetry} type="button" variant="outline">
               <RefreshCw aria-hidden="true" className={isRetrying ? "animate-spin motion-reduce:animate-none" : undefined} />
@@ -76,7 +78,7 @@ export function RecordDetailHeader({
             </Button>
           )}
           {canConfirm && (
-            <Button className={actionClass} onClick={onConfirm} type="button">
+            <Button className={actionClass} disabled={confirmBlocked} onClick={onConfirm} type="button">
               <Check aria-hidden="true" />
               Confirmar registro
             </Button>
@@ -90,6 +92,11 @@ export function RecordDetailHeader({
               <EditIcon aria-hidden="true" />
               {record.status === "CONFIRMED" ? "Reabrir para corregir" : "Editar registro"}
             </Button>
+          )}
+          {canConfirm && confirmBlocked && (
+            <p className="w-full text-sm text-muted-foreground md:text-right">
+              Guarda o descarta los cambios antes de confirmar.
+            </p>
           )}
         </div>
       )}
