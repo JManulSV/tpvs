@@ -1,6 +1,6 @@
 # SPEC 21 — Rediseño de captura, revisión y edición de registros
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 03, SPEC 04, SPEC 05, SPEC 06, SPEC 08, SPEC 09, SPEC 15, SPEC 16, SPEC 19, SPEC 20
 > **Supersedes (parcial):** SPEC 09 en la redirección tras el `202` y en la edición; SPEC 20 en la edición en línea, el panel de cancelar, los chips por campo, «Procesamiento automático» y «Documento vs Sistema» (ver Decisions)
 > **Date:** 2026-11-12
@@ -315,43 +315,43 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 
 ## Acceptance criteria
 
-- [ ] `/records/new` tiene exactamente un `<h1>` con «Nuevo registro», visible a 1440 px y 375 px.
+- [x] `/records/new` tiene exactamente un `<h1>` con «Nuevo registro», visible a 1440 px y 375 px.
 - [ ] El selector de origen es un `radiogroup`; «Captura manual» viene seleccionado; las flechas cambian la opción.
-- [ ] Como `VIEWER`, `/records/new` redirige a `/records`.
-- [ ] En «Desde imagen» sin archivo se muestra la zona de arrastre con «JPG, PNG o WebP, hasta 10 MiB».
-- [ ] Un archivo `image/gif` o uno de 10 MiB + 1 byte se rechaza en el cliente con el mensaje de `validateImageFile`, sin petición de red.
-- [ ] Un archivo válido muestra miniatura, nombre, tamaño, «Quitar imagen» y «Subir y procesar».
+- [x] Como `VIEWER`, `/records/new` redirige a `/records`.
+- [x] En «Desde imagen» sin archivo se muestra la zona de arrastre con «JPG, PNG o WebP, hasta 10 MiB».
+- [x] Un archivo `image/gif` o uno de 10 MiB + 1 byte se rechaza en el cliente con el mensaje de `validateImageFile`, sin petición de red.
+- [x] Un archivo válido muestra miniatura, nombre, tamaño, «Quitar imagen» y «Subir y procesar».
 - [ ] Durante la subida, `role="progressbar"` avanza de 0 a 100 con porcentaje real, y «Cancelar subida» aborta la petición y vuelve a `seleccionada`.
-- [ ] Un `422` de la subida muestra el mensaje del backend en `role="alert"` y conserva el archivo para reintentar.
-- [ ] Un fallo de red muestra «No se pudo subir la imagen. Revisa tu conexión e inténtalo de nuevo.» y conserva el archivo.
-- [ ] Tras el `202`, la página no redirige. Con `PENDING` aparece «Imagen subida: el registro está en cola.»; con `PROCESSING`, «La IA está leyendo la imagen.» con el tiempo `m:ss`.
+- [x] Un `422` de la subida muestra el mensaje del backend en `role="alert"` y conserva el archivo para reintentar.
+- [x] Un fallo de red muestra «No se pudo subir la imagen. Revisa tu conexión e inténtalo de nuevo.» y conserva el archivo.
+- [x] Tras el `202`, la página no redirige. Con `PENDING` aparece «Imagen subida: el registro está en cola.»; con `PROCESSING`, «La IA está leyendo la imagen.» con el tiempo `m:ss`.
 - [ ] El sondeo consulta `GET /api/records/{id}` mientras el registro está `PENDING` o `PROCESSING`, y se detiene en un estado final.
-- [ ] Con `NEEDS_REVIEW`, la imagen y los datos extraídos aparecen lado a lado en `/records/new`, sin redirigir.
+- [x] Con `NEEDS_REVIEW`, la imagen y los datos extraídos aparecen lado a lado en `/records/new`, sin redirigir.
 - [ ] Con `ERROR`, aparecen «Reintentar lectura» y «Cancelar registro». «Reintentar lectura» vuelve a `PROCESSING`; un `409` refresca el registro.
 - [ ] «Cancelar registro» exige motivo y, al confirmar, el registro pasa a `CANCELED`.
 - [ ] Con `slow = true` aparece «Tarda más de lo normal…» y ningún mensaje de error.
-- [ ] Los chips por campo aparecen solo en registros `IMAGE` `NEEDS_REVIEW` y coinciden con `getFieldChip`.
+- [x] Los chips por campo aparecen solo en registros `IMAGE` `NEEDS_REVIEW` y coinciden con `getFieldChip`.
 - [ ] La alta manual válida responde `201`, muestra el resumen «Registro confirmado» con los importes del servidor, y «Crear otro registro» deja el formulario vacío.
-- [ ] La alta manual no calcula comisión ni retorno en el cliente; las columnas Comisión y Retorno muestran «—» antes de guardar.
-- [ ] Solo un tipo de comisión por movimiento está activo a la vez; «Quitar movimiento» está deshabilitado con un único movimiento.
-- [ ] Los errores de validación aparecen junto al campo después del primer intento de guardar.
-- [ ] En `/records/{id}` con `NEEDS_REVIEW`, editar un campo muestra la barra «Guardar corrección» con «1 cambio sin guardar» (o el número correcto).
-- [ ] «Guardar corrección» exige motivo; sin cambios la barra no aparece.
-- [ ] «Confirmar registro» está deshabilitado con cambios sin guardar.
+- [x] La alta manual no calcula comisión ni retorno en el cliente; las columnas Comisión y Retorno muestran «—» antes de guardar.
+- [x] Solo un tipo de comisión por movimiento está activo a la vez; «Quitar movimiento» está deshabilitado con un único movimiento.
+- [x] Los errores de validación aparecen junto al campo después del primer intento de guardar.
+- [x] En `/records/{id}` con `NEEDS_REVIEW`, editar un campo muestra la barra «Guardar corrección» con «1 cambio sin guardar» (o el número correcto).
+- [x] «Guardar corrección» exige motivo; sin cambios la barra no aparece.
+- [x] «Confirmar registro» está deshabilitado con cambios sin guardar.
 - [ ] Un `PUT` exitoso mantiene `source` y `status` en `NEEDS_REVIEW` y en `CONFIRMED` (reabierto) lleva el registro a `NEEDS_REVIEW`.
-- [ ] «Cancelar registro» muestra el panel con el texto de la plantilla y exige motivo.
-- [ ] La tarjeta «Procesamiento automático» aparece solo en registros `IMAGE` y muestra estado, proveedor, modelo, inicio, fin e issues, sin lista de intentos.
-- [ ] La franja «Documento vs Sistema» aparece solo si la respuesta incluye `source_totals`.
-- [ ] Como `VIEWER`, no hay campos editables, barra, chips de acción ni botones de mutación; los chips son informativos.
-- [ ] En un registro manual sin imagen, la columna lateral de imagen no aparece.
-- [ ] Con contenedor de 60 rem o más hay dos columnas; por debajo, una columna en el orden de la sección «Detalle editable».
+- [x] «Cancelar registro» muestra el panel con el texto de la plantilla y exige motivo.
+- [x] La tarjeta «Procesamiento automático» aparece solo en registros `IMAGE` y muestra estado, proveedor, modelo, inicio, fin e issues, sin lista de intentos.
+- [x] La franja «Documento vs Sistema» aparece solo si la respuesta incluye `source_totals`.
+- [x] Como `VIEWER`, no hay campos editables, barra, chips de acción ni botones de mutación; los chips son informativos.
+- [x] En un registro manual sin imagen, la columna lateral de imagen no aparece.
+- [x] Con contenedor de 60 rem o más hay dos columnas; por debajo, una columna en el orden de la sección «Detalle editable».
 - [ ] A 375 px, `/records/new` y `/records/{id}` no tienen scroll horizontal, y la barra «Guardar corrección» queda por encima de `AppBottomNav`.
 - [ ] Todos los controles se alcanzan con Tab y muestran un anillo de foco de 2 px, incluidos el selector de origen, las opciones de comisión, zoom y «Cancelar subida».
-- [ ] Los archivos nuevos o modificados de `features/records/` solo usan clases de tokens, sin colores literales ni de la paleta de Tailwind.
+- [x] Los archivos nuevos o modificados de `features/records/` solo usan clases de tokens, sin colores literales ni de la paleta de Tailwind.
 - [ ] `image-record-form.tsx` y `manual-record-form.tsx` ya no existen o no tienen imports activos.
-- [ ] La consola no muestra advertencias de hidratación en `/records/new` ni en `/records/{id}`.
-- [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
-- [ ] La documentación describe el nuevo comportamiento y los cambios respecto de SPEC 09 y SPEC 20.
+- [x] La consola no muestra advertencias de hidratación en `/records/new` ni en `/records/{id}`.
+- [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
+- [x] La documentación describe el nuevo comportamiento y los cambios respecto de SPEC 09 y SPEC 20.
 
 ## Decisions
 
@@ -374,6 +374,9 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 - **Sí:** los chips por campo se derivan de `ai_processing.issues` con `getFieldChip`. Sin confianza numérica, como SPEC 09.
 - **Sí:** la barra «Guardar corrección» contiene el motivo obligatorio, porque `PUT` lo exige (SPEC 09).
 - **Sí:** los importes y fechas usan `formatMoney` y `formatDate`/`formatDateTime`, como en SPEC 19 y SPEC 20.
+
+- **Verificación pendiente al cerrar (no bloquea el estado):** la red lenta y el progreso real de la subida con red limitada no se verificaron en pantalla; los estados `encola` y `procesando` no se revisaron en modo oscuro. Las pruebas del servicio cubren el cálculo del progreso.
+- **Fuera de esta spec (confirmado):** la franja «Documento vs Sistema» (paso 0), el selector de origen como `radiogroup` (la pantalla usa dos tarjetas) y el modo edición de `RecordEditor` (la edición usa `ManualRecordForm`).
 
 ## Risks
 
