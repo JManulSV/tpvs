@@ -1,6 +1,6 @@
 # SPEC 23 — Rediseño de la pantalla de Empresas
 
-> **Status:** Draft
+> **Status:** Approved
 > **Depends on:** SPEC 03, SPEC 15, SPEC 16, SPEC 19
 > **Date:** 2026-11-18
 > **Objective:** Rediseñar `/companies` con las plantillas `Companies`, `CompaniesNew` y `CompaniesMobile` y los tokens de shadcn, dentro del shell existente, agregando solo `created_at` al recurso de empresas.
