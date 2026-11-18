@@ -2,11 +2,15 @@ export type Company = {
   id: number;
   name: string;
   records_count: number;
+  /** Creation instant in ISO 8601 (UTC). */
+  created_at: string;
 };
 
 export type CompanyDetail = {
   id: number;
   name: string;
+  /** Creation instant in ISO 8601 (UTC). */
+  created_at: string;
 };
 
 export type CompanyListParams = {
