@@ -1,5 +1,11 @@
-import type { RecordStatus } from "@/features/records/types";
+import { formatMoney } from "@/lib/format";
+import type { DeliveryFormValues } from "./schemas/delivery.schema";
 import { officialDenominationValues, type Delivery } from "./types";
+
+export const MAX_DENOMINATION_QUANTITY = 999;
+
+/** Cash differences up to $1.00 are tolerated (SPEC 14). */
+const CASH_TOLERANCE_CENTS = 100;
 
 export function toCents(amount: string | number | null | undefined): number {
   if (amount === null || amount === undefined || amount === "") {
@@ -68,19 +74,135 @@ export function downloadBlob(blob: Blob, fileName: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function documentBlockedReason({
-  delivery,
-  hasImage,
-  recordStatus,
-}: {
-  delivery: Delivery | null;
-  hasImage: boolean;
-  recordStatus: RecordStatus;
-}): string | null {
-  if (delivery === null) return "Prepara la entrega para generar el documento.";
-  if (recordStatus !== "CONFIRMED") return "El registro debe estar confirmado para generar el documento.";
-  if (!hasImage) return "Adjunta una imagen al registro para generar el documento.";
-  if (delivery.is_stale) return "La entrega usa un importe anterior; actualízala antes de generar el documento.";
+function clampQuantity(quantity: number): number {
+  return Math.min(Math.max(quantity, 0), MAX_DENOMINATION_QUANTITY);
+}
 
-  return null;
+export function stepQuantity(current: string, delta: 1 | -1): string {
+  const quantity = Math.trunc(Number(current)) || 0;
+
+  return String(clampQuantity(quantity + delta));
+}
+
+export function parseQuantityInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+
+  if (digits === "") return "0";
+
+  return String(clampQuantity(Number(digits)));
+}
+
+export type CashCheck = {
+  cashCents: number;
+  shortOfficialCents: number;
+  shortDocumentCents: number;
+  excessCents: number;
+  tone: "ok" | "short" | "excess";
+  label: string;
+};
+
+function beyondTolerance(differenceCents: number): number {
+  return differenceCents > CASH_TOLERANCE_CENTS ? differenceCents : 0;
+}
+
+function formatCents(cents: number): string {
+  return formatMoney(centsToAmount(cents));
+}
+
+export function getCashCheck({
+  officialAmount,
+  documentAmount,
+  denominations,
+}: {
+  officialAmount: string;
+  documentAmount: string;
+  denominations: Array<{ value: string; quantity: number | string }>;
+}): CashCheck {
+  const cashCents = denominationsTotalCents(denominations);
+  const shortOfficialCents = beyondTolerance(toCents(officialAmount) - cashCents);
+  const shortDocumentCents = beyondTolerance(toCents(documentAmount) - cashCents);
+  const excessCents = beyondTolerance(cashCents - toCents(documentAmount));
+  const base = { cashCents, shortOfficialCents, shortDocumentCents, excessCents };
+
+  if (shortDocumentCents > 0) {
+    return { ...base, tone: "short", label: `Faltan ${formatCents(shortDocumentCents)} frente al monto del documento` };
+  }
+
+  if (excessCents > 0) {
+    return { ...base, tone: "excess", label: `Excede por ${formatCents(excessCents)} · requiere declarar cambio` };
+  }
+
+  return { ...base, tone: "ok", label: "Coincide con el monto del documento" };
+}
+
+export function isDeliveryClean(delivery: Delivery | null, values: DeliveryFormValues): boolean {
+  if (delivery === null || delivery.is_stale) return false;
+
+  return delivery.delivery_date === values.delivery_date
+    && delivery.delivered_by_name.trim() === values.delivered_by_name.trim()
+    && (delivery.received_by_name ?? "").trim() === values.received_by_name.trim()
+    && denominationBreakdownKey(delivery.denominations) === denominationBreakdownKey(values.denominations);
+}
+
+export type ReadinessCheck = {
+  id: "image" | "official" | "document" | "change" | "saved";
+  label: string;
+  ok: boolean;
+};
+
+export type DeliveryReadiness = {
+  checks: ReadinessCheck[];
+  hint: string;
+  hintTone: "ok" | "neutral";
+  canSave: boolean;
+  canGenerate: boolean;
+};
+
+export function getDeliveryReadiness({
+  hasImage,
+  cash,
+  changeDeclared,
+  clean,
+  missingData,
+  generated,
+}: {
+  hasImage: boolean;
+  cash: CashCheck;
+  changeDeclared: boolean;
+  clean: boolean;
+  missingData: boolean;
+  generated: boolean;
+}): DeliveryReadiness {
+  const hasExcess = cash.excessCents > 0;
+  const checks: ReadinessCheck[] = [
+    { id: "image", label: "Imagen asociada", ok: hasImage },
+    { id: "official", label: "Efectivo conciliado con el retorno oficial", ok: cash.shortOfficialCents === 0 },
+    { id: "document", label: "Efectivo conciliado con el monto del documento", ok: cash.shortDocumentCents === 0 },
+    ...(hasExcess ? [{ id: "change" as const, label: "Cambio al cliente declarado", ok: changeDeclared }] : []),
+    { id: "saved", label: "Entrega guardada", ok: clean },
+  ];
+  const canSave = !missingData && cash.shortOfficialCents === 0 && !clean;
+  const canGenerate = clean && hasImage && cash.shortDocumentCents === 0 && (!hasExcess || changeDeclared);
+
+  const [hint, hintTone]: [string, DeliveryReadiness["hintTone"]] =
+    generated && canGenerate ? ["Recibo generado.", "ok"]
+    : missingData ? ["Completa la fecha de entrega y quién entrega.", "neutral"]
+    : cash.shortOfficialCents > 0 ? ["Ajusta el efectivo para poder guardar la entrega.", "neutral"]
+    : !clean ? ["Guarda la entrega para poder generar el recibo.", "neutral"]
+    : !hasImage ? ["Falta la imagen para generar el Word.", "neutral"]
+    : cash.shortDocumentCents > 0 ? ["El efectivo no coincide con el monto del documento.", "neutral"]
+    : hasExcess && !changeDeclared ? ["Indica que el cliente dará cambio.", "neutral"]
+    : ["Todo listo para generar el recibo.", "ok"];
+
+  return { checks, hint, hintTone, canSave, canGenerate };
+}
+
+export function getDeliveryHeading(delivery: Delivery | null): {
+  title: "Preparar entrega" | "Preparar nueva entrega";
+  saveLabel: "Guardar entrega" | "Actualizar entrega";
+} {
+  if (delivery === null) return { title: "Preparar entrega", saveLabel: "Guardar entrega" };
+  if (delivery.is_stale) return { title: "Preparar nueva entrega", saveLabel: "Actualizar entrega" };
+
+  return { title: "Preparar entrega", saveLabel: "Actualizar entrega" };
 }

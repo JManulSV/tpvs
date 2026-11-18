@@ -207,14 +207,14 @@ Run the stack and the local test accounts as in phase 8.12. Prepare QA data with
 
 Sign in through the browser and verify:
 
-1. As `EDITOR`, open `/records/{id}/delivery` for the valid Record and confirm the `Documento Word` section shows an enabled `Generar documento Word` button.
-2. Click it and confirm the browser downloads `entrega-registro-{id}-semana-{week}-{year}.docx`, the section shows `Documento generado y descargado.`, and the request goes through the BFF as `POST /api/deliveries/{delivery}/document`.
+1. As `EDITOR`, open `/records/{id}/delivery` for the valid Record and confirm the action bar shows an enabled `Generar recibo (Word)` button (SPEC 22; it replaced the former `Documento Word` section).
+2. Click it and confirm the browser downloads `entrega-registro-{id}-semana-{week}-{year}.docx`, the action bar hint shows `Recibo generado.`, and the request goes through the BFF as `POST /api/deliveries/{delivery}/document`.
 3. Open the file in Word and compare it with the office format: heading with weekday and month in uppercase with accents, `C. {delivering person}`, amount with the amount in words, week range, centered image, 11 denomination rows, two totals, and the ENTREGA/RECIBE signatures with names.
 4. Confirm the Record history shows exactly one `Documento Word generado` entry with `delivery_id` per successful generation.
-5. Open the delivery screen of the Record without an Image and confirm the button is disabled with `Adjunta una imagen al registro para generar el documento.`; a direct `POST` returns `409 DOCUMENT_GENERATION_BLOCKED` with `MISSING_IMAGE`.
-6. Open the delivery screen of the stale Delivery and confirm the button is disabled with `La entrega usa un importe anterior; actualízala antes de generar el documento.`; a direct `POST` returns `409` with `STALE_DELIVERY`, `prepared_amount`, and `current_amount`.
+5. Open the delivery screen of the Record without an Image and confirm the button is disabled and the action bar explains the missing image (`Falta la imagen para generar el Word.`, or the blocking banner `Adjunta la imagen del registro para generar el Word.`); a direct `POST` returns `409 DOCUMENT_GENERATION_BLOCKED` with `MISSING_IMAGE`.
+6. Open the delivery screen of the stale Delivery and confirm the stale banner (`La entrega se preparó con un monto anterior.`) appears, the title is `Preparar nueva entrega`, and `Generar recibo (Word)` is disabled until the delivery is saved again; a direct `POST` returns `409` with `STALE_DELIVERY`, `prepared_amount`, and `current_amount`.
 7. Reopen a Record and confirm a direct `POST` returns `409` with `INVALID_RECORD_STATE`.
-8. As `VIEWER`, confirm the `Documento Word` section and button are absent and a CSRF-valid direct `POST` returns `403`. A missing delivery returns `404`.
+8. As `VIEWER`, confirm the action bar and its `Generar recibo (Word)` button are absent and a CSRF-valid direct `POST` returns `403`. A missing delivery returns `404`.
 9. Confirm blocked requests wrote no `document_generated` History row.
 10. Check the browser console for unexpected JavaScript exceptions.
 

@@ -16,5 +16,5 @@ export default async function DeliveryPage({
   const id = Number(recordId);
   if (!Number.isInteger(id) || id < 1) redirect("/records");
 
-  return <DeliveryScreen canEdit={user.role === "EDITOR"} recordId={id} />;
+  return <DeliveryScreen canEdit={user.role === "EDITOR"} recordId={id} userName={user.name} />;
 }

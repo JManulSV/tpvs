@@ -1,31 +1,42 @@
 "use client";
 
+import { ChevronLeft, Image as ImageIcon, Pencil, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney } from "@/lib/format";
 import { useRecord } from "@/features/records/hooks/use-records";
+import { getRecordPeriodLine } from "@/features/records/record-detail-utils";
+import type { RecordListItem } from "@/features/records/types";
 import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";
 import {
   centsToAmount,
-  denominationBreakdownKey,
-  denominationsTotalCents,
   documentReturnOptions,
+  getDeliveryHeading,
   toCents,
 } from "../utils";
-import { DeliveryDocumentAction } from "./delivery-document-action";
 import { DeliveryForm } from "./delivery-form";
+import { DeliveryReadOnly } from "./delivery-read-only";
 
-export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
+export function DeliveryScreen({
+  canEdit,
+  recordId,
+  userName,
+}: {
+  canEdit: boolean;
+  recordId: number;
+  /** Prefills «Entrega» when the record has no delivery yet. */
+  userName: string;
+}) {
   const recordQuery = useRecord(recordId);
   const deliveryQuery = useDelivery(recordId);
   const record = recordQuery.data;
   const delivery = deliveryQuery.data ?? null;
   const [selectedDocumentReturnAmount, setSelectedDocumentReturnAmount] = useState<string | null>(null);
   const [customerWillGiveChange, setCustomerWillGiveChange] = useState(false);
-  const [draftCashBreakdownKey, setDraftCashBreakdownKey] = useState<string | null>(null);
   const currentReturnAmount = record
     ? record.return_total
       ?? centsToAmount(record.details.reduce((total, detail) => total + toCents(detail.return_amount), 0))
@@ -38,36 +49,34 @@ export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; record
     : documentAmountOptions[0];
 
   if (recordQuery.isPending) {
-    return <p aria-live="polite" className="py-10 text-center text-sm text-muted-foreground">Cargando registro…</p>;
+    return <DeliverySkeleton label="Cargando registro…" />;
   }
 
   if (recordQuery.isError || !record) {
     return (
-      <section className="space-y-4 rounded-md border p-6 text-center" role="alert">
-        <h1 className="text-xl font-semibold">No se pudo cargar el registro</h1>
-        <p className="text-sm text-muted-foreground">{recordQuery.error?.message ?? "El registro no está disponible."}</p>
-        <div className="flex justify-center gap-3">
-          <Button onClick={() => void recordQuery.refetch()} type="button" variant="outline">Reintentar</Button>
-          <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href="/records">Volver a registros</Link>
-        </div>
-      </section>
+      <LoadError
+        backHref="/records"
+        backLabel="Volver a registros"
+        message={recordQuery.error?.message ?? "El registro no está disponible."}
+        onRetry={() => void recordQuery.refetch()}
+        title="No se pudo cargar el registro"
+      />
     );
   }
 
   if (deliveryQuery.isPending) {
-    return <p aria-live="polite" className="py-10 text-center text-sm text-muted-foreground">Cargando preparación de entrega…</p>;
+    return <DeliverySkeleton label="Cargando preparación de entrega…" />;
   }
 
   if (deliveryQuery.isError) {
     return (
-      <section className="space-y-4 rounded-md border p-6 text-center" role="alert">
-        <h1 className="text-xl font-semibold">No se pudo cargar la preparación de entrega</h1>
-        <p className="text-sm text-muted-foreground">{deliveryQuery.error?.message ?? "La entrega no está disponible."}</p>
-        <div className="flex justify-center gap-3">
-          <Button onClick={() => void deliveryQuery.refetch()} type="button" variant="outline">Reintentar</Button>
-          <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href={`/records/${record.id}`}>Volver al registro</Link>
-        </div>
-      </section>
+      <LoadError
+        backHref={`/records/${record.id}`}
+        backLabel="Volver al registro"
+        message={deliveryQuery.error?.message ?? "La entrega no está disponible."}
+        onRetry={() => void deliveryQuery.refetch()}
+        title="No se pudo cargar la preparación de entrega"
+      />
     );
   }
 
@@ -80,34 +89,24 @@ export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; record
 
   return (
     <section aria-labelledby="delivery-heading" className="space-y-6">
-      <header className="space-y-2">
-        <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href={`/records/${record.id}`}>← Registro</Link>
-        <h1 className="text-2xl font-semibold tracking-tight" id="delivery-heading">Preparación de entrega</h1>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>{record.company?.name ?? "Registro sin empresa"} · Semana {record.week ?? "—"}, {record.year ?? "—"}</span>
-          <StatusBadge status={record.status} />
-        </div>
-      </header>
+      <DeliveryHeader delivery={delivery} record={record} />
 
-      <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Info label="Empresa" value={record.company?.name ?? "—"} />
-        <Info label="Semana / año" value={`${record.week ?? "—"} / ${record.year ?? "—"}`} />
-        <Info label="Retorno oficial actual" value={formatMoney(currentReturnAmount)} />
-        <Info label="Imagen" value={record.image === null ? "Sin imagen" : "Disponible"} />
-      </div>
-
-      {delivery?.is_stale && (
-        <p className="rounded-md border px-4 py-3 text-sm" role="note">
-          La preparación está obsoleta: el importe preparado ya no coincide con el retorno actual del registro.
+      {!canPrepare && (
+        <p className="rounded-md bg-accent px-4 py-3 text-sm font-medium text-accent-foreground" role="note">
+          {canEdit
+            ? "El registro no está confirmado. La entrega podrá actualizarse cuando vuelva a estar confirmado."
+            : "Tienes acceso de solo lectura. Solo un Editor puede preparar o actualizar la entrega."}
         </p>
       )}
 
-      {delivery !== null && !canPrepare && (
-        <DeliveryReadOnly delivery={delivery} />
+      {delivery?.is_stale && <StaleDeliveryBanner delivery={delivery} />}
+
+      {!canPrepare && delivery !== null && (
+        <DeliveryReadOnly currentReturnAmount={currentReturnAmount} delivery={delivery} record={record} />
       )}
 
-      {delivery === null && !canPrepare && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
+      {!canPrepare && delivery === null && (
+        <p className="rounded-lg border bg-card px-5 py-4 text-sm text-muted-foreground shadow-card">
           {record.status === "CONFIRMED"
             ? "Aún no existe una preparación de entrega para este registro."
             : "La entrega solo puede prepararse después de confirmar el registro."}
@@ -121,98 +120,123 @@ export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; record
           customerWillGiveChange={customerWillGiveChange}
           delivery={delivery}
           documentReturnAmount={documentReturnAmount}
-          onCashBreakdownChange={(denominations) => {
-            setDraftCashBreakdownKey(denominationBreakdownKey(denominations));
-            setCustomerWillGiveChange(false);
-          }}
           onCustomerWillGiveChangeChange={setCustomerWillGiveChange}
-          onDocumentReturnAmountChange={(amount) => {
-            setSelectedDocumentReturnAmount(amount);
-            setCustomerWillGiveChange(false);
-          }}
+          onDocumentReturnAmountChange={setSelectedDocumentReturnAmount}
           onInvalidRecordState={handleInvalidRecordState}
-          recordId={record.id}
-        />
-      )}
-
-      {delivery !== null && !canEdit && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          Tienes acceso de solo lectura. Solo un Editor puede preparar o actualizar la entrega.
-        </p>
-      )}
-
-      {delivery !== null && canEdit && record.status !== "CONFIRMED" && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          El registro no está confirmado. La entrega podrá actualizarse cuando vuelva a estar confirmado.
-        </p>
-      )}
-
-      {canEdit && (
-        <DeliveryDocumentAction
-          delivery={delivery}
-          hasImage={record.image !== null}
-          onBlocked={handleInvalidRecordState}
-          recordStatus={record.status}
-          draftCashBreakdownKey={draftCashBreakdownKey}
-          documentReturnAmount={documentReturnAmount}
-          customerWillGiveChange={customerWillGiveChange}
+          record={record}
+          userName={userName}
         />
       )}
     </section>
   );
 }
 
-function DeliveryReadOnly({ delivery }: { delivery: Delivery }) {
-  const totalCents = denominationsTotalCents(delivery.denominations);
+function DeliveryHeader({ delivery, record }: { delivery: Delivery | null; record: RecordListItem }) {
+  const SourceIcon = record.source === "IMAGE" ? ImageIcon : Pencil;
 
   return (
-    <section aria-labelledby="delivery-readonly-heading" className="space-y-4 rounded-md border p-4">
-      <h2 className="text-lg font-semibold" id="delivery-readonly-heading">Entrega preparada</h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Info label="Fecha de entrega" value={delivery.delivery_date} />
-        <Info label="Entrega realizada por" value={delivery.delivered_by_name} />
-        <Info label="Recibido por" value={delivery.received_by_name ?? "—"} />
-        <Info label="Importe preparado" value={formatMoney(delivery.prepared_return_amount)} />
-        <Info label="Retorno actual" value={formatMoney(delivery.current_return_amount)} />
-        <Info label="Total de efectivo" value={formatMoney(centsToAmount(totalCents))} />
+    <header className="min-w-0 space-y-2">
+      <Link
+        className="inline-flex min-h-11 items-center gap-1 rounded-md text-sm font-medium text-accent-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:min-h-8"
+        href={`/records/${record.id}`}
+      >
+        <ChevronLeft aria-hidden="true" className="size-4" />
+        Registro
+      </Link>
+      <h1 className="text-2xl/8 font-bold tracking-[-0.01em] md:text-[28px]/9" id="delivery-heading">
+        {getDeliveryHeading(delivery).title}
+      </h1>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <StatusBadge status={record.status} />
+        <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <SourceIcon aria-hidden="true" className="size-3.5" />
+          {record.source === "IMAGE" ? "Imagen" : "Manual"}
+        </span>
+        <span className="text-sm tabular-nums text-muted-foreground">{getRecordPeriodLine(record)}</span>
       </div>
-
-      {delivery.denominations.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Sin efectivo desglosado.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[24rem] border-collapse text-left text-sm">
-            <caption className="sr-only">Desglose de efectivo preparado</caption>
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-4 py-3 font-medium" scope="col">Denominación</th>
-                <th className="px-4 py-3 font-medium" scope="col">Cantidad</th>
-                <th className="px-4 py-3 text-right font-medium" scope="col">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {delivery.denominations.map((denomination) => (
-                <tr className="border-t" key={denomination.value}>
-                  <th className="px-4 py-2 font-normal" scope="row">{formatMoney(denomination.value)}</th>
-                  <td className="px-4 py-2 tabular-nums">{denomination.quantity}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">
-                    {formatMoney(centsToAmount(toCents(denomination.value) * denomination.quantity))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
+    </header>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function StaleDeliveryBanner({ delivery }: { delivery: Delivery }) {
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-sm">{value}</p>
+    <div
+      className="flex items-start gap-3 rounded-md bg-status-needs-review-bg px-4 py-3.5 text-[13px]/5 font-medium text-status-needs-review"
+      role="status"
+    >
+      <TriangleAlert aria-hidden="true" className="mt-px size-5 shrink-0" />
+      <div>
+        <strong className="block font-bold">La entrega se preparó con un monto anterior.</strong>
+        <dl className="my-2 grid grid-cols-2 gap-x-4 gap-y-2">
+          <div>
+            <dt className="text-xs/4 font-medium">Retorno actual</dt>
+            <dd className="text-sm/5 font-bold tabular-nums">{formatMoney(delivery.current_return_amount)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs/4 font-medium">Entrega preparada</dt>
+            <dd className="text-sm/5 font-bold tabular-nums">{formatMoney(delivery.prepared_return_amount)}</dd>
+          </div>
+        </dl>
+        <span>Ajusta el efectivo al retorno actual y guarda: se actualiza la misma entrega.</span>
+      </div>
     </div>
+  );
+}
+
+/** Loading placeholder for the delivery screen. It never paints an amount. */
+function DeliverySkeleton({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <p aria-live="polite" className="sr-only">{label}</p>
+      <div aria-hidden="true" className="flex flex-col gap-6">
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-8 w-64 max-w-full" />
+          <Skeleton className="h-6 w-80 max-w-full" />
+        </div>
+        <Skeleton className="h-44 w-full rounded-xl" />
+        <div className="space-y-3 rounded-lg border bg-card p-5 shadow-card">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-2/3" />
+        </div>
+        <div className="space-y-3 rounded-lg border bg-card p-5 shadow-card">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-3/4" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoadError({
+  title,
+  message,
+  onRetry,
+  backHref,
+  backLabel,
+}: {
+  title: string;
+  message: string;
+  onRetry: () => void;
+  backHref: string;
+  backLabel: string;
+}) {
+  return (
+    <section
+      className="flex flex-col items-center gap-4 rounded-lg border bg-card p-6 text-center shadow-card"
+      role="alert"
+    >
+      <h1 className="text-xl/7 font-semibold">{title}</h1>
+      <p className="text-sm text-muted-foreground">{message}</p>
+      <div className="flex flex-wrap justify-center gap-3">
+        <Button className="min-h-11 md:min-h-10" onClick={onRetry} type="button" variant="outline">Reintentar</Button>
+        <Link className={buttonVariants({ className: "min-h-11 md:min-h-10", variant: "outline" })} href={backHref}>
+          {backLabel}
+        </Link>
+      </div>
+    </section>
   );
 }

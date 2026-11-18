@@ -12,28 +12,13 @@ vi.mock("@/lib/api-client", () => ({
 import { apiClient } from "@/lib/api-client";
 import { fieldLabel } from "@/features/records/components/record-history-panel";
 import { deliveriesService } from "@/features/deliveries/services/deliveries.service";
-import { documentBlockedMessages, type Delivery } from "@/features/deliveries/types";
+import { documentBlockedMessages } from "@/features/deliveries/types";
 import {
   denominationBreakdownKey,
-  documentBlockedReason,
   documentReturnOptions,
 } from "@/features/deliveries/utils";
 
 const apiClientMock = vi.mocked(apiClient);
-
-const delivery: Delivery = {
-  id: 3,
-  record_id: 12,
-  delivery_date: "2026-09-18",
-  delivered_by_name: "Maria Lopez",
-  received_by_name: null,
-  prepared_return_amount: "9800.00",
-  current_return_amount: "9800.00",
-  is_stale: false,
-  denominations: [{ value: "1000.00", quantity: 9 }],
-  created_at: null,
-  updated_at: null,
-};
 
 function blobError(status: number, body: unknown): AxiosError {
   const response = {
@@ -148,36 +133,6 @@ describe("deliveriesService.generateDocument", () => {
       status: 500,
       message: "No se pudo completar la solicitud. Inténtalo nuevamente.",
     });
-  });
-});
-
-describe("documentBlockedReason", () => {
-  it("allows a confirmed, current delivery with an image", () => {
-    expect(documentBlockedReason({ delivery, hasImage: true, recordStatus: "CONFIRMED" })).toBeNull();
-  });
-
-  it("explains the missing delivery first", () => {
-    expect(documentBlockedReason({ delivery: null, hasImage: false, recordStatus: "NEEDS_REVIEW" })).toBe(
-      "Prepara la entrega para generar el documento.",
-    );
-  });
-
-  it("explains a record that is not confirmed", () => {
-    expect(documentBlockedReason({ delivery, hasImage: true, recordStatus: "NEEDS_REVIEW" })).toBe(
-      documentBlockedMessages.INVALID_RECORD_STATE,
-    );
-  });
-
-  it("asks for an image before reporting a stale delivery, matching the backend order", () => {
-    expect(
-      documentBlockedReason({ delivery: { ...delivery, is_stale: true }, hasImage: false, recordStatus: "CONFIRMED" }),
-    ).toBe(documentBlockedMessages.MISSING_IMAGE);
-  });
-
-  it("blocks a stale delivery", () => {
-    expect(
-      documentBlockedReason({ delivery: { ...delivery, is_stale: true }, hasImage: true, recordStatus: "CONFIRMED" }),
-    ).toBe(documentBlockedMessages.STALE_DELIVERY);
   });
 });
 

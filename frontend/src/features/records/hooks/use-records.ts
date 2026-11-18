@@ -125,6 +125,21 @@ export function useCancelRecord() {
   });
 }
 
+export function useAttachRecordImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) => recordsService.attachImage(id, file),
+    retry: false,
+    onSuccess: async (_image, { id }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: recordKeys.detail(id), exact: true }),
+        queryClient.invalidateQueries({ queryKey: recordKeys.histories(id) }),
+      ]);
+    },
+  });
+}
+
 export function useRetryAiProcessing() {
   const queryClient = useQueryClient();
 

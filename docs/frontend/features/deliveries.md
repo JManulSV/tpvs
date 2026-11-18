@@ -4,6 +4,8 @@
 
 **SPEC 11 / phase 8.12 complete (2026-10-29). SPEC 12 / phase 8.13 complete (2026-10-29). SPEC 14 implemented; focused backend/frontend checks pass.** The delivery flow includes the approved document-only cash adjustment and customer-change behavior.
 
+**SPEC 22 implemented in code (frontend only); manual browser verification is pending.** The screen uses the single-action-bar layout described in [Delivery preparation screen (SPEC 22)](#delivery-preparation-screen-spec-22). The backend, API, and business rules are unchanged.
+
 ## Goal and Scope
 
 Allow an authorized Editor to prepare or update the single editable Delivery associated with a confirmed Record and reconcile its cash denominations. Product behavior is defined in [`../../08_document_generation.md`](../../08_document_generation.md), [`../../10_ui_ux.md`](../../10_ui_ux.md), and [`../../02_business_rules_and_states.md`](../../02_business_rules_and_states.md).
@@ -29,7 +31,47 @@ The interface includes:
 - save action for `EDITOR`;
 - read-only view for `VIEWER`.
 
-- a `Generar documento Word` action for `EDITOR` (phase 8.13).
+- a `Generar documento Word` action for `EDITOR` (phase 8.13). Since SPEC 22 it lives in the action bar as `Generar recibo (Word)`, next to `Guardar entrega` / `Actualizar entrega`.
+
+## Delivery preparation screen (SPEC 22)
+
+Layout of `/records/[recordId]/delivery`. Components live in `frontend/src/features/deliveries/components/`. The screen reuses the services, hooks, schema, and utilities of this feature; there are no new endpoints.
+
+- **Header:** a «Registro» link to the record, one `<h1>` (`Preparar entrega`, or `Preparar nueva entrega` when the preparation is stale), the status badge, the source badge, and the period line from `getRecordPeriodLine`.
+- **Banners:** a stale preparation shows `role="status"` with «Retorno actual» and «Entrega preparada». Blocking issues show `role="alert"`, each with its backend code in `<code>`: `CASH_MISMATCH` for a shortfall (official return first, then document amount) and a missing image. Server errors (`409 CASH_MISMATCH` with its expected, cash, and difference amounts, and save or Word errors) also go there. A `422` field error that has no visible field goes to this banner too.
+- **Layout:** `@container`, two columns from 60 rem (`grid-cols-[minmax(0,1fr)_340px]`), one column below in this order: amounts hero, «Datos de la entrega», «Monto del documento», «Desglose de efectivo», «Documento asociado», «Para generar el recibo».
+- **Amounts hero:** «Retorno oficial» (the record's current return), «Documento», «Efectivo», and a status strip from `getCashCheck().label`.
+- **Delivery data:** «Entrega» is prefilled with the session user's name (`userName`) when there is no saved delivery. «Fecha de entrega» defaults to today's local date.
+- **Document amount:** a `radiogroup` with three `role="radio"` options derived from the official return. Arrow keys change the option and move focus. Changing it clears the change declaration.
+- **Cash breakdown (`delivery-cash-breakdown.tsx`):** denominations are grouped into «Billetes» and «Monedas», each with its subtotal. Every row has `−`, a numeric input, and `+`. Input goes through `parseQuantityInput` (digits only, empty becomes 0, capped at 999). `−` and `+` go through `stepQuantity`, which also caps at 0 and 999. Rows at 0 are muted. The «Efectivo total» row shows the piece count. Above $1.00 of excess it shows `CHANGE_REQUIRED` and the «El cliente dará cambio · {monto} (calculado)» checkbox.
+- **Document image (`delivery-image-card.tsx`):** uses `RecordImageCard` with the title «Documento asociado». Without an image, an Editor on a `CONFIRMED` record can attach one (see below).
+- **Readiness checklist (`delivery-readiness-card.tsx`):** «Imagen asociada», «Efectivo conciliado con el retorno oficial», «Efectivo conciliado con el monto del documento», «Cambio al cliente declarado» (only with excess), and «Entrega guardada». Each item shows «Listo» or «Pendiente».
+- **Action bar (`delivery-action-bar.tsx`):** `role="region"` named «Acciones de la entrega». It holds the hint text (`role="status"`), «Cancelar», «Guardar entrega» / «Actualizar entrega» (shown only when the form differs from the saved delivery), and «Generar recibo (Word)». On mobile it is fixed above `AppBottomNav` (`bottom-[calc(5.25rem+env(safe-area-inset-bottom))]`), and from `md` it is `sticky bottom-4`. On mobile a spacer keeps the bar from covering the last content.
+- **Read-only (`delivery-read-only.tsx`):** for `VIEWER`, or for an `EDITOR` when the record is not `CONFIRMED`. It uses the same layout without inputs, the document amount, the checklist, the action bar, or the attach button. It shows «Retorno oficial» and «Efectivo», the saved data as a `<dl>`, and only denominations with a quantity above zero.
+
+### Pure rules (`features/deliveries/utils.ts`)
+
+These functions hold all the decisions above; the components only display them.
+
+- `getCashCheck`: compares cash with the official return and the document amount, using the $1.00 tolerance, and returns the tone and label.
+- `isDeliveryClean`: true only when a saved delivery exists, is **not** stale, and the date, names (trimmed), and denomination key all match. A stale delivery is never clean, so «Actualizar entrega» stays available and Word is not offered until the delivery is saved again.
+- `getDeliveryReadiness`: returns the checklist, the bar hint (the first matching rule in the order of SPEC 22), and `canSave` / `canGenerate`.
+- `getDeliveryHeading`: the title and the save label.
+
+### Attaching an image from the delivery
+
+- Shown only to `EDITOR` on a `CONFIRMED` record without an image. The file is checked with `validateImageFile` (JPEG, PNG, or WebP; 10 MiB or less) before any request.
+- Sends `POST /api/records/{id}/image` through `recordsService.attachImage` and `useAttachRecordImage`, which refreshes the record detail and its history.
+- A `422` or `409` shows the backend message in `role="alert"`. Replacing an existing image is not supported here.
+
+### Out of scope for SPEC 22
+
+- Backend, API, migrations, and business rules.
+- Replacing an existing image from the delivery.
+- Persisting the document amount or the change declaration.
+- A warning for unsaved changes when leaving the page.
+- A Word preview.
+- Changes to the delivery card on the record detail, the shell, or other screens.
 
 ## Business Contract
 

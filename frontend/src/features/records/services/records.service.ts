@@ -6,6 +6,7 @@ import {
   type RecordDetailView,
   type RecordHistoryParams,
   type RecordHistoryResponse,
+  type RecordImage,
   type RecordListParams,
   type RecordListResponse,
   type RecordResponse,
@@ -99,6 +100,17 @@ export const recordsService = {
   async retryAiProcessing(id: number): Promise<RecordDetailView> {
     try {
       const response = await apiClient.post<RecordResponse>(`records/${id}/ai-processing/retry`, {});
+      return response.data.data;
+    } catch (error) {
+      throw toRecordsApiError(error);
+    }
+  },
+
+  async attachImage(id: number, file: File): Promise<RecordImage> {
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const response = await apiClient.post<{ data: RecordImage }>(`records/${id}/image`, formData);
       return response.data.data;
     } catch (error) {
       throw toRecordsApiError(error);
