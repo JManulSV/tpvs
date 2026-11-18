@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 import { formatFileSize } from "@/lib/format";
 import { buttonVariants } from "@/components/ui/button";
 import { recordsService } from "../services/records.service";
@@ -13,7 +14,15 @@ function FileField({ className, label, value }: { className?: string; label: str
   );
 }
 
-export function RecordImageCard({ record }: { record: RecordListItem }) {
+export function RecordImageCard({
+  emptyContent = <p className="text-sm text-muted-foreground">Este registro no tiene imagen asociada.</p>,
+  record,
+  title = "Imagen recibida",
+}: {
+  emptyContent?: ReactNode;
+  record: RecordListItem;
+  title?: string;
+}) {
   const { image } = record;
   const imageUrl = recordsService.imageUrl(record.id);
 
@@ -22,12 +31,12 @@ export function RecordImageCard({ record }: { record: RecordListItem }) {
       aria-labelledby="record-image-heading"
       className="space-y-4 rounded-lg border bg-card p-5 shadow-card"
     >
-      <h2 className="text-base/6 font-semibold" id="record-image-heading">Imagen recibida</h2>
+      <h2 className="text-base/6 font-semibold" id="record-image-heading">{title}</h2>
 
       {record.status === "CANCELED" ? (
         <p className="text-sm text-muted-foreground">La imagen ya no está disponible.</p>
       ) : image === null ? (
-        <p className="text-sm text-muted-foreground">Este registro no tiene imagen asociada.</p>
+        emptyContent
       ) : (
         <>
           <div className="overflow-hidden rounded-md border bg-muted">

@@ -18,7 +18,15 @@ import {
 import { DeliveryDocumentAction } from "./delivery-document-action";
 import { DeliveryForm } from "./delivery-form";
 
-export function DeliveryScreen({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
+export function DeliveryScreen({
+  canEdit,
+  recordId,
+}: {
+  canEdit: boolean;
+  recordId: number;
+  /** Prefills «Entrega» for a new delivery (wired in the delivery form). */
+  userName: string;
+}) {
   const recordQuery = useRecord(recordId);
   const deliveryQuery = useDelivery(recordId);
   const record = recordQuery.data;
