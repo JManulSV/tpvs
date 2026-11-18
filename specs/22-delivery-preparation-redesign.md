@@ -1,6 +1,6 @@
 # SPEC 22 — Rediseño de la preparación de entrega
 
-> **Status:** Draft
+> **Status:** Approved
 > **Depends on:** SPEC 05, SPEC 11, SPEC 12, SPEC 14, SPEC 15, SPEC 16, SPEC 20, SPEC 21
 > **Date:** 2026-11-18
 > **Objective:** Rediseñar `/records/{id}/delivery` con la plantilla `DeliveryPrepare` y los tokens de shadcn, unificando guardar y generar el Word en una sola barra de acciones, sin cambiar el backend ni las reglas de negocio.
