@@ -9,6 +9,7 @@ import { z } from "zod";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useResetOnHide } from "@/hooks/use-reset-on-hide";
 import { cn } from "@/lib/utils";
 import { getLoginErrorDisplay, type LoginErrorDisplay } from "../login-error";
 import { AuthApiError } from "../types";
@@ -63,10 +64,19 @@ export function LoginForm({ returnTo }: { returnTo: string }) {
     register,
     handleSubmit,
     setError,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
+  });
+
+  // After signing in, this page stays mounted but hidden; clear the credentials so they are
+  // not kept in the DOM or shown if the login is reached again by a client navigation.
+  useResetOnHide(() => {
+    reset();
+    setLoginError(null);
+    setShowPassword(false);
   });
 
   async function onSubmit(values: LoginFormValues) {

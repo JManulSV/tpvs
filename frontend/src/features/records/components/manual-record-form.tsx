@@ -21,6 +21,8 @@ import { RecordsApiError, type RecordDetailView, type RecordDetailInput } from "
 type ManualRecordFormProps = {
   mode: "create";
   record?: never;
+  /** Called once the server has created the record. */
+  onCreated?: () => void;
 } | {
   mode: "edit";
   record: RecordDetailView;
@@ -149,6 +151,7 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
         // El servidor devuelve los importes; el cliente no los calcula.
         const record = await createMutation.mutateAsync(payload);
         setCreatedRecord(record);
+        props.onCreated?.();
       }
     } catch (error) {
       if (error instanceof RecordsApiError) {

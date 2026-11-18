@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useResetOnHide } from "@/hooks/use-reset-on-hide";
 import { ImageCaptureWorkspace } from "./image-capture-workspace";
 import { ManualRecordForm } from "./manual-record-form";
 
@@ -9,13 +10,30 @@ type RecordOrigin = "manual" | "image";
 
 export function NewRecordScreen() {
   const [origin, setOrigin] = useState<RecordOrigin | null>(null);
+  // Set once a record exists on the server. Leaving after that starts the next visit from
+  // scratch; leaving mid-draft keeps the draft.
+  const created = useRef(false);
+
+  useResetOnHide(() => {
+    if (!created.current) return;
+    created.current = false;
+    setOrigin(null);
+  });
+
+  function markCreated() {
+    created.current = true;
+  }
 
   if (origin !== null) {
     return (
       <section aria-labelledby="new-record-heading" className="space-y-4">
         <Button onClick={() => setOrigin(null)} type="button" variant="outline">← Cambiar origen</Button>
         <h1 className="text-2xl font-semibold tracking-tight" id="new-record-heading">Nuevo registro</h1>
-        {origin === "manual" ? <ManualRecordForm mode="create" /> : <ImageCaptureWorkspace />}
+        {origin === "manual" ? (
+          <ManualRecordForm mode="create" onCreated={markCreated} />
+        ) : (
+          <ImageCaptureWorkspace onUploaded={markCreated} />
+        )}
       </section>
     );
   }

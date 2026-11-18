@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useResetOnHide } from "@/hooks/use-reset-on-hide";
 import { useCompanies } from "../hooks/use-companies";
 import { CreateCompanyDialog } from "./create-company-dialog";
 
@@ -13,6 +14,12 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
   const [page, setPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // A later visit must not reopen the dialog or show the previous "created" message.
+  useResetOnHide(() => {
+    setIsCreateDialogOpen(false);
+    setSuccessMessage(null);
+  });
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

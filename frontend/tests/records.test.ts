@@ -10,7 +10,7 @@ vi.mock("@/lib/api-client", () => ({
 
 import { apiClient } from "@/lib/api-client";
 import { getRecordActionPermissions } from "@/features/records/record-actions";
-import { parseInitialRecordFilters } from "@/features/records/record-filters";
+import { parseRecordListQuery, recordListHref } from "@/features/records/record-filters";
 import { manualRecordFormSchema, updateManualRecordFormSchema } from "@/features/records/schemas/record.schema";
 import { recordsService } from "@/features/records/services/records.service";
 import { RecordsApiError, type RecordSource, type RecordStatus } from "@/features/records/types";
@@ -392,26 +392,48 @@ describe("record action permissions", () => {
   });
 });
 
-describe("parseInitialRecordFilters", () => {
-  const parse = (query: string) => parseInitialRecordFilters(new URLSearchParams(query));
+describe("parseRecordListQuery", () => {
+  const parse = (query: string) => parseRecordListQuery(new URLSearchParams(query));
+  const filtersOf = (query: string) => parse(query).filters;
 
-  it("reads status, year and month from the URL", () => {
-    expect(parse("status=CONFIRMED&year=2026&month=11")).toEqual({ status: "CONFIRMED", year: 2026, month: 11 });
-    expect(parse("status=NEEDS_REVIEW")).toEqual({ status: "NEEDS_REVIEW" });
+  it("reads every filter, the search and the page from the URL", () => {
+    expect(parse("status=CONFIRMED&year=2026&month=11")).toEqual({
+      filters: { status: "CONFIRMED", year: 2026, month: 11 },
+      search: "",
+      page: 1,
+    });
+    expect(parse("company_id=3&week=38&source=MANUAL&search=%20abc%20&page=2")).toEqual({
+      filters: { company_id: 3, week: 38, source: "MANUAL" },
+      search: "abc",
+      page: 2,
+    });
   });
 
   it("drops invalid values without failing", () => {
-    expect(parse("status=FOO&month=13")).toEqual({});
-    expect(parse("status=confirmed&year=-1&month=0")).toEqual({});
-    expect(parse("year=2026.5&month=1e1")).toEqual({});
-    expect(parse("year=10000&month=")).toEqual({});
+    expect(filtersOf("status=FOO&month=13")).toEqual({});
+    expect(filtersOf("status=confirmed&year=-1&month=0")).toEqual({});
+    expect(filtersOf("year=2026.5&month=1e1")).toEqual({});
+    expect(filtersOf("year=10000&month=&week=54&source=OTHER&company_id=x")).toEqual({});
+    expect(parse("page=0").page).toBe(1);
   });
 
-  it("ignores filters it does not handle", () => {
-    expect(parse("week=38&company_id=3&source=MANUAL&search=x")).toEqual({});
+  it("returns an empty state without search params", () => {
+    expect(parseRecordListQuery(null)).toEqual({ filters: {}, search: "", page: 1 });
+  });
+});
+
+describe("recordListHref", () => {
+  it("omits empty values and the first page", () => {
+    expect(recordListHref({ filters: {}, search: " ", page: 1 })).toBe("/records");
+    expect(recordListHref({ filters: { status: "CANCELED", year: undefined }, search: "", page: 1 })).toBe(
+      "/records?status=CANCELED",
+    );
   });
 
-  it("returns no filters without search params", () => {
-    expect(parseInitialRecordFilters(null)).toEqual({});
+  it("round-trips with parseRecordListQuery", () => {
+    const state = { filters: { company_id: 3, status: "CONFIRMED" as const, month: 11 }, search: "abc", page: 2 };
+    const href = recordListHref(state);
+
+    expect(parseRecordListQuery(new URLSearchParams(href.split("?")[1]))).toEqual(state);
   });
 });

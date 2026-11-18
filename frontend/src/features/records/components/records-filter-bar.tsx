@@ -11,16 +11,11 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { recordStatusMeta } from "@/lib/status";
+import type { RecordListFilters } from "../record-filters";
 import { ALL_FILTER_VALUE, selectValueToFilter } from "../record-list-utils";
-import {
-  recordSources,
-  recordStatuses,
-  type RecordListParams,
-  type RecordSource,
-  type RecordStatus,
-} from "../types";
+import { recordSources, recordStatuses, type RecordSource, type RecordStatus } from "../types";
 
-export type RecordListFilters = Omit<RecordListParams, "search" | "page" | "per_page">;
+export type { RecordListFilters };
 
 type Option = { value: string; label: string };
 type Variant = "card" | "chips";

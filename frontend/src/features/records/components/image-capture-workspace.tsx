@@ -7,7 +7,7 @@ import { ImageReadingStatus } from "./image-reading-status";
 import { RecordEditor } from "./record-editor";
 
 // Alta desde imagen: subir a la izquierda y, tras el 202, leer y revisar lado a lado.
-export function ImageCaptureWorkspace() {
+export function ImageCaptureWorkspace({ onUploaded }: { onUploaded?: () => void }) {
   const [recordId, setRecordId] = useState<number | null>(null);
   const [panelKey, setPanelKey] = useState(0);
 
@@ -21,7 +21,13 @@ export function ImageCaptureWorkspace() {
       <div className="grid gap-6 @[60rem]:grid-cols-2 @[60rem]:items-start">
         <div>
           {recordId === null ? (
-            <ImageCapturePanel key={panelKey} onUploaded={setRecordId} />
+            <ImageCapturePanel
+              key={panelKey}
+              onUploaded={(id) => {
+                setRecordId(id);
+                onUploaded?.();
+              }}
+            />
           ) : (
             <ImageReadingStatus onStartNew={startNew} recordId={recordId} />
           )}

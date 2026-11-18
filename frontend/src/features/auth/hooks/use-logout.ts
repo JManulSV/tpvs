@@ -2,12 +2,10 @@
 
 import { useCallback, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
 import { authService } from "../services/auth.service"
 import { AuthApiError } from "../types"
 
 export function useLogout() {
-  const router = useRouter()
   const queryClient = useQueryClient()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -19,7 +17,9 @@ export function useLogout() {
     try {
       await authService.logout()
       queryClient.clear()
-      router.replace("/login")
+      // Full reload: with cacheComponents, routes stay mounted (hidden by <Activity>)
+      // and a client navigation would keep the previous user's UI state.
+      window.location.replace("/login")
     } catch (error) {
       setErrorMessage(
         error instanceof AuthApiError
@@ -29,7 +29,7 @@ export function useLogout() {
     } finally {
       setIsLoggingOut(false)
     }
-  }, [queryClient, router])
+  }, [queryClient])
 
   return { logout, isLoggingOut, errorMessage }
 }

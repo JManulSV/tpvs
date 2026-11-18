@@ -4,9 +4,10 @@ import { useSearchParams } from "next/navigation";
 import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useResetOnHide } from "@/hooks/use-reset-on-hide";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
 import { useRecords } from "../hooks/use-records";
-import { parseInitialRecordFilters } from "../record-filters";
+import { parseRecordListQuery, recordListHref, type RecordListQuery } from "../record-filters";
 import { hasActiveRecordFilters } from "../record-list-utils";
 import { RecordsCardList } from "./records-card-list";
 import { RecordsPagination } from "./records-pagination";
@@ -16,39 +17,56 @@ import { RecordsFilterBar, type RecordListFilters } from "./records-filter-bar";
 
 const PAGE_SIZE = 15;
 
+/** Updates the URL without a server round trip; Next syncs useSearchParams with it. */
+function navigate(next: RecordListQuery) {
+  window.history.replaceState(null, "", recordListHref(next));
+}
+
 export function RecordsScreen({ role }: { role: "EDITOR" | "VIEWER" }) {
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  // The URL is the source of truth. With cacheComponents this screen stays mounted
+  // (hidden by <Activity>) between visits, so copying the URL into state would go stale.
   const searchParams = useSearchParams();
-  // Read once on entry; later filter changes are not written back to the URL.
-  const [filters, setFilters] = useState<RecordListFilters>(
-    () => parseInitialRecordFilters(searchParams),
-  );
+  const { filters, search, page } = parseRecordListQuery(searchParams);
   const companiesQuery = useCompanies({ per_page: 100 });
 
+  // Only the text being typed is local; it is synced to the URL after a debounce.
+  const [searchInput, setSearchInput] = useState(search);
+  const [syncedSearch, setSyncedSearch] = useState(search);
+  if (search !== syncedSearch) {
+    setSyncedSearch(search);
+    setSearchInput(search);
+  }
+
+  // Drop an unsent draft when the screen is hidden, so a later visit starts from its URL.
+  useResetOnHide(() => setSearchInput(search));
+
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
-    }, 300);
+    const current = parseRecordListQuery(searchParams);
+    const trimmed = searchInput.trim();
+    if (trimmed === current.search) return;
+
+    const timer = window.setTimeout(
+      () => navigate({ filters: current.filters, search: trimmed, page: 1 }),
+      300,
+    );
     return () => window.clearTimeout(timer);
-  }, [searchInput]);
+  }, [searchInput, searchParams]);
 
   const query = useRecords({ ...filters, ...(search ? { search } : {}), page, per_page: PAGE_SIZE });
   const rows = query.data?.data ?? [];
   const meta = query.data?.meta;
 
   function patchFilters(patch: Partial<RecordListFilters>) {
-    setFilters((current) => ({ ...current, ...patch }));
-    setPage(1);
+    navigate({ filters: { ...filters, ...patch }, search: searchInput.trim(), page: 1 });
+  }
+
+  function setPage(next: number) {
+    navigate({ filters, search, page: next });
   }
 
   function clearFilters() {
     setSearchInput("");
-    setSearch("");
-    setFilters({});
-    setPage(1);
+    navigate({ filters: {}, search: "", page: 1 });
   }
 
   const filtered = hasActiveRecordFilters(search, filters);
@@ -58,8 +76,8 @@ export function RecordsScreen({ role }: { role: "EDITOR" | "VIEWER" }) {
         currentPage={meta.current_page}
         isFetching={query.isFetching}
         lastPage={meta.last_page}
-        onNext={() => setPage((current) => Math.min(meta.last_page, current + 1))}
-        onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+        onNext={() => setPage(Math.min(meta.last_page, page + 1))}
+        onPrevious={() => setPage(Math.max(1, page - 1))}
         total={meta.total}
         variant={variant}
       />

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useResetOnHide } from "@/hooks/use-reset-on-hide";
 import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
 import { getRecordActionPermissions } from "../record-actions";
 import { getRecordBanner } from "../record-detail-utils";
@@ -39,6 +40,18 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   const [cancelReason, setCancelReason] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const record = recordQuery.data;
+
+  // Dialogs and action messages belong to one visit. An edit in progress is a draft and stays.
+  useResetOnHide(() => {
+    setIsConfirmOpen(false);
+    setIsCancelOpen(false);
+    setCancelReason("");
+    setConfirmError(null);
+    setCancelError(null);
+    setRetryError(null);
+    setSuccessMessage(null);
+    setReopenNotice(false);
+  });
 
   if (recordQuery.isPending) {
     return <RecordDetailSkeleton />;

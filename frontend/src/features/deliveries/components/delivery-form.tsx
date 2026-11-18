@@ -5,6 +5,7 @@ import { CircleAlert, CircleCheck, CircleX } from "lucide-react";
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useForm, useWatch, type FieldPath } from "react-hook-form";
 import type { RecordDetailView } from "@/features/records/types";
+import { useResetOnHide } from "@/hooks/use-reset-on-hide";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useGenerateDeliveryDocument, useUpsertDelivery } from "../hooks/use-deliveries";
@@ -99,6 +100,13 @@ export function DeliveryForm({
   const [mismatch, setMismatch] = useState<DeliveryErrorDetails | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+
+  // Save and generate errors describe the last attempt; a later visit starts without them.
+  useResetOnHide(() => {
+    setSaveError(null);
+    setMismatch(null);
+    setGenerateError(null);
+  });
 
   const [deliveryDate, deliveredByName, receivedByName, watchedDenominations] = useWatch({
     control: form.control,
