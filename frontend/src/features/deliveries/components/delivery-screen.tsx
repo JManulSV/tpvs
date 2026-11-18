@@ -1,30 +1,33 @@
 "use client";
 
+import { ChevronLeft, Image as ImageIcon, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 import { useRecord } from "@/features/records/hooks/use-records";
+import { getRecordPeriodLine } from "@/features/records/record-detail-utils";
+import type { RecordListItem } from "@/features/records/types";
 import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";
 import {
   centsToAmount,
-  denominationBreakdownKey,
   denominationsTotalCents,
   documentReturnOptions,
+  getDeliveryHeading,
   toCents,
 } from "../utils";
-import { DeliveryDocumentAction } from "./delivery-document-action";
 import { DeliveryForm } from "./delivery-form";
 
 export function DeliveryScreen({
   canEdit,
   recordId,
+  userName,
 }: {
   canEdit: boolean;
   recordId: number;
-  /** Prefills «Entrega» for a new delivery (wired in the delivery form). */
+  /** Prefills «Entrega» when the record has no delivery yet. */
   userName: string;
 }) {
   const recordQuery = useRecord(recordId);
@@ -33,7 +36,6 @@ export function DeliveryScreen({
   const delivery = deliveryQuery.data ?? null;
   const [selectedDocumentReturnAmount, setSelectedDocumentReturnAmount] = useState<string | null>(null);
   const [customerWillGiveChange, setCustomerWillGiveChange] = useState(false);
-  const [draftCashBreakdownKey, setDraftCashBreakdownKey] = useState<string | null>(null);
   const currentReturnAmount = record
     ? record.return_total
       ?? centsToAmount(record.details.reduce((total, detail) => total + toCents(detail.return_amount), 0))
@@ -88,21 +90,7 @@ export function DeliveryScreen({
 
   return (
     <section aria-labelledby="delivery-heading" className="space-y-6">
-      <header className="space-y-2">
-        <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href={`/records/${record.id}`}>← Registro</Link>
-        <h1 className="text-2xl font-semibold tracking-tight" id="delivery-heading">Preparación de entrega</h1>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>{record.company?.name ?? "Registro sin empresa"} · Semana {record.week ?? "—"}, {record.year ?? "—"}</span>
-          <StatusBadge status={record.status} />
-        </div>
-      </header>
-
-      <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Info label="Empresa" value={record.company?.name ?? "—"} />
-        <Info label="Semana / año" value={`${record.week ?? "—"} / ${record.year ?? "—"}`} />
-        <Info label="Retorno oficial actual" value={formatMoney(currentReturnAmount)} />
-        <Info label="Imagen" value={record.image === null ? "Sin imagen" : "Disponible"} />
-      </div>
+      <DeliveryHeader delivery={delivery} record={record} />
 
       {delivery?.is_stale && (
         <p className="rounded-md border px-4 py-3 text-sm" role="note">
@@ -129,17 +117,11 @@ export function DeliveryScreen({
           customerWillGiveChange={customerWillGiveChange}
           delivery={delivery}
           documentReturnAmount={documentReturnAmount}
-          onCashBreakdownChange={(denominations) => {
-            setDraftCashBreakdownKey(denominationBreakdownKey(denominations));
-            setCustomerWillGiveChange(false);
-          }}
           onCustomerWillGiveChangeChange={setCustomerWillGiveChange}
-          onDocumentReturnAmountChange={(amount) => {
-            setSelectedDocumentReturnAmount(amount);
-            setCustomerWillGiveChange(false);
-          }}
+          onDocumentReturnAmountChange={setSelectedDocumentReturnAmount}
           onInvalidRecordState={handleInvalidRecordState}
-          recordId={record.id}
+          record={record}
+          userName={userName}
         />
       )}
 
@@ -154,19 +136,34 @@ export function DeliveryScreen({
           El registro no está confirmado. La entrega podrá actualizarse cuando vuelva a estar confirmado.
         </p>
       )}
-
-      {canEdit && (
-        <DeliveryDocumentAction
-          delivery={delivery}
-          hasImage={record.image !== null}
-          onBlocked={handleInvalidRecordState}
-          recordStatus={record.status}
-          draftCashBreakdownKey={draftCashBreakdownKey}
-          documentReturnAmount={documentReturnAmount}
-          customerWillGiveChange={customerWillGiveChange}
-        />
-      )}
     </section>
+  );
+}
+
+function DeliveryHeader({ delivery, record }: { delivery: Delivery | null; record: RecordListItem }) {
+  const SourceIcon = record.source === "IMAGE" ? ImageIcon : Pencil;
+
+  return (
+    <header className="min-w-0 space-y-2">
+      <Link
+        className="inline-flex min-h-11 items-center gap-1 rounded-md text-sm font-medium text-accent-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:min-h-8"
+        href={`/records/${record.id}`}
+      >
+        <ChevronLeft aria-hidden="true" className="size-4" />
+        Registro
+      </Link>
+      <h1 className="text-2xl/8 font-bold tracking-[-0.01em] md:text-[28px]/9" id="delivery-heading">
+        {getDeliveryHeading(delivery).title}
+      </h1>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <StatusBadge status={record.status} />
+        <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <SourceIcon aria-hidden="true" className="size-3.5" />
+          {record.source === "IMAGE" ? "Imagen" : "Manual"}
+        </span>
+        <span className="text-sm tabular-nums text-muted-foreground">{getRecordPeriodLine(record)}</span>
+      </div>
+    </header>
   );
 }
 
