@@ -115,7 +115,7 @@ Reglas:
   - `shortDocumentCents > 0` → `short`, «Faltan {monto} frente al monto del documento»;
   - `excessCents > 0` → `excess`, «Excede por {monto} · requiere declarar cambio»;
   - otro caso → `ok`, «Coincide con el monto del documento».
-- `isDeliveryClean`: `true` solo si existe entrega y coinciden fecha, «Entrega» y «Recibe» recortados, y `denominationBreakdownKey` del formulario y de la entrega.
+- `isDeliveryClean`: `true` solo si existe entrega, no está obsoleta (`is_stale === false`) y coinciden fecha, «Entrega» y «Recibe» recortados, y `denominationBreakdownKey` del formulario y de la entrega. Una entrega obsoleta nunca es `clean`: así «Actualizar entrega» sigue visible y el Word no se ofrece hasta volver a guardar (el backend lo rechazaría con `STALE_DELIVERY`).
 - `getDeliveryReadiness.checks`, en este orden:
   1. `image` — «Imagen asociada»;
   2. `official` — «Efectivo conciliado con el retorno oficial» (`shortOfficialCents === 0`);
@@ -275,7 +275,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
      - `stepQuantity` en 0 con `-1` y en 999 con `+1`;
      - `parseQuantityInput` con letras, vacío y `1500`;
      - `getCashCheck` en los escenarios `coincide`, `cambio` y `faltante` de la plantilla (retorno `9800.00`), y con diferencias de exactamente `$1.00`;
-     - `isDeliveryClean` sin entrega, igual y con un nombre con espacios extra;
+     - `isDeliveryClean` sin entrega, igual, con un nombre con espacios extra y con entrega obsoleta;
      - `getDeliveryReadiness`: cada uno de los ocho textos de `hint`, el ítem `change` solo con excedente, y `canSave` / `canGenerate`;
      - `getDeliveryHeading` en los tres casos.
    - Retirar el uso de `documentBlockedReason` en `delivery-document-action.tsx` con la misma lógica de `getDeliveryReadiness`. `npm test` pasa sin cambio visible.

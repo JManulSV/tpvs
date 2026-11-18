@@ -3,8 +3,13 @@
 import { Button } from "@/components/ui/button";
 import type { RecordStatus } from "@/features/records/types";
 import { useGenerateDeliveryDocument } from "../hooks/use-deliveries";
-import { DeliveryApiError, type Delivery, type GenerateDeliveryDocumentInput } from "../types";
-import { denominationBreakdownKey, denominationsTotalCents, documentBlockedReason, toCents } from "../utils";
+import {
+  DeliveryApiError,
+  documentBlockedMessages,
+  type Delivery,
+  type GenerateDeliveryDocumentInput,
+} from "../types";
+import { denominationBreakdownKey, getCashCheck, getDeliveryReadiness } from "../utils";
 
 export function DeliveryDocumentAction({
   delivery,
@@ -24,17 +29,24 @@ export function DeliveryDocumentAction({
   customerWillGiveChange: boolean;
 }) {
   const mutation = useGenerateDeliveryDocument();
-  const savedCashCents = delivery === null ? 0 : denominationsTotalCents(delivery.denominations);
-  const excessCents = savedCashCents - toCents(documentReturnAmount);
-  const changeRequired = excessCents > 100;
   const hasUnsavedCashChanges = delivery !== null
     && draftCashBreakdownKey !== null
     && draftCashBreakdownKey !== denominationBreakdownKey(delivery.denominations);
-  const blockedReason = documentBlockedReason({ delivery, hasImage, recordStatus })
-    ?? (hasUnsavedCashChanges ? "Guarda el desglose de efectivo antes de generar el documento." : null)
-    ?? (changeRequired && !customerWillGiveChange
-      ? "Indica que el cliente dará cambio para generar el documento."
-      : null);
+  const readiness = getDeliveryReadiness({
+    hasImage,
+    cash: getCashCheck({
+      officialAmount: delivery?.current_return_amount ?? "0.00",
+      documentAmount: documentReturnAmount,
+      denominations: delivery?.denominations ?? [],
+    }),
+    changeDeclared: customerWillGiveChange,
+    clean: delivery !== null && !delivery.is_stale && !hasUnsavedCashChanges,
+    missingData: false,
+    generated: false,
+  });
+  const blockedReason = recordStatus !== "CONFIRMED"
+    ? documentBlockedMessages.INVALID_RECORD_STATE
+    : readiness.canGenerate ? null : readiness.hint;
   const error = mutation.error instanceof DeliveryApiError ? mutation.error : null;
 
   function handleGenerate() {
