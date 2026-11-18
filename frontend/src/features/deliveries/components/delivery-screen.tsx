@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Image as ImageIcon, Pencil } from "lucide-react";
+import { ChevronLeft, Image as ImageIcon, Pencil, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
@@ -13,12 +13,12 @@ import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";
 import {
   centsToAmount,
-  denominationsTotalCents,
   documentReturnOptions,
   getDeliveryHeading,
   toCents,
 } from "../utils";
 import { DeliveryForm } from "./delivery-form";
+import { DeliveryReadOnly } from "./delivery-read-only";
 
 export function DeliveryScreen({
   canEdit,
@@ -92,18 +92,22 @@ export function DeliveryScreen({
     <section aria-labelledby="delivery-heading" className="space-y-6">
       <DeliveryHeader delivery={delivery} record={record} />
 
-      {delivery?.is_stale && (
-        <p className="rounded-md border px-4 py-3 text-sm" role="note">
-          La preparación está obsoleta: el importe preparado ya no coincide con el retorno actual del registro.
+      {!canPrepare && (
+        <p className="rounded-md bg-accent px-4 py-3 text-sm font-medium text-accent-foreground" role="note">
+          {canEdit
+            ? "El registro no está confirmado. La entrega podrá actualizarse cuando vuelva a estar confirmado."
+            : "Tienes acceso de solo lectura. Solo un Editor puede preparar o actualizar la entrega."}
         </p>
       )}
 
-      {delivery !== null && !canPrepare && (
-        <DeliveryReadOnly delivery={delivery} />
+      {delivery?.is_stale && <StaleDeliveryBanner delivery={delivery} />}
+
+      {!canPrepare && delivery !== null && (
+        <DeliveryReadOnly currentReturnAmount={currentReturnAmount} delivery={delivery} record={record} />
       )}
 
-      {delivery === null && !canPrepare && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
+      {!canPrepare && delivery === null && (
+        <p className="rounded-lg border bg-card px-5 py-4 text-sm text-muted-foreground shadow-card">
           {record.status === "CONFIRMED"
             ? "Aún no existe una preparación de entrega para este registro."
             : "La entrega solo puede prepararse después de confirmar el registro."}
@@ -123,18 +127,6 @@ export function DeliveryScreen({
           record={record}
           userName={userName}
         />
-      )}
-
-      {delivery !== null && !canEdit && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          Tienes acceso de solo lectura. Solo un Editor puede preparar o actualizar la entrega.
-        </p>
-      )}
-
-      {delivery !== null && canEdit && record.status !== "CONFIRMED" && (
-        <p className="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="note">
-          El registro no está confirmado. La entrega podrá actualizarse cuando vuelva a estar confirmado.
-        </p>
       )}
     </section>
   );
@@ -167,57 +159,27 @@ function DeliveryHeader({ delivery, record }: { delivery: Delivery | null; recor
   );
 }
 
-function DeliveryReadOnly({ delivery }: { delivery: Delivery }) {
-  const totalCents = denominationsTotalCents(delivery.denominations);
-
+function StaleDeliveryBanner({ delivery }: { delivery: Delivery }) {
   return (
-    <section aria-labelledby="delivery-readonly-heading" className="space-y-4 rounded-md border p-4">
-      <h2 className="text-lg font-semibold" id="delivery-readonly-heading">Entrega preparada</h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Info label="Fecha de entrega" value={delivery.delivery_date} />
-        <Info label="Entrega realizada por" value={delivery.delivered_by_name} />
-        <Info label="Recibido por" value={delivery.received_by_name ?? "—"} />
-        <Info label="Importe preparado" value={formatMoney(delivery.prepared_return_amount)} />
-        <Info label="Retorno actual" value={formatMoney(delivery.current_return_amount)} />
-        <Info label="Total de efectivo" value={formatMoney(centsToAmount(totalCents))} />
+    <div
+      className="flex items-start gap-3 rounded-md bg-status-needs-review-bg px-4 py-3.5 text-[13px]/5 font-medium text-status-needs-review"
+      role="status"
+    >
+      <TriangleAlert aria-hidden="true" className="mt-px size-5 shrink-0" />
+      <div>
+        <strong className="block font-bold">La entrega se preparó con un monto anterior.</strong>
+        <dl className="my-2 grid grid-cols-2 gap-x-4 gap-y-2">
+          <div>
+            <dt className="text-xs/4 font-medium">Retorno actual</dt>
+            <dd className="text-sm/5 font-bold tabular-nums">{formatMoney(delivery.current_return_amount)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs/4 font-medium">Entrega preparada</dt>
+            <dd className="text-sm/5 font-bold tabular-nums">{formatMoney(delivery.prepared_return_amount)}</dd>
+          </div>
+        </dl>
+        <span>Ajusta el efectivo al retorno actual y guarda: se actualiza la misma entrega.</span>
       </div>
-
-      {delivery.denominations.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Sin efectivo desglosado.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[24rem] border-collapse text-left text-sm">
-            <caption className="sr-only">Desglose de efectivo preparado</caption>
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-4 py-3 font-medium" scope="col">Denominación</th>
-                <th className="px-4 py-3 font-medium" scope="col">Cantidad</th>
-                <th className="px-4 py-3 text-right font-medium" scope="col">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {delivery.denominations.map((denomination) => (
-                <tr className="border-t" key={denomination.value}>
-                  <th className="px-4 py-2 font-normal" scope="row">{formatMoney(denomination.value)}</th>
-                  <td className="px-4 py-2 tabular-nums">{denomination.quantity}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">
-                    {formatMoney(centsToAmount(toCents(denomination.value) * denomination.quantity))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-sm">{value}</p>
     </div>
   );
 }
