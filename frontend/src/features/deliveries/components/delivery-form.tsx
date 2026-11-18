@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleAlert, CircleCheck, CircleX } from "lucide-react";
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useForm, useWatch, type FieldPath } from "react-hook-form";
-import { RecordImageCard } from "@/features/records/components/record-image-card";
 import type { RecordDetailView } from "@/features/records/types";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -29,6 +28,7 @@ import {
 } from "../utils";
 import { DeliveryActionBar } from "./delivery-action-bar";
 import { DeliveryCashBreakdown } from "./delivery-cash-breakdown";
+import { DeliveryImageCard } from "./delivery-image-card";
 import { DeliveryReadinessCard } from "./delivery-readiness-card";
 
 type DeliveryFormProps = {
@@ -352,15 +352,7 @@ export function DeliveryForm({
           </div>
 
           <div className="flex min-w-0 flex-col gap-6">
-            <RecordImageCard
-              emptyContent={(
-                <p className="text-sm text-muted-foreground">
-                  Este registro se capturó de forma manual y no tiene imagen. Puedes guardar la entrega, pero el Word requiere la imagen.
-                </p>
-              )}
-              record={record}
-              title="Documento asociado"
-            />
+            <DeliveryImageCard canAttach record={record} />
             <DeliveryReadinessCard checks={readiness.checks} />
           </div>
         </div>
