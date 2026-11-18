@@ -4,7 +4,8 @@ import { ChevronLeft, Image as ImageIcon, Pencil, TriangleAlert } from "lucide-r
 import Link from "next/link";
 import { useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney } from "@/lib/format";
 import { useRecord } from "@/features/records/hooks/use-records";
 import { getRecordPeriodLine } from "@/features/records/record-detail-utils";
@@ -48,36 +49,34 @@ export function DeliveryScreen({
     : documentAmountOptions[0];
 
   if (recordQuery.isPending) {
-    return <p aria-live="polite" className="py-10 text-center text-sm text-muted-foreground">Cargando registro…</p>;
+    return <DeliverySkeleton label="Cargando registro…" />;
   }
 
   if (recordQuery.isError || !record) {
     return (
-      <section className="space-y-4 rounded-md border p-6 text-center" role="alert">
-        <h1 className="text-xl font-semibold">No se pudo cargar el registro</h1>
-        <p className="text-sm text-muted-foreground">{recordQuery.error?.message ?? "El registro no está disponible."}</p>
-        <div className="flex justify-center gap-3">
-          <Button onClick={() => void recordQuery.refetch()} type="button" variant="outline">Reintentar</Button>
-          <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href="/records">Volver a registros</Link>
-        </div>
-      </section>
+      <LoadError
+        backHref="/records"
+        backLabel="Volver a registros"
+        message={recordQuery.error?.message ?? "El registro no está disponible."}
+        onRetry={() => void recordQuery.refetch()}
+        title="No se pudo cargar el registro"
+      />
     );
   }
 
   if (deliveryQuery.isPending) {
-    return <p aria-live="polite" className="py-10 text-center text-sm text-muted-foreground">Cargando preparación de entrega…</p>;
+    return <DeliverySkeleton label="Cargando preparación de entrega…" />;
   }
 
   if (deliveryQuery.isError) {
     return (
-      <section className="space-y-4 rounded-md border p-6 text-center" role="alert">
-        <h1 className="text-xl font-semibold">No se pudo cargar la preparación de entrega</h1>
-        <p className="text-sm text-muted-foreground">{deliveryQuery.error?.message ?? "La entrega no está disponible."}</p>
-        <div className="flex justify-center gap-3">
-          <Button onClick={() => void deliveryQuery.refetch()} type="button" variant="outline">Reintentar</Button>
-          <Link className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" href={`/records/${record.id}`}>Volver al registro</Link>
-        </div>
-      </section>
+      <LoadError
+        backHref={`/records/${record.id}`}
+        backLabel="Volver al registro"
+        message={deliveryQuery.error?.message ?? "La entrega no está disponible."}
+        onRetry={() => void deliveryQuery.refetch()}
+        title="No se pudo cargar la preparación de entrega"
+      />
     );
   }
 
@@ -181,5 +180,63 @@ function StaleDeliveryBanner({ delivery }: { delivery: Delivery }) {
         <span>Ajusta el efectivo al retorno actual y guarda: se actualiza la misma entrega.</span>
       </div>
     </div>
+  );
+}
+
+/** Loading placeholder for the delivery screen. It never paints an amount. */
+function DeliverySkeleton({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <p aria-live="polite" className="sr-only">{label}</p>
+      <div aria-hidden="true" className="flex flex-col gap-6">
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-8 w-64 max-w-full" />
+          <Skeleton className="h-6 w-80 max-w-full" />
+        </div>
+        <Skeleton className="h-44 w-full rounded-xl" />
+        <div className="space-y-3 rounded-lg border bg-card p-5 shadow-card">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-2/3" />
+        </div>
+        <div className="space-y-3 rounded-lg border bg-card p-5 shadow-card">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-3/4" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoadError({
+  title,
+  message,
+  onRetry,
+  backHref,
+  backLabel,
+}: {
+  title: string;
+  message: string;
+  onRetry: () => void;
+  backHref: string;
+  backLabel: string;
+}) {
+  return (
+    <section
+      className="flex flex-col items-center gap-4 rounded-lg border bg-card p-6 text-center shadow-card"
+      role="alert"
+    >
+      <h1 className="text-xl/7 font-semibold">{title}</h1>
+      <p className="text-sm text-muted-foreground">{message}</p>
+      <div className="flex flex-wrap justify-center gap-3">
+        <Button className="min-h-11 md:min-h-10" onClick={onRetry} type="button" variant="outline">Reintentar</Button>
+        <Link className={buttonVariants({ className: "min-h-11 md:min-h-10", variant: "outline" })} href={backHref}>
+          {backLabel}
+        </Link>
+      </div>
+    </section>
   );
 }

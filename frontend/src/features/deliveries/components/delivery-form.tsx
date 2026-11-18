@@ -206,15 +206,20 @@ export function DeliveryForm({
         return;
       }
 
-      let mapped = false;
+      // 422: each message goes next to its field; anything without a visible field goes to the banner.
+      const unmapped: string[] = [];
       for (const [field, messages] of Object.entries(error.validationErrors)) {
         if (!messages[0]) continue;
 
-        form.setError(field as FieldPath<DeliveryFormValues>, { type: "server", message: messages[0] });
-        mapped = true;
+        if (isVisibleField(field)) {
+          form.setError(field as FieldPath<DeliveryFormValues>, { type: "server", message: messages[0] });
+        } else {
+          unmapped.push(messages[0]);
+        }
       }
 
-      if (!mapped) setSaveError(error.message);
+      if (Object.keys(error.validationErrors).length === 0) setSaveError(error.message);
+      else if (unmapped.length > 0) setSaveError(unmapped.join(" "));
     }
   }
 
@@ -370,6 +375,12 @@ export function DeliveryForm({
       />
     </form>
   );
+}
+
+const visibleFields = new Set(["delivery_date", "delivered_by_name", "received_by_name"]);
+
+function isVisibleField(field: string): boolean {
+  return visibleFields.has(field) || /^denominations\.\d+\.quantity$/.test(field);
 }
 
 function BlocksBanner({ items }: { items: BlockItem[] }) {
