@@ -13,7 +13,8 @@ import {
   type Delivery,
   type DeliveryErrorDetails,
 } from "../types";
-import { centsToAmount, denominationsTotalCents, documentReturnOptions, toCents } from "../utils";
+import { centsToAmount, denominationsTotalCents, documentReturnOptions, getCashCheck, toCents } from "../utils";
+import { DeliveryCashBreakdown } from "./delivery-cash-breakdown";
 
 type DeliveryFormProps = {
   recordId: number;
@@ -71,7 +72,21 @@ export function DeliveryForm({
   const documentDifferenceCents = totalCents - toCents(documentReturnAmount);
   const cashShortfallExceedsTolerance = differenceCents < -100;
   const emptyCashForNonzeroReturn = expectedCents > 0 && totalCents === 0;
-  const customerChangeIsRequired = documentDifferenceCents > 100;
+  const denominationRows = watchedDenominations ?? buildFormValues(delivery).denominations;
+  const cash = getCashCheck({
+    officialAmount: currentReturnAmount,
+    documentAmount: documentReturnAmount,
+    denominations: denominationRows,
+  });
+
+  function handleQuantityChange(index: number, quantity: string) {
+    form.setValue(`denominations.${index}.quantity`, quantity, { shouldDirty: true });
+    onCashBreakdownChange(denominationRows.map((current, currentIndex) => ({
+      value: current.value,
+      quantity: Math.trunc(Number(currentIndex === index ? quantity : current.quantity) || 0),
+    })));
+    onCustomerWillGiveChangeChange(false);
+  }
 
   useEffect(() => {
     form.reset(buildFormValues(delivery));
@@ -164,66 +179,15 @@ export function DeliveryForm({
         </Field>
       </fieldset>
 
-      <fieldset className="space-y-4 rounded-md border p-4" disabled={isSubmitting}>
-        <legend className="px-2 font-medium">Desglose de efectivo</legend>
-        <p className="text-sm text-muted-foreground">
-          Ingresa las denominaciones oficiales. Se conserva el retorno oficial; puede haber hasta $1.00 de faltante o efectivo excedente.
-        </p>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[28rem] border-collapse text-left text-sm">
-            <caption className="sr-only">Denominaciones oficiales y cantidades</caption>
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-4 py-3 font-medium" scope="col">Denominación</th>
-                <th className="px-4 py-3 font-medium" scope="col">Cantidad</th>
-                <th className="px-4 py-3 text-right font-medium" scope="col">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(watchedDenominations ?? buildFormValues(delivery).denominations).map((denomination, index) => {
-                const quantity = Math.max(Math.trunc(Number(denomination.quantity) || 0), 0);
-                const quantityError = form.formState.errors.denominations?.[index]?.quantity?.message;
-                const quantityField = form.register(`denominations.${index}.quantity` as FieldPath<DeliveryFormValues>);
-
-                return (
-                  <tr className="border-t" key={denomination.value}>
-                    <th className="px-4 py-2 font-normal" scope="row">{formatMoney(denomination.value)}</th>
-                    <td className="px-4 py-2">
-                      <input
-                        aria-invalid={Boolean(quantityError)}
-                        aria-label={`Cantidad de ${formatMoney(denomination.value)}`}
-                        className="h-9 w-28 rounded-md border bg-background px-3 text-sm tabular-nums"
-                        id={`denomination-${index}`}
-                        inputMode="numeric"
-                        min={0}
-                        step={1}
-                        type="number"
-                        {...quantityField}
-                        onChange={(event) => {
-                          void quantityField.onChange(event);
-                          const currentDenominations = watchedDenominations ?? buildFormValues(delivery).denominations;
-                          const nextDenominations = currentDenominations.map((current, currentIndex) => currentIndex === index
-                            ? { ...current, quantity: event.target.value }
-                            : current);
-                          onCashBreakdownChange(nextDenominations.map((current) => ({
-                            value: current.value,
-                            quantity: Math.trunc(Number(current.quantity) || 0),
-                          })));
-                          onCustomerWillGiveChangeChange(false);
-                        }}
-                      />
-                      {quantityError && <p className="mt-1 text-xs text-destructive">{quantityError}</p>}
-                    </td>
-                    <td className="px-4 py-2 text-right tabular-nums">
-                      {formatMoney(centsToAmount(toCents(denomination.value) * quantity))}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </fieldset>
+      <DeliveryCashBreakdown
+        customerWillGiveChange={customerWillGiveChange}
+        denominations={denominationRows}
+        disabled={isSubmitting}
+        excessCents={cash.excessCents}
+        onCustomerWillGiveChangeChange={onCustomerWillGiveChangeChange}
+        onQuantityChange={handleQuantityChange}
+        quantityError={(index) => form.formState.errors.denominations?.[index]?.quantity?.message}
+      />
 
       <section aria-label="Conciliación del efectivo" className="grid gap-3 rounded-md border p-4 sm:grid-cols-3">
         <Info label="Retorno actual" value={formatMoney(currentReturnAmount)} />
@@ -253,23 +217,6 @@ export function DeliveryForm({
           </select>
         </label>
         <Info label="Diferencia contra importe de entrega" value={formatMoney(centsToAmount(documentDifferenceCents))} />
-        {customerChangeIsRequired && (
-          <div className="space-y-2">
-            <label className="flex items-start gap-2 text-sm" htmlFor="customer-will-give-change">
-              <input
-                checked={customerWillGiveChange}
-                className="mt-1"
-                id="customer-will-give-change"
-                onChange={(event) => onCustomerWillGiveChangeChange(event.target.checked)}
-                type="checkbox"
-              />
-              <span>El cliente dará cambio por {formatMoney(centsToAmount(documentDifferenceCents))}.</span>
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Esta confirmación se envía al generar Word y no se guarda en la preparación.
-            </p>
-          </div>
-        )}
       </fieldset>
 
       {delivery?.is_stale && (
