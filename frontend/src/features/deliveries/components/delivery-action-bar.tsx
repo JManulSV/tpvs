@@ -4,7 +4,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DeliveryReadiness } from "../utils";
 
-const actionClass = "h-11 flex-1 px-5 md:h-10 md:flex-none";
+const actionClass = "h-11 min-w-0 flex-1 px-5 md:h-10 md:flex-none";
 
 export function DeliveryActionBar({
   recordId,
@@ -42,7 +42,7 @@ export function DeliveryActionBar({
       >
         {readiness.hint}
       </p>
-      <div className="flex w-full flex-wrap gap-2 md:w-auto">
+      <div className="flex w-full gap-2 md:w-auto md:flex-wrap">
         <Link className={buttonVariants({ className: actionClass, variant: "ghost" })} href={`/records/${recordId}`}>
           Cancelar
         </Link>

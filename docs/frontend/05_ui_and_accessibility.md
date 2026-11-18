@@ -53,6 +53,15 @@ The record history is a timeline (`<ol>` with a colored dot per row, `aria-hidde
 - **Zoom:** the image zoom controls are labelled «Acercar» and «Alejar»; the level is shown as text.
 - **Origin selector:** the screen uses two option cards, not the `radiogroup` with arrow keys that SPEC 21 specifies. This is a known gap.
 
+## Delivery preparation (SPEC 22)
+
+- **Document amount:** a `role="radiogroup"` with three `role="radio"` options and `aria-checked`. Arrow keys move the selection and the focus. Only the selected option is in the Tab order (`tabIndex` 0). The selected option is styled `bg-primary text-primary-foreground`.
+- **Cash stepper:** each row has a `−` button labelled `Quitar uno de {denominación}` (disabled at 0), a numeric input labelled `Cantidad de {denominación}` with `inputmode="numeric"` and `aria-invalid` on error, and a `+` button labelled `Agregar uno de {denominación}`. Focusing the input selects its value. The input accepts typing and keeps digits only, capped at 999.
+- **Status strips:** the hero strip and the change banner use `role="status"`. The blocking banner uses `role="alert"`. Color is always paired with an icon and text.
+- **Fixed action bar:** a `role="region"` named «Acciones de la entrega». On mobile it sits above `AppBottomNav` with `bottom-[calc(5.25rem+env(safe-area-inset-bottom))]`, the same offset as the SPEC 21 save bar. From `md` it is sticky at the bottom. On mobile a spacer keeps the bar from hiding the last content.
+- **Focus:** every control shows a 2 px `focus-visible` ring with a 2 px offset (`outline-ring`), including the stepper buttons, the input, the document-amount options, and the change checkbox.
+- **Touch targets:** 44 px on mobile for stepper buttons, the cash input, document-amount options, and bar buttons. These sizes come back to 32 px / 40 px from `md`.
+
 ## Interaction States
 
 Interactive controls must communicate:

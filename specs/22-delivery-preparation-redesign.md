@@ -1,6 +1,6 @@
 # SPEC 22 — Rediseño de la preparación de entrega
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 05, SPEC 11, SPEC 12, SPEC 14, SPEC 15, SPEC 16, SPEC 20, SPEC 21
 > **Date:** 2026-11-18
 > **Objective:** Rediseñar `/records/{id}/delivery` con la plantilla `DeliveryPrepare` y los tokens de shadcn, unificando guardar y generar el Word en una sola barra de acciones, sin cambiar el backend ni las reglas de negocio.
@@ -317,41 +317,41 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 
 ## Acceptance criteria
 
-- [ ] `/records/{id}/delivery` tiene exactamente un `<h1>`: «Preparar entrega» sin entrega o con entrega vigente, y «Preparar nueva entrega» con entrega obsoleta.
-- [ ] El encabezado muestra el enlace «Registro» hacia `/records/{id}`, el estado, la fuente y la línea de periodo.
-- [ ] El hero muestra «Retorno oficial», «Documento» y «Efectivo», y su franja cambia entre «Coincide con el monto del documento», «Excede por {monto} · requiere declarar cambio» y «Faltan {monto} frente al monto del documento».
-- [ ] Con retorno `$9,800.00`, las opciones del monto del documento son `$9,800.00`, `$9,800.50` y `$9,801.00`; la primera viene seleccionada.
-- [ ] El monto del documento es un `radiogroup` y las flechas cambian la opción.
-- [ ] En una entrega nueva, «Fecha de entrega» trae la fecha de hoy y «Entrega» el nombre del usuario en sesión.
-- [ ] Cada denominación tiene `−`, input y `+`; `−` está deshabilitado en 0; el input acepta escritura manual, ignora letras y no pasa de 999.
-- [ ] Los subtotales de «Billetes» y «Monedas», el número de piezas y «Efectivo total» coinciden con las cantidades.
-- [ ] Con efectivo más de `$1.00` por debajo del retorno oficial, aparece el banner con `CASH_MISMATCH` y «Guardar entrega» está deshabilitado.
-- [ ] Con efectivo más de `$1.00` por encima del monto del documento, aparece el aviso con `CHANGE_REQUIRED` y la casilla «El cliente dará cambio · {monto} (calculado)».
-- [ ] Cambiar una cantidad o el monto del documento desmarca la casilla de cambio.
-- [ ] «Guardar entrega» no aparece cuando el formulario coincide con la entrega guardada.
-- [ ] «Generar recibo (Word)» está deshabilitado con cambios sin guardar, sin imagen, con faltante frente al documento o con excedente sin declarar.
-- [ ] La checklist muestra «Imagen asociada», «Efectivo conciliado con el retorno oficial», «Efectivo conciliado con el monto del documento», «Cambio al cliente declarado» (solo con excedente) y «Entrega guardada», con «Listo» o «Pendiente».
-- [ ] El texto de la barra coincide con `getDeliveryReadiness().hint` en cada estado, y tras descargar el Word muestra «Recibo generado.».
-- [ ] Guardar envía el mismo cuerpo de SPEC 11; tras el `200`, la barra deja de mostrar el botón de guardar.
-- [ ] Generar descarga el `.docx` con el monto del documento y la declaración de cambio elegidos.
-- [ ] Un `409 CASH_MISMATCH` al guardar muestra los importes esperado, contado y diferencia del backend.
-- [ ] Un `409 INVALID_RECORD_STATE` refresca la pantalla y la deja en solo lectura.
-- [ ] Con entrega obsoleta aparece el banner con «Retorno actual» y «Entrega preparada», y el botón dice «Actualizar entrega».
-- [ ] En un registro sin imagen, «Documento asociado» muestra el texto de la plantilla y, para `EDITOR`, «Adjuntar imagen».
-- [ ] «Adjuntar imagen» rechaza un `image/gif` o un archivo de 10 MiB + 1 byte sin petición de red.
-- [ ] Una imagen válida se sube a `POST /api/records/{id}/image`, la tarjeta la muestra y «Imagen asociada» pasa a «Listo», sin recargar la página.
-- [ ] Como `VIEWER` no hay inputs, monto del documento, checklist, barra ni «Adjuntar imagen», y aparece la nota de solo lectura.
-- [ ] En solo lectura, el desglose muestra solo las denominaciones con cantidad mayor a cero.
-- [ ] Con contenedor de 60 rem o más hay dos columnas; por debajo, una columna en el orden de «Columnas».
-- [ ] A 375 px no hay scroll horizontal, la barra queda por encima de `AppBottomNav` y no tapa el último contenido.
-- [ ] Todos los controles se alcanzan con Tab y muestran un anillo de foco de 2 px, incluidos el stepper, las opciones del monto y la casilla de cambio.
-- [ ] Los archivos nuevos o modificados de `features/deliveries/` solo usan clases de tokens, sin colores literales ni de la paleta de Tailwind.
-- [ ] `delivery-document-action.tsx` y `documentBlockedReason` ya no existen.
-- [ ] El detalle del registro sigue mostrando «Imagen recibida» igual que antes.
-- [ ] No hay cambios en `backend/`.
-- [ ] La consola no muestra advertencias de hidratación en `/records/{id}/delivery`.
-- [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
-- [ ] La documentación describe el nuevo comportamiento.
+- [x] `/records/{id}/delivery` tiene exactamente un `<h1>`: «Preparar entrega» sin entrega o con entrega vigente, y «Preparar nueva entrega» con entrega obsoleta.
+- [x] El encabezado muestra el enlace «Registro» hacia `/records/{id}`, el estado, la fuente y la línea de periodo.
+- [x] El hero muestra «Retorno oficial», «Documento» y «Efectivo», y su franja cambia entre «Coincide con el monto del documento», «Excede por {monto} · requiere declarar cambio» y «Faltan {monto} frente al monto del documento».
+- [x] Con retorno `$9,800.00`, las opciones del monto del documento son `$9,800.00`, `$9,800.50` y `$9,801.00`; la primera viene seleccionada.
+- [x] El monto del documento es un `radiogroup` y las flechas cambian la opción.
+- [x] En una entrega nueva, «Fecha de entrega» trae la fecha de hoy y «Entrega» el nombre del usuario en sesión.
+- [x] Cada denominación tiene `−`, input y `+`; `−` está deshabilitado en 0; el input acepta escritura manual, ignora letras y no pasa de 999.
+- [x] Los subtotales de «Billetes» y «Monedas», el número de piezas y «Efectivo total» coinciden con las cantidades.
+- [x] Con efectivo más de `$1.00` por debajo del retorno oficial, aparece el banner con `CASH_MISMATCH` y «Guardar entrega» está deshabilitado.
+- [x] Con efectivo más de `$1.00` por encima del monto del documento, aparece el aviso con `CHANGE_REQUIRED` y la casilla «El cliente dará cambio · {monto} (calculado)».
+- [x] Cambiar una cantidad o el monto del documento desmarca la casilla de cambio.
+- [x] «Guardar entrega» no aparece cuando el formulario coincide con la entrega guardada.
+- [x] «Generar recibo (Word)» está deshabilitado con cambios sin guardar, sin imagen, con faltante frente al documento o con excedente sin declarar.
+- [x] La checklist muestra «Imagen asociada», «Efectivo conciliado con el retorno oficial», «Efectivo conciliado con el monto del documento», «Cambio al cliente declarado» (solo con excedente) y «Entrega guardada», con «Listo» o «Pendiente».
+- [x] El texto de la barra coincide con `getDeliveryReadiness().hint` en cada estado, y tras descargar el Word muestra «Recibo generado.».
+- [x] Guardar envía el mismo cuerpo de SPEC 11; tras el `200`, la barra deja de mostrar el botón de guardar.
+- [x] Generar descarga el `.docx` con el monto del documento y la declaración de cambio elegidos.
+- [x] Un `409 CASH_MISMATCH` al guardar muestra los importes esperado, contado y diferencia del backend.
+- [x] Un `409 INVALID_RECORD_STATE` refresca la pantalla y la deja en solo lectura.
+- [x] Con entrega obsoleta aparece el banner con «Retorno actual» y «Entrega preparada», y el botón dice «Actualizar entrega».
+- [x] En un registro sin imagen, «Documento asociado» muestra el texto de la plantilla y, para `EDITOR`, «Adjuntar imagen».
+- [x] «Adjuntar imagen» rechaza un `image/gif` o un archivo de 10 MiB + 1 byte sin petición de red.
+- [x] Una imagen válida se sube a `POST /api/records/{id}/image`, la tarjeta la muestra y «Imagen asociada» pasa a «Listo», sin recargar la página.
+- [x] Como `VIEWER` no hay inputs, monto del documento, checklist, barra ni «Adjuntar imagen», y aparece la nota de solo lectura.
+- [x] En solo lectura, el desglose muestra solo las denominaciones con cantidad mayor a cero.
+- [x] Con contenedor de 60 rem o más hay dos columnas; por debajo, una columna en el orden de «Columnas».
+- [x] A 375 px no hay scroll horizontal, la barra queda por encima de `AppBottomNav` y no tapa el último contenido.
+- [x] Todos los controles se alcanzan con Tab y muestran un anillo de foco de 2 px, incluidos el stepper, las opciones del monto y la casilla de cambio.
+- [x] Los archivos nuevos o modificados de `features/deliveries/` solo usan clases de tokens, sin colores literales ni de la paleta de Tailwind.
+- [x] `delivery-document-action.tsx` y `documentBlockedReason` ya no existen.
+- [x] El detalle del registro sigue mostrando «Imagen recibida» igual que antes.
+- [x] No hay cambios en `backend/`.
+- [x] La consola no muestra advertencias de hidratación en `/records/{id}/delivery`.
+- [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
+- [x] La documentación describe el nuevo comportamiento.
 
 ## Decisions
 

@@ -247,9 +247,22 @@ If cash exceeds the selected document amount by more than $1.00:
 
 The cash table represents gross cash. The document prints the selected document amount and the calculated customer change, when applicable. The selection and declaration are sent only when generating Word; the official return remains the persisted preparation amount.
 
+### Implemented layout (SPEC 22)
+
+The screen follows the `DeliveryPrepare` template, with one component for new, stale, and read-only states:
+
+- Header with «Registro», the title «Preparar entrega» (or «Preparar nueva entrega» when stale), status, source, and period.
+- Amounts hero («Retorno oficial», «Documento», «Efectivo») with a status strip: «Coincide con el monto del documento», «Excede por … · requiere declarar cambio», or «Faltan … frente al monto del documento».
+- «Datos de la entrega», with «Entrega» prefilled from the signed-in user's name when there is no saved delivery.
+- «Monto del documento» as a radio group, and «Desglose de efectivo» in «Billetes» and «Monedas» with `−` / input / `+`.
+- «Documento asociado» and a «Para generar el recibo» checklist in the side column.
+- A single action bar: status text, «Cancelar», «Guardar entrega» / «Actualizar entrega», and «Generar recibo (Word)». It replaces the separate «Documento Word» section.
+
+Viewers, and editors on a record that is not `CONFIRMED`, see the same layout read-only, without inputs, the document amount, the checklist, or the action bar.
+
 ## 9. Record Image
 
-Current implementation (SPEC 21): the image column appears only when the record has an image. Attaching an image to a manual record or replacing an image is still out of scope.
+Current implementation (SPEC 21 and SPEC 22): the image column appears only when the record has an image. An Editor can attach an image to a manual record without one from the delivery screen (SPEC 22). Replacing an existing image is still out of scope.
 
 New decision for the MVP:
 
@@ -264,6 +277,8 @@ New decision for the MVP:
 - If the Record return changes after preparation, the UI indicates that the Delivery is stale and allows the Editor to update it.
 
 If a manual record has no image, the UI must block Word generation and ask the user to attach one first.
+
+On the delivery screen (SPEC 22), a manual record without an image shows the «Documento asociado» card with the text «Este registro se capturó de forma manual y no tiene imagen. Puedes guardar la entrega, pero el Word requiere la imagen.» and, for an Editor on a `CONFIRMED` record, an «Adjuntar imagen» button. The button checks the file type and size before uploading. Once the upload finishes, the card shows the image, the «Imagen asociada» checklist item becomes «Listo», and «Generar recibo (Word)» is enabled if the rest is ready. The record is not re-processed, and its status does not change.
 
 ## 10. Outdated Delivery
 
