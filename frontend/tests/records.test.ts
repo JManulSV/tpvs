@@ -159,6 +159,35 @@ describe("records service", () => {
     expect((body as FormData).get("image")).toBe(file);
   });
 
+  it("attaches an image to an existing record as multipart form data", async () => {
+    const file = new File(["image-bytes"], "ticket.jpg", { type: "image/jpeg" });
+    const image = { id: 5, original_file_name: "ticket.jpg", mime_type: "image/jpeg", file_size: 11, created_at: null };
+    apiClientMock.post.mockResolvedValueOnce({ data: { data: image } });
+
+    await expect(recordsService.attachImage(12, file)).resolves.toEqual(image);
+
+    const [url, body] = apiClientMock.post.mock.calls[0];
+    expect(url).toBe("records/12/image");
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get("image")).toBe(file);
+  });
+
+  it("turns a 422 on image attach into a RecordsApiError", async () => {
+    const file = new File(["gif"], "ticket.gif", { type: "image/gif" });
+    apiClientMock.post.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        status: 422,
+        data: { message: "The image must be a JPEG, PNG or WebP file.", errors: { image: ["Invalid type"] } },
+      },
+    });
+
+    const error = await recordsService.attachImage(12, file).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(RecordsApiError);
+    expect(error).toMatchObject({ status: 422, validationErrors: { image: ["Invalid type"] } });
+  });
+
   it("reports upload progress from 0 to 100 percent", async () => {
     const file = new File(["image-bytes"], "capture.png", { type: "image/png" });
     const onProgress = vi.fn();
