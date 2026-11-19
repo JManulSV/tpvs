@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useResetOnHide } from "@/hooks/use-reset-on-hide";
 import { useCompanies } from "../hooks/use-companies";
-import { CreateCompanyDialog } from "./create-company-dialog";
+import type { CompanyDetail } from "../types";
+import { CreateCompanyForm } from "./create-company-form";
 
 const PAGE_SIZE = 15;
 
@@ -12,14 +17,57 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [createdCompanyId, setCreatedCompanyId] = useState<number | null>(null);
+  const [isCreateSubmitting, setIsCreateSubmitting] = useState(false);
+  const isMobile = useIsMobile();
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const createOpenerRef = useRef<HTMLElement | null>(null);
 
-  // A later visit must not reopen the dialog or show the previous "created" message.
+  // A later visit must not reopen the form, show the previous notice or highlight a row.
   useResetOnHide(() => {
-    setIsCreateDialogOpen(false);
+    setIsCreateOpen(false);
     setSuccessMessage(null);
+    setCreatedCompanyId(null);
   });
+
+  function openCreate(event: React.MouseEvent<HTMLElement>) {
+    // Focus returns to whichever button opened the form (header, FAB or empty state).
+    createOpenerRef.current = event.currentTarget;
+    setSuccessMessage(null);
+    setCreatedCompanyId(null);
+    setIsCreateOpen(true);
+  }
+
+  function handleCreateOpenChange(open: boolean) {
+    // Escape and outside clicks must not close the container mid-request.
+    if (!open && isCreateSubmitting) return;
+    setIsCreateOpen(open);
+  }
+
+  function handleCreated(company: CompanyDetail) {
+    setIsCreateOpen(false);
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+    setCreatedCompanyId(company.id);
+    setSuccessMessage(`Creaste la empresa ${company.name}.`);
+  }
+
+  const handleSubmittingChange = useCallback((submitting: boolean) => {
+    setIsCreateSubmitting(submitting);
+  }, []);
+
+  const createForm = (
+    <CreateCompanyForm
+      inputRef={nameInputRef}
+      layout={isMobile ? "sheet" : "dialog"}
+      onCancel={() => setIsCreateOpen(false)}
+      onCreated={handleCreated}
+      onSubmittingChange={handleSubmittingChange}
+    />
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -51,8 +99,9 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
           </p>
         </div>
         {canCreate && (
-          <Button onClick={() => setIsCreateDialogOpen(true)} type="button">
-            + Nueva empresa
+          <Button className="hidden md:inline-flex" onClick={openCreate} type="button">
+            <Plus aria-hidden="true" />
+            Nueva empresa
           </Button>
         )}
       </header>
@@ -157,18 +206,51 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
         )}
       </div>
 
-      {isCreateDialogOpen && canCreate && (
-        <CreateCompanyDialog
-          onClose={() => setIsCreateDialogOpen(false)}
-          onCreated={(companyName) => {
-            setIsCreateDialogOpen(false);
-            setSearchInput("");
-            setSearch("");
-            setPage(1);
-            setSuccessMessage(`La empresa “${companyName}” se creó correctamente.`);
-          }}
-        />
+      {canCreate && (
+        <button
+          className="fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-30 inline-flex h-12 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-popover transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:hidden"
+          onClick={openCreate}
+          type="button"
+        >
+          <Plus aria-hidden="true" className="size-5" />
+          Nueva empresa
+        </button>
       )}
+
+      {canCreate &&
+        (isMobile ? (
+          <Sheet
+            disablePointerDismissal={isCreateSubmitting}
+            onOpenChange={handleCreateOpenChange}
+            open={isCreateOpen}
+          >
+            <SheetContent
+              className="gap-5 rounded-t-xl px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+              finalFocus={createOpenerRef}
+              initialFocus={nameInputRef}
+              showCloseButton={false}
+              side="bottom"
+            >
+              <span aria-hidden="true" className="h-1 w-10 self-center rounded-full bg-border" />
+              {createForm}
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Dialog
+            disablePointerDismissal={isCreateSubmitting}
+            onOpenChange={handleCreateOpenChange}
+            open={isCreateOpen}
+          >
+            <DialogContent
+              className="max-w-[calc(100%-2rem)] gap-5 rounded-xl p-6 sm:max-w-[440px]"
+              finalFocus={createOpenerRef}
+              initialFocus={nameInputRef}
+              showCloseButton={false}
+            >
+              {createForm}
+            </DialogContent>
+          </Dialog>
+        ))}
     </section>
   );
 }
