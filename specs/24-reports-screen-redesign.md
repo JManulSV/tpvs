@@ -64,26 +64,26 @@ Convenciones que no cambian:
 
 ## Acceptance criteria
 
-- [ ] `/reports` no tiene la opción «Todos» en el filtro de año.
-- [ ] Sin año seleccionado no es posible consultar; el año por defecto es el actual.
-- [ ] Cambiar cualquier filtro actualiza la URL y la consulta, y mantiene los demás filtros.
-- [ ] «Limpiar filtros» deja año actual, mes «Todos», semana «Todas» y empresa «Todas».
-- [ ] La nota «El mes se toma de la fecha de fin de la semana. Solo se incluyen registros confirmados.» aparece en la pantalla.
-- [ ] La tarjeta `Retorno` tiene estilo hero y las tres tarjetas muestran los valores de `totals`.
-- [ ] «Por empresa» tiene una fila «Total» igual a `totals`.
-- [ ] «Registros incluidos» no tiene columna de estado.
-- [ ] «Abrir» de cada registro enlaza a `/records/{id}`.
-- [ ] La lista pagina de 15 en 15 y conserva la página en la URL.
-- [ ] El botón «Generar Excel» descarga el archivo y el mensaje muestra el nombre que devolvió el servidor.
-- [ ] El botón «Generar Excel» está deshabilitado cuando no hay registros.
-- [ ] Sin registros, la pantalla muestra «No hay registros confirmados en este periodo» y el botón «Limpiar filtros».
-- [ ] Un error de carga muestra el mensaje de error y «Reintentar», y no muestra totales.
-- [ ] La pantalla se usa en 390 px sin scroll horizontal de la página.
-- [ ] `EDITOR` y `VIEWER` ven la misma pantalla y pueden generar el Excel.
-- [ ] Las pruebas Vitest de las utilidades nuevas pasan.
-- [ ] `npm test`, ESLint, TypeScript y `npm run build` pasan desde `frontend/`.
-- [ ] No hay cambios en `backend/`.
-- [ ] `docs/frontend/features/reports.md` describe la UI nueva.
+- [x] `/reports` no tiene la opción «Todos» en el filtro de año.
+- [x] Sin año seleccionado no es posible consultar; el año por defecto es el actual.
+- [x] Cambiar cualquier filtro actualiza la URL y la consulta, y mantiene los demás filtros.
+- [x] «Limpiar filtros» deja año actual, mes «Todos», semana «Todas» y empresa «Todas».
+- [x] La nota «El mes se toma de la fecha de fin de la semana. Solo se incluyen registros confirmados.» aparece en la pantalla.
+- [x] La tarjeta `Retorno` tiene estilo hero y las tres tarjetas muestran los valores de `totals`.
+- [x] «Por empresa» tiene una fila «Total» igual a `totals`.
+- [x] «Registros incluidos» no tiene columna de estado.
+- [x] «Abrir» de cada registro enlaza a `/records/{id}`.
+- [x] La lista pagina de 15 en 15 y conserva la página en la URL.
+- [x] El botón «Generar Excel» descarga el archivo y el mensaje muestra el nombre que devolvió el servidor.
+- [x] El botón «Generar Excel» está deshabilitado cuando no hay registros.
+- [x] Sin registros, la pantalla muestra «No hay registros confirmados en este periodo» y el botón «Limpiar filtros».
+- [x] Un error de carga muestra el mensaje de error y «Reintentar», y no muestra totales.
+- [x] La pantalla se usa en 390 px sin scroll horizontal de la página.
+- [x] `EDITOR` y `VIEWER` ven la misma pantalla y pueden generar el Excel.
+- [x] Las pruebas Vitest de las utilidades nuevas pasan.
+- [x] `npm test`, ESLint, TypeScript y `npm run build` pasan desde `frontend/`.
+- [x] No hay cambios en `backend/`.
+- [x] `docs/frontend/features/reports.md` describe la UI nueva.
 
 ## Decisions
 
