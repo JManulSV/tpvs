@@ -306,29 +306,20 @@ No delivery versioning or delivery states are added for the MVP. The stale prepa
 
 ## 11. Companies
 
-Simple catalog.
+Catalog of companies. Implemented layout (SPEC 23):
 
-```text
-Companies                            + New
-
-Search company...
----------------------------------------------
-Company                 Records
-Company ABC             24
-Company XYZ             18
-Company North            7
-```
-
-Create:
-
-```text
-New company
-
-Name
-[________________________]
-
-Cancel       Create
-```
+- Header: `<h1>` «Empresas», with the subtitle «Catálogo de empresas para tus registros» for `EDITOR` and «Catálogo de empresas» for `VIEWER`. The subtitle is hidden below `md`. A search field («Buscar empresa…») and, for `EDITOR` from `md`, the «Nueva empresa» button.
+- Success notice «Creaste la empresa {nombre}.» after a create, with a button «Cerrar aviso».
+- List:
+  - from a 40 rem container, a table with the columns «Empresa», «Confirmados», «Creada» (`dd/mm/aa`) and «Acción» («Ver registros»). The whole row links to `/records?company_id={id}`;
+  - below that, cards with the name, «N confirmados · creada dd/mm/aa», and «Nueva» if applicable.
+- The newly created company gets the «Nueva» badge and a highlighted background, only while it is on the visible page and until the screen is left.
+- Footer: «N empresas» (`meta.total`), the note «Los nombres no se pueden cambiar ni eliminar», and «Página X de Y» with «Anterior» and «Siguiente» when there is more than one page. On mobile the note and the pagination go below the cards.
+- Create:
+  - from `md`, a dialog with the title «Nueva empresa»;
+  - below `md`, a bottom sheet opened from a floating «Nueva empresa» button above the bottom navigation (`EDITOR` only);
+  - the field «Nombre» with the help text «Después de crearla no podrás cambiar el nombre.»; errors replace the help text.
+- States: skeleton rows while loading; a «No se pudieron cargar las empresas.» card with «Reintentar» on error; «Todavía no hay empresas en el catálogo.» (with «Nueva empresa» for `EDITOR`) when the catalog is empty; «No encontramos empresas con ese nombre» with «Limpiar búsqueda» when a search finds nothing.
 
 Decisions:
 
@@ -338,6 +329,8 @@ Decisions:
 - AI does not create companies automatically.
 - Laravel tries to associate the extracted name with an existing company.
 - Company names are not modified after creation in the MVP.
+- The count is only `CONFIRMED` records and is labelled «Confirmados». Counts for other states («por revisar») are not shown.
+- Creation date is shown in the browser's time zone, because it is an instant.
 
 ## 12. Reports
 

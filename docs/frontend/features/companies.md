@@ -2,7 +2,9 @@
 
 ## Status
 
-**Implemented and verified (2026-10-14).** Laravel list/detail/create endpoints, the same-origin BFF integration, and the basic `/companies` screen are implemented. Backend and frontend automated checks pass; browser acceptance for `EDITOR` and `VIEWER` is documented in [`../06_testing.md`](../06_testing.md) and the phase 8.5 checkpoint in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
+**Phase 8.5 implemented and verified (2026-10-14).** Laravel list/detail/create endpoints, the same-origin BFF integration, and the basic `/companies` screen are implemented.
+
+**Redesign implemented and verified (SPEC 23, 2026-11-18 to 2026-11-19).** The screen follows the `Companies`, `CompaniesNew` and `CompaniesMobile` templates. Backend `CompaniesApiTest` (371 tests in the suite) and frontend tests (255) pass, and `lint`, `tsc --noEmit` and `build` pass. Browser checks for `EDITOR` and `VIEWER` ran at desktop and 390 px, in light and dark themes. The acceptance list is in [`../../specs/23-companies-screen-redesign.md`](../../specs/23-companies-screen-redesign.md).
 
 ## Goal and Scope
 
@@ -15,11 +17,21 @@ Phase 8.5 delivers a basic, functional interface for the company workflows. The 
 Target route: `/companies`.
 
 - List and search companies.
-- Show the count of associated `CONFIRMED` records returned by the API.
+- Show the count of associated `CONFIRMED` records returned by the API, labelled «Confirmados».
 - Provide creation to `EDITOR` only.
 - Provide consultation to `VIEWER`.
-- Use a simple table and a creation dialog; keep presentation basic and use existing UI primitives.
+- Table from a 40 rem container, cards below it. The whole row links to `/records?company_id={id}`.
 - Add a link to Companies in the authenticated application shell.
+
+Feature files (`frontend/src/features/companies/`):
+
+- `components/companies-screen.tsx`: state, role split, and container selection. Receives `role`, not `canCreate`.
+- `components/companies-header.tsx`, `companies-table.tsx`, `companies-card-list.tsx`, `company-created-notice.tsx`, `company-mark.tsx`, `companies-skeleton.tsx`, `companies-empty-state.tsx`, `companies-pagination.tsx`.
+- `components/create-company-form.tsx`: the form without its container. The `Dialog` or `Sheet` wraps it in `companies-screen.tsx`, depending on `useIsMobile()`.
+- `company-list-utils.ts`: pure text and link helpers, with tests in `frontend/tests/companies.test.ts`.
+- `hooks/use-companies.ts`: `useCompanies` keeps the previous data while a new page or search loads (`keepPreviousData`).
+
+Removed: `components/create-company-dialog.tsx`, the hand-made modal with its own focus trap.
 
 ## API and Data
 
@@ -33,7 +45,9 @@ POST /api/companies { "name": "Acme" }
 
 All endpoints require authentication. Both roles can read; only `EDITOR` can create. The list supports case-insensitive substring search, trimmed to a maximum of 255 characters, and Laravel pagination ordered by company name ascending. `page` defaults to `1`; `per_page` defaults to `15` and accepts values from `1` to `100`; invalid parameters return `422`. List items have `id`, `name`, and `records_count`, where the count includes only `CONFIRMED` records. The paginated response uses Laravel's `data`, `links`, and `meta` shape.
 
-The detail response is `{ "data": { "id": 1, "name": "Acme" } }`, without a count; an unknown ID returns `404`. Creation accepts a required name of at most 255 characters and returns `201` with `{ "data": { "id": 1, "name": "Acme" } }`. Laravel trims surrounding whitespace. Names duplicated after trimming and case-insensitive comparison return `422`; PostgreSQL enforces the same uniqueness rule. The BFF's existing same-origin proxy forwards these calls without a Companies-specific route handler.
+The detail response is `{ "data": { "id": 1, "name": "Acme", "created_at": "..." } }`, without a count; an unknown ID returns `404`. Creation accepts a required name of at most 255 characters and returns `201` with the same shape.
+
+`created_at` is an ISO 8601 instant in UTC. It is present on list, detail and create responses (SPEC 23). The frontend shows it as `dd/mm/aa` in the browser's time zone with `formatShortDate`, not `formatDate`, because `formatDate` expects a `Y-m-d` calendar date. Laravel trims surrounding whitespace. Names duplicated after trimming and case-insensitive comparison return `422`; PostgreSQL enforces the same uniqueness rule. The BFF's existing same-origin proxy forwards these calls without a Companies-specific route handler.
 
 Do not add update or delete UI; those operations are out of MVP scope.
 
@@ -42,6 +56,9 @@ Do not add update or delete UI; those operations are out of MVP scope.
 - Debounce search input and return to page 1 when the search term changes.
 - After successful creation, close and reset the dialog, clear search and pagination, refresh the list, and show success feedback.
 - Keep the dialog open on validation failure and associate the backend name error with the input.
+- Translate the backend duplicate-name message in the frontend (`getCompanyNameErrorMessage`). The backend text is pinned by `CompaniesApiTest`, so a change to it breaks a test on purpose.
+- Keep the previous list visible while a page or search loads. Show the skeleton instead of an empty state when the only data is a stale empty placeholder.
+- Pagination: 15 per page, with «Página X de Y» only when there is more than one page.
 - Distinguish loading, empty catalog, no search results, request error, and mutation-pending states.
 - Keep the interface basic and functional in Spanish. The official UI/UX and visual refinement belong to phase 8.15.
 

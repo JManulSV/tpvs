@@ -1,6 +1,6 @@
 # SPEC 23 — Rediseño de la pantalla de Empresas
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 03, SPEC 15, SPEC 16, SPEC 19
 > **Date:** 2026-11-18
 > **Objective:** Rediseñar `/companies` con las plantillas `Companies`, `CompaniesNew` y `CompaniesMobile` y los tokens de shadcn, dentro del shell existente, agregando solo `created_at` al recurso de empresas.
@@ -313,36 +313,36 @@ El backend sigue siendo la autoridad. Un `VIEWER` que llama `POST /api/companies
 
 ## Acceptance criteria
 
-- [ ] `GET /api/companies`, `GET /api/companies/{id}` y `POST /api/companies` incluyen `created_at` en ISO 8601. `records_count` no cambia.
-- [ ] La suite backend pasa usando `tpvs_test`.
-- [ ] `/companies` no tiene colores literales. Solo usa tokens de SPEC 15 y primitivos de `components/ui`.
-- [ ] La página no repite el sidebar, el topbar, la barra inferior ni las notificaciones del shell.
-- [ ] Desde un contenedor de 40 rem se ve una tabla `Empresa · Confirmados · Creada · Acción` sin scroll horizontal. Por debajo se ven tarjetas.
-- [ ] A 390 px la página no tiene scroll horizontal.
-- [ ] La fecha de creación se muestra como `dd/mm/aa`.
-- [ ] Una empresa con `records_count = 0` muestra «0» en `text-muted-foreground`.
-- [ ] Hacer clic en cualquier parte de una fila o tarjeta navega a `/records?company_id={id}`, y Registros muestra el filtro de esa empresa.
-- [ ] Con Tab se llega una vez a cada fila, con un anillo de foco visible y `aria-label` «Ver registros de {nombre}».
-- [ ] Escribir en el buscador filtra tras 300 ms y vuelve a la página 1.
-- [ ] Sin resultados se ve «No encontramos empresas con ese nombre», y «Limpiar búsqueda» restablece la lista.
-- [ ] Con más de 15 empresas aparece «Página X de Y». «Anterior» y «Siguiente» se deshabilitan en los extremos y mientras se carga.
-- [ ] El pie muestra «N empresas» con `meta.total` (singular con 1) y «Los nombres no se pueden cambiar ni eliminar».
-- [ ] `VIEWER` no ve «Nueva empresa» en el encabezado, ni el FAB, ni en el catálogo vacío. Su subtítulo es «Catálogo de empresas».
-- [ ] Desde `md`, «Nueva empresa» abre un `Dialog`. Por debajo de `md`, el FAB abre un `Sheet` inferior.
-- [ ] El input recibe el foco al abrir. Al cerrar, el foco vuelve al botón que abrió el alta.
-- [ ] Enviar vacío muestra «Escribe el nombre de la empresa.» sin llamar a la API.
-- [ ] Crear un nombre duplicado (con otras mayúsculas o espacios externos) muestra «Ya existe una empresa con ese nombre.» en el campo, y el contenedor sigue abierto.
-- [ ] Mientras se envía, el botón dice «Creando…» y ni `Escape` ni un clic fuera cierran el contenedor.
-- [ ] Una alta correcta cierra el contenedor, limpia la búsqueda, vuelve a la página 1 y muestra «Creaste la empresa {nombre}.».
-- [ ] Si la nueva empresa está en la página visible, su fila tiene fondo `bg-accent` y la insignia «Nueva».
-- [ ] El aviso se cierra con su botón `X`.
-- [ ] Al salir de `/companies` y volver, el alta está cerrada, no hay aviso y ninguna fila lleva «Nueva».
-- [ ] La carga muestra skeletons y nunca «0 empresas».
-- [ ] Un error muestra «No se pudieron cargar las empresas.» y «Reintentar» vuelve a consultar.
-- [ ] `create-company-dialog.tsx` ya no existe y no queda ningún *focus trap* manual en `features/companies`.
-- [ ] Las utilidades de `company-list-utils.ts` y `formatShortDate` tienen pruebas unitarias que pasan.
-- [ ] Pasan `npm test`, `npm run lint`, `npx tsc --noEmit` y `npm run build`.
-- [ ] La pantalla se lee bien en tema claro y oscuro.
+- [x] `GET /api/companies`, `GET /api/companies/{id}` y `POST /api/companies` incluyen `created_at` en ISO 8601. `records_count` no cambia.
+- [x] La suite backend pasa usando `tpvs_test`.
+- [x] `/companies` no tiene colores literales. Solo usa tokens de SPEC 15 y primitivos de `components/ui`.
+- [x] La página no repite el sidebar, el topbar, la barra inferior ni las notificaciones del shell.
+- [x] Desde un contenedor de 40 rem se ve una tabla `Empresa · Confirmados · Creada · Acción` sin scroll horizontal. Por debajo se ven tarjetas.
+- [x] A 390 px la página no tiene scroll horizontal.
+- [x] La fecha de creación se muestra como `dd/mm/aa`.
+- [x] Una empresa con `records_count = 0` muestra «0» en `text-muted-foreground`.
+- [x] Hacer clic en cualquier parte de una fila o tarjeta navega a `/records?company_id={id}`, y Registros muestra el filtro de esa empresa.
+- [x] Con Tab se llega una vez a cada fila, con un anillo de foco visible y `aria-label` «Ver registros de {nombre}».
+- [x] Escribir en el buscador filtra tras 300 ms y vuelve a la página 1.
+- [x] Sin resultados se ve «No encontramos empresas con ese nombre», y «Limpiar búsqueda» restablece la lista.
+- [x] Con más de 15 empresas aparece «Página X de Y». «Anterior» y «Siguiente» se deshabilitan en los extremos y mientras se carga.
+- [x] El pie muestra «N empresas» con `meta.total` (singular con 1) y «Los nombres no se pueden cambiar ni eliminar».
+- [x] `VIEWER` no ve «Nueva empresa» en el encabezado, ni el FAB, ni en el catálogo vacío. Su subtítulo es «Catálogo de empresas».
+- [x] Desde `md`, «Nueva empresa» abre un `Dialog`. Por debajo de `md`, el FAB abre un `Sheet` inferior.
+- [x] El input recibe el foco al abrir. Al cerrar, el foco vuelve al botón que abrió el alta.
+- [x] Enviar vacío muestra «Escribe el nombre de la empresa.» sin llamar a la API.
+- [x] Crear un nombre duplicado (con otras mayúsculas o espacios externos) muestra «Ya existe una empresa con ese nombre.» en el campo, y el contenedor sigue abierto.
+- [x] Mientras se envía, el botón dice «Creando…» y ni `Escape` ni un clic fuera cierran el contenedor.
+- [x] Una alta correcta cierra el contenedor, limpia la búsqueda, vuelve a la página 1 y muestra «Creaste la empresa {nombre}.».
+- [x] Si la nueva empresa está en la página visible, su fila tiene fondo `bg-accent` y la insignia «Nueva».
+- [x] El aviso se cierra con su botón `X`.
+- [x] Al salir de `/companies` y volver, el alta está cerrada, no hay aviso y ninguna fila lleva «Nueva».
+- [x] La carga muestra skeletons y nunca «0 empresas».
+- [x] Un error muestra «No se pudieron cargar las empresas.» y «Reintentar» vuelve a consultar.
+- [x] `create-company-dialog.tsx` ya no existe y no queda ningún *focus trap* manual en `features/companies`.
+- [x] Las utilidades de `company-list-utils.ts` y `formatShortDate` tienen pruebas unitarias que pasan.
+- [x] Pasan `npm test`, `npm run lint`, `npx tsc --noEmit` y `npm run build`.
+- [x] La pantalla se lee bien en tema claro y oscuro.
 
 ## Decisions
 
