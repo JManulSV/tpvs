@@ -1,0 +1,382 @@
+<!doctype html>
+<meta charset="utf-8"><style data-dc-design-system-vars>@layer{:root{--brand-navy:#324168;--brand-sky:#64b3dd;--brand-sky-soft:#e3f1fa;--canvas:#eef3f8;--surface:#ffffff;--surface-muted:#f5f8fc;--border:#dbe4ee;--border-strong:#6f819c;--ink:#17203a;--ink-muted:#4f5b77;--primary:#324168;--primary-hover:#28345a;--on-primary:#ffffff;--accent:#64b3dd;--on-accent:#17203a;--accent-soft:#e3f1fa;--accent-soft-ink:#1b5c85;--ring:#324168;--danger:#b3261e;--on-danger:#ffffff;--hero:#324168;--on-hero:#ffffff;--chart-1:#324168;--chart-2:#2f88ba;--status-confirmed:#0f6b3a;--status-confirmed-bg:#e3f5ea;--status-needs-review:#8a4b00;--status-needs-review-bg:#fdf0d8;--status-error:#a3202a;--status-error-bg:#fce6e7;--status-processing:#4d3fa3;--status-processing-bg:#ece9fb;--status-pending:#46526c;--status-pending-bg:#e8edf4;--status-canceled:#5b6478;--status-canceled-bg:#eef0f4;--shadow-card:0 1px 2px rgba(23, 32, 58, 0.05), 0 4px 16px rgba(23, 32, 58, 0.04);--shadow-popover:0 8px 32px rgba(23, 32, 58, 0.14);--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-12:48px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-pill:999px;--font-sans:"Plus Jakarta Sans", system-ui, sans-serif;--font-mono:"JetBrains Mono", ui-monospace, monospace;--text-display-lg:700 32px/40px var(--font-sans);--text-display-md:700 24px/32px var(--font-sans);--text-heading-lg:700 20px/28px var(--font-sans);--text-heading-md:600 16px/24px var(--font-sans);--text-body:400 14px/20px var(--font-sans);--text-body-strong:600 14px/20px var(--font-sans);--text-caption:500 12px/16px var(--font-sans);--text-overline:600 11px/16px var(--font-sans);--text-figure-lg:700 28px/36px var(--font-sans);--text-figure-md:600 16px/24px var(--font-sans);--text-code:400 13px/20px var(--font-mono);}}</style>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reportes</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+:root{--brand-navy:#324168;--brand-sky:#64B3DD;--canvas:#EEF3F8;--surface:#FFFFFF;--surface-muted:#F5F8FC;--border:#DBE4EE;--border-strong:#6F819C;--ink:#17203A;--ink-muted:#4F5B77;--primary:#324168;--primary-hover:#28345A;--on-primary:#FFFFFF;--accent-soft:#E3F1FA;--accent-soft-ink:#1B5C85;--ring:#324168;--hero:#324168;--on-hero:#FFFFFF;--hero-ink-muted:#C7D0E4;--hero-hover:rgba(255,255,255,.10);--status-confirmed:#0F6B3A;--status-confirmed-bg:#E3F5EA;--status-needs-review:#8A4B00;--status-needs-review-bg:#FDF0D8;--status-error:#A3202A;--status-error-bg:#FCE6E7;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-pill:999px;--shadow-card:0 1px 2px rgba(23,32,58,.05),0 4px 16px rgba(23,32,58,.04);--shadow-popover:0 8px 32px rgba(23,32,58,.14);--font-sans:"Plus Jakarta Sans",system-ui,sans-serif}
+.root{box-sizing:border-box;min-height:900px;display:flex;flex-wrap:wrap;align-items:stretch;background:var(--canvas);color:var(--ink);font-family:var(--font-sans);font-size:14px;line-height:20px}
+.root *,.root *::before,.root *::after{box-sizing:border-box}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.side{flex:none;display:flex;flex-direction:column;gap:4px;width:256px;padding:24px 16px;background:var(--hero);color:var(--on-hero)}
+.brand{padding:4px 12px 24px;font:700 24px/32px var(--font-sans);letter-spacing:-.01em}
+.nav-label{padding:16px 12px 8px;font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--hero-ink-muted)}
+.nav-item{display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 12px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--hero-ink-muted);font:600 14px/20px var(--font-sans);text-align:left;cursor:pointer;transition:background-color .15s ease}
+.nav-item:hover{background:var(--hero-hover);color:var(--on-hero)}
+.nav-item:focus-visible{outline:2px solid var(--brand-sky);outline-offset:2px}
+.nav-item[aria-current="page"]{background:var(--on-hero);color:var(--primary)}
+.nav-item .ic{width:20px;height:20px}
+.nav-count{margin-left:auto;min-width:22px;height:22px;padding:0 6px;display:grid;place-items:center;border-radius:var(--radius-pill);background:var(--status-needs-review-bg);color:var(--status-needs-review);font:700 12px/16px var(--font-sans)}
+.avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:var(--radius-pill);background:var(--brand-sky);color:var(--ink);font:700 13px/16px var(--font-sans)}
+.main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:24px;padding:32px 40px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 20px;border:1px solid transparent;border-radius:var(--radius-pill);background:var(--primary);color:var(--on-primary);font:600 14px/20px var(--font-sans);cursor:pointer;transition:background-color .15s ease}
+.btn:hover{background:var(--primary-hover)}
+.btn:disabled{background:var(--surface-muted);color:var(--ink-muted);border-color:var(--border);cursor:not-allowed}
+.btn.soft{background:var(--accent-soft);color:var(--accent-soft-ink)}
+.btn.soft:hover{border-color:var(--accent-soft-ink);background:var(--accent-soft)}
+.btn:focus-visible,.icon-btn:focus-visible,.clear:focus-visible,.x:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.icon-btn{display:grid;place-items:center;width:40px;height:40px;border-radius:var(--radius-pill);background:var(--surface);color:var(--ink-muted);cursor:pointer;border:1px solid var(--border);transition:background-color .15s ease}
+.icon-btn:hover{background:var(--surface-muted);color:var(--ink)}
+.icon-btn .ic{width:20px;height:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card)}
+.fgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px}
+@media (max-width:1100px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.f{display:flex;flex-direction:column;gap:6px}
+.fl{font:600 12px/16px var(--font-sans);color:var(--ink-muted)}
+.sel{position:relative;display:block}
+.sel select{appearance:none;-webkit-appearance:none;width:100%;height:40px;padding:0 40px 0 16px;border:1px solid var(--border-strong);border-radius:var(--radius-pill);background:var(--surface);color:var(--ink);font:500 14px/20px var(--font-sans);cursor:pointer}
+.sel select:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.sel .ic{position:absolute;right:14px;top:12px;pointer-events:none;color:var(--ink-muted)}
+.clear{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--accent-soft-ink);font:600 13px/16px var(--font-sans);cursor:pointer}
+.clear:hover{background:var(--accent-soft)}
+.spin{animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.alert{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:var(--radius-md);background:var(--status-confirmed-bg);color:var(--status-confirmed);font:500 14px/20px var(--font-sans)}
+.alert .ic{width:20px;height:20px}
+.alert .x{margin-left:auto;display:grid;place-items:center;width:28px;height:28px;margin-top:-4px;margin-right:-8px;border:0;border-radius:var(--radius-pill);background:transparent;color:inherit;cursor:pointer}
+.alert .x:hover{background:rgba(15,107,58,.10)}
+.mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.mgrid{grid-template-columns:1fr}}
+.met{display:flex;flex-direction:column;gap:12px;padding:20px 24px}
+.met .top{display:flex;align-items:center;gap:12px}
+.met .mi{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:var(--radius-md);background:var(--accent-soft);color:var(--accent-soft-ink)}
+.met .mi .ic{width:20px;height:20px}
+.met .ml{font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+.met .mv{font:700 28px/36px var(--font-sans);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.met.hero{background:var(--hero);border-color:var(--hero);color:var(--on-hero)}
+.met.hero .mi{background:var(--hero-hover);color:var(--on-hero)}
+.met.hero .ml{color:var(--hero-ink-muted)}
+.tbl-wrap{overflow-x:auto}
+.gt{min-width:720px}
+.gh,.gr,.gf{display:grid;align-items:center;column-gap:16px;padding:0 24px}
+.g1{grid-template-columns:minmax(200px,2fr) 100px minmax(110px,1fr) minmax(110px,1fr) minmax(120px,1fr)}
+.g2{grid-template-columns:minmax(200px,2fr) 96px 128px minmax(120px,1fr) 132px 24px}
+.gh{height:40px;background:var(--surface-muted);border-top:1px solid var(--border);border-bottom:1px solid var(--border);font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+.gr{position:relative;min-height:56px;border-bottom:1px solid var(--border);transition:background-color .15s ease}
+.gr:hover{background:var(--surface-muted)}
+.gf{min-height:52px;background:var(--surface-muted);font-weight:700}
+.num{text-align:right;font:600 14px/20px var(--font-sans);font-variant-numeric:tabular-nums}
+.num.mu{font-weight:500;color:var(--ink-muted)}
+.mu{color:var(--ink-muted);font-variant-numeric:tabular-nums}
+.rl{color:var(--ink);text-decoration:none;font:600 14px/20px var(--font-sans)}
+.rl::after{content:"";position:absolute;inset:0}
+.rl:focus-visible{outline:none}
+.rl:focus-visible::after{outline:2px solid var(--ring);outline-offset:-2px;border-radius:var(--radius-sm)}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:var(--radius-pill);background:var(--status-confirmed-bg);color:var(--status-confirmed);font:600 12px/16px var(--font-sans);white-space:nowrap}
+.chev{color:var(--ink-muted);justify-self:end}
+.sec{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 24px 16px}
+.sec h2{margin:0;font:600 16px/24px var(--font-sans)}
+.sec span{color:var(--ink-muted);font:500 13px/20px var(--font-sans)}
+.empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:56px 24px;text-align:center}
+.empty .badge{display:grid;place-items:center;width:48px;height:48px;border-radius:var(--radius-md);background:var(--accent-soft);color:var(--accent-soft-ink)}
+.empty .badge .ic{width:24px;height:24px}
+</style>
+</helmet>
+<div class="root">
+  <nav class="side" aria-label="Principal">
+    <div class="brand">Tpvs</div>
+    <div class="nav-label">Sistema</div>
+    <button type="button" class="nav-item" aria-current="false">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+      Dashboard
+    </button>
+    <button type="button" class="nav-item" aria-current="false">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8"></path></svg>
+      Registros
+      <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ true }}">
+        <span class="nav-count" aria-label="4 registros por revisar">4</span>
+      </sc-if>
+    </button>
+    <button type="button" class="nav-item" aria-current="false">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg>
+      Empresas
+    </button>
+    <button type="button" class="nav-item" aria-current="page">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"></path></svg>
+      Reportes
+    </button>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding-top: 24px">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-top: 1px solid var(--hero-hover)">
+        <span class="avatar" aria-hidden="true">{{ initials }}</span>
+        <span><span style="display: block; font-weight: 600">{{ userName }}</span><span style="display: block; font: 500 12px/16px var(--font-sans); color: var(--hero-ink-muted)">{{ roleLabel }}</span></span>
+      </div>
+      <button type="button" class="nav-item">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg>
+        Cerrar sesión
+      </button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px">
+      <div style="display: flex; flex-direction: column; gap: 4px; margin-right: auto">
+        <h1 style="margin: 0; font: 700 24px/32px var(--font-sans); letter-spacing: -0.01em">Reportes</h1>
+        <span style="color: var(--ink-muted)">Totales oficiales de los registros confirmados</span>
+      </div>
+      <button type="button" class="icon-btn" aria-label="Notificaciones">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+      </button>
+    </header>
+
+    <section class="card" aria-label="Filtros" style="display: flex; flex-direction: column; gap: 16px; padding: 20px 24px">
+      <div class="fgrid">
+        <label class="f"><span class="fl">Año</span><span class="sel"><select value="{{ f.year }}" onChange="{{ on.year }}"><option value="all">Todos</option><option value="2026">2026</option><option value="2025">2025</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+        <label class="f"><span class="fl">Mes</span><span class="sel"><select value="{{ f.month }}" onChange="{{ on.month }}"><option value="all">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+        <label class="f"><span class="fl">Semana</span><span class="sel"><select value="{{ f.week }}" onChange="{{ on.week }}"><option value="all">Todas</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option><option value="46">46</option><option value="47">47</option><option value="48">48</option><option value="49">49</option><option value="50">50</option><option value="51">51</option><option value="52">52</option><option value="53">53</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+        <label class="f"><span class="fl">Empresa</span><span class="sel"><select value="{{ f.company }}" onChange="{{ on.company }}"><option value="all">Todas</option><option value="Company ABC">Company ABC</option><option value="Company Delta">Company Delta</option><option value="Company North">Company North</option><option value="Company Oriente">Company Oriente</option><option value="Company Sur">Company Sur</option><option value="Company XYZ">Company XYZ</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px">
+        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+          <span style="font: 500 12px/16px var(--font-sans); color: var(--ink-muted)">El mes se toma de la fecha de fin de la semana. Solo se incluyen registros confirmados.</span>
+          <span style="font: 500 12px/16px var(--font-sans); color: var(--ink-muted)">Archivo: <strong style="color: var(--ink)">{{ file }}</strong> · 4 hojas: resumen, registros, detalles y efectivo</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}">
+            <button type="button" class="clear" onClick="{{ clear }}">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+              Limpiar filtros
+            </button>
+          </sc-if>
+          <button type="button" class="btn" disabled="{{ genDisabled }}" onClick="{{ generate }}">
+            <sc-if value="{{ isIdle }}" hint-placeholder-val="{{ true }}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M12 15V3M7 10l5 5 5-5"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg></sc-if>
+            <sc-if value="{{ isWorking }}" hint-placeholder-val="{{ false }}"><svg class="ic spin" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg></sc-if>
+            {{ btnLabel }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <sc-if value="{{ showOk }}" hint-placeholder-val="{{ false }}">
+      <div class="alert" role="status">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg>
+        <span>Se generó y descargó <strong>{{ file }}</strong>.</span>
+        <button type="button" class="x" aria-label="Cerrar aviso" onClick="{{ closeOk }}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+      </div>
+    </sc-if>
+
+    <section aria-label="Resumen del periodo" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px">
+        <h2 style="margin: 0; font: 700 20px/28px var(--font-sans); letter-spacing: -0.01em">{{ title }}</h2>
+        <span style="color: var(--ink-muted); font: 500 13px/20px var(--font-sans)">{{ sub }}</span>
+      </div>
+      <div class="mgrid">
+        <div class="card met">
+          <div class="top"><span class="mi" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg></span><span class="ml">Ingreso</span></div>
+          <span class="mv">{{ m.inc }}</span>
+        </div>
+        <div class="card met">
+          <div class="top"><span class="mi" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><line x1="19" x2="5" y1="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg></span><span class="ml">Comisión</span></div>
+          <span class="mv">{{ m.com }}</span>
+        </div>
+        <div class="card met hero">
+          <div class="top"><span class="mi" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"></path></svg></span><span class="ml">Retorno</span></div>
+          <span class="mv">{{ m.ret }}</span>
+        </div>
+      </div>
+    </section>
+
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <section class="card">
+        <div class="empty">
+          <span class="badge"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"></path></svg></span>
+          <h2 style="margin: 0; font: 600 16px/24px var(--font-sans)">No hay registros confirmados en este periodo</h2>
+          <p style="margin: 0; color: var(--ink-muted)">Prueba con otra semana, otro mes u otra empresa. Los registros pendientes o por revisar no cuentan en los reportes.</p>
+          <button type="button" class="btn soft" style="margin-top: 8px" onClick="{{ clear }}">Limpiar filtros</button>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ hasData }}" hint-placeholder-val="{{ true }}">
+      <section class="card" aria-label="Totales por empresa" style="overflow: hidden">
+        <div class="sec"><h2>Por empresa</h2><span>{{ compCount }}</span></div>
+        <div class="tbl-wrap">
+          <div class="gt" role="table" aria-label="Totales por empresa">
+            <div class="gh g1" role="row">
+              <div role="columnheader">Empresa</div>
+              <div role="columnheader" style="text-align: right">Registros</div>
+              <div role="columnheader" style="text-align: right">Ingreso</div>
+              <div role="columnheader" style="text-align: right">Comisión</div>
+              <div role="columnheader" style="text-align: right">Retorno</div>
+            </div>
+            <div role="rowgroup">
+              <sc-for list="{{ comps }}" as="c" hint-placeholder-count="3">
+                <div class="gr g1" role="row">
+                  <div role="cell" style="font-weight: 600">{{ c.name }}</div>
+                  <div role="cell" class="num mu">{{ c.n }}</div>
+                  <div role="cell" class="num mu">{{ c.inc }}</div>
+                  <div role="cell" class="num mu">{{ c.com }}</div>
+                  <div role="cell" class="num">{{ c.ret }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div class="gf g1" role="row">
+              <div role="cell">Total</div>
+              <div role="cell" class="num" style="font-weight: 700">{{ m.n }}</div>
+              <div role="cell" class="num" style="font-weight: 700">{{ m.inc }}</div>
+              <div role="cell" class="num" style="font-weight: 700">{{ m.com }}</div>
+              <div role="cell" class="num" style="font-weight: 700">{{ m.ret }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="Registros incluidos" style="overflow: hidden">
+        <div class="sec"><h2>Registros incluidos</h2><span>Solo confirmados</span></div>
+        <div class="tbl-wrap">
+          <div class="gt" role="table" aria-label="Registros incluidos">
+            <div class="gh g2" role="row">
+              <div role="columnheader">Empresa</div>
+              <div role="columnheader">Semana</div>
+              <div role="columnheader">Fin de semana</div>
+              <div role="columnheader" style="text-align: right">Retorno</div>
+              <div role="columnheader">Estado</div>
+              <div role="columnheader"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Abrir</span></div>
+            </div>
+            <div role="rowgroup">
+              <sc-for list="{{ recs }}" as="r" hint-placeholder-count="5">
+                <div class="gr g2" role="row">
+                  <div role="cell"><a class="rl" href="{{ href }}" aria-label="{{ r.aria }}">{{ r.company }}</a></div>
+                  <div role="cell"><span style="display: block; font-weight: 600; font-variant-numeric: tabular-nums">{{ r.week }}</span><span style="display: block; font: 500 12px/16px var(--font-sans); color: var(--ink-muted)">{{ r.year }}</span></div>
+                  <div role="cell" class="mu">{{ r.end }}</div>
+                  <div role="cell" class="num">{{ r.ret }}</div>
+                  <div role="cell"><span class="pill">Confirmado</span></div>
+                  <div role="cell" class="chev"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 20px; height: 20px"><path d="m9 18 6-6-6-6"></path></svg></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"rol":{"editor":"enum","options":["editor","viewer"],"default":"editor","section":"Usuario"},"nombre":{"editor":"text","default":"María López","section":"Usuario"},"$preview":{"width":1440,"height":1500}}'>
+
+// empresa, año, semana, inicio, fin, ingreso, comisión (solo registros CONFIRMED)
+const DATA = [
+  ['c01', 'Company ABC', 2026, 38, '2026-09-09', '2026-09-15', 7500, 300],
+  ['c02', 'Company North', 2026, 38, '2026-09-09', '2026-09-15', 3600, 150],
+  ['c03', 'Company XYZ', 2026, 38, '2026-09-09', '2026-09-15', 10000, 200],
+  ['c04', 'Company ABC', 2026, 37, '2026-09-02', '2026-09-08', 5750, 250],
+  ['c05', 'Company Delta', 2026, 37, '2026-09-02', '2026-09-08', 4400, 200],
+  ['c06', 'Company XYZ', 2026, 36, '2026-08-26', '2026-09-01', 6600, 290],
+  ['c07', 'Company North', 2026, 36, '2026-08-26', '2026-09-01', 3000, 100],
+  ['c08', 'Company ABC', 2026, 35, '2026-08-19', '2026-08-25', 9500, 380],
+  ['c09', 'Company Delta', 2026, 35, '2026-08-19', '2026-08-25', 4000, 200],
+  ['c10', 'Company ABC', 2025, 51, '2025-12-16', '2025-12-22', 5200, 200]
+];
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const money = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDate = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4);
+const dShort = (iso) => parseInt(iso.slice(8, 10), 10) + ' ' + SHORT[parseInt(iso.slice(5, 7), 10) - 1];
+const INITIAL = { year: '2026', month: '09', week: 'all', company: 'all' };
+
+function compute(s) {
+  const list = DATA.filter((d) => {
+    if (s.year !== 'all' && String(d[2]) !== s.year) return false;
+    if (s.month !== 'all' && d[5].slice(5, 7) !== s.month) return false;
+    if (s.week !== 'all' && String(d[3]) !== s.week) return false;
+    if (s.company !== 'all' && d[1] !== s.company) return false;
+    return true;
+  });
+  list.sort((a, b) => (a[5] < b[5] ? 1 : a[5] > b[5] ? -1 : a[1].localeCompare(b[1], 'es')));
+  let inc = 0, com = 0;
+  const by = {};
+  const weeks = {};
+  list.forEach((d) => {
+    inc += d[6]; com += d[7];
+    if (!by[d[1]]) by[d[1]] = { name: d[1], n: 0, inc: 0, com: 0 };
+    by[d[1]].n += 1; by[d[1]].inc += d[6]; by[d[1]].com += d[7];
+    weeks[d[2] + '-' + d[3]] = [d[4], d[5]];
+  });
+  const comps = Object.keys(by).sort((a, b) => a.localeCompare(b, 'es')).map((k) => by[k]);
+  const nWeeks = Object.keys(weeks).length;
+  let title, sub, file;
+  const y = s.year === 'all' ? '' : s.year;
+  if (s.week !== 'all') {
+    const w = list.length ? list[0] : null;
+    title = 'Semana ' + s.week + (w ? ' · ' + dShort(w[4]) + ' – ' + dShort(w[5]) : '');
+    file = 'Reporte_Semana_' + s.week + (y ? '_' + y : '') + '.xlsx';
+  } else if (s.month !== 'all') {
+    const mn = MONTHS[parseInt(s.month, 10) - 1];
+    title = cap(mn) + (y ? ' ' + y : '');
+    file = 'Reporte_' + cap(mn) + (y ? '_' + y : '') + '.xlsx';
+  } else if (y) {
+    title = 'Año ' + y;
+    file = 'Reporte_' + y + '.xlsx';
+  } else {
+    title = 'Todos los periodos';
+    file = 'Reporte_General.xlsx';
+  }
+  sub = list.length + (list.length === 1 ? ' registro confirmado' : ' registros confirmados') + (s.week === 'all' && nWeeks ? ' · ' + nWeeks + (nWeeks === 1 ? ' semana' : ' semanas') : '');
+  return { list: list, inc: inc, com: com, ret: inc - com, comps: comps, title: title, sub: sub, file: file };
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = Object.assign({ gen: 'idle' }, INITIAL);
+  }
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const s = this.state;
+    const isEditor = (this.props.rol || 'editor') === 'editor';
+    const r = compute(s);
+    const set = (k) => (e) => { clearTimeout(this._t); this.setState({ [k]: e.target.value, gen: 'idle' }); };
+    const on = { year: set('year'), month: set('month'), week: set('week'), company: set('company') };
+    const hasFilters = Object.keys(INITIAL).some((k) => s[k] !== INITIAL[k]);
+    const name = this.props.nombre ?? 'María López';
+    const initials = name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+    const empty = r.list.length === 0;
+    const generate = () => {
+      if (empty || s.gen === 'working') return;
+      this.setState({ gen: 'working' });
+      this._t = setTimeout(() => this.setState({ gen: 'done' }), 1200);
+    };
+    return {
+      isEditor: isEditor, userName: name, initials: initials, roleLabel: isEditor ? 'Editor' : 'Viewer',
+      f: { year: s.year, month: s.month, week: s.week, company: s.company },
+      on: on, hasFilters: hasFilters,
+      clear: () => { clearTimeout(this._t); this.setState(Object.assign({ gen: 'idle' }, INITIAL)); },
+      file: r.file, title: r.title, sub: r.sub,
+      generate: generate,
+      genDisabled: empty || s.gen === 'working',
+      isIdle: s.gen !== 'working', isWorking: s.gen === 'working',
+      btnLabel: s.gen === 'working' ? 'Generando…' : 'Generar Excel',
+      showOk: s.gen === 'done' && !empty,
+      closeOk: () => this.setState({ gen: 'idle' }),
+      m: { inc: money(r.inc), com: money(r.com), ret: money(r.ret), n: r.list.length },
+      isEmpty: empty, hasData: !empty,
+      compCount: r.comps.length + (r.comps.length === 1 ? ' empresa' : ' empresas'),
+      comps: r.comps.map((c) => ({ name: c.name, n: String(c.n), inc: money(c.inc), com: money(c.com), ret: money(c.inc - c.com) })),
+      href: isEditor ? 'RecordDetailEditorConfirmed.dc.html' : 'RecordDetailViewer.dc.html',
+      recs: r.list.map((d) => ({ company: d[1], aria: 'Abrir registro de ' + d[1] + ', semana ' + d[3], week: String(d[3]), year: String(d[2]), end: fmtDate(d[5]), ret: money(d[6] - d[7]) }))
+    };
+  }
+}
+</script>
+</body>
+</html>
