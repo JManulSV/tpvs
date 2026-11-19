@@ -69,7 +69,7 @@ export function ReportsScreen() {
         </div>
       )}
 
-      {report && meta && (
+      {report && meta && !query.isError && (
         <>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <ReportPeriod period={report.period} week={report.filters.week} />
@@ -82,9 +82,20 @@ export function ReportsScreen() {
           </div>
 
           {report.totals.records_count === 0 ? (
-            <p className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
-              No hay registros confirmados para estos filtros.
-            </p>
+            <section
+              aria-labelledby="report-empty-heading"
+              className="flex flex-col items-center gap-3 rounded-lg border bg-card px-6 py-12 text-center shadow-card"
+            >
+              <h2 className="text-base font-semibold" id="report-empty-heading">
+                No hay registros confirmados en este periodo
+              </h2>
+              <p className="max-w-md text-sm text-muted-foreground">
+                Prueba con otra semana, otro mes u otra empresa. Los registros pendientes o por revisar no cuentan en los reportes.
+              </p>
+              <Button onClick={() => navigate({ year: new Date().getFullYear() })} type="button" variant="outline">
+                Limpiar filtros
+              </Button>
+            </section>
           ) : (
             <>
               <ReportTotalsCards totals={report.totals} />
