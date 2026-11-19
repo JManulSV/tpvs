@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
 import { useDownloadReportExcel, useReport } from "../hooks/use-reports";
 import { ReportsApiError, type ReportFilters } from "../types";
-import { parseReportSearch, toReportSearchParams } from "../utils";
+import { clearedReportFilters, parseReportSearch, toReportSearchParams } from "../utils";
 import { ReportExcelAction } from "./report-excel-action";
 import { ReportFiltersForm } from "./report-filters";
 import { CompanyBreakdown, IncludedRecords, ReportPeriod, ReportTotalsCards } from "./report-tables";
@@ -92,7 +92,7 @@ export function ReportsScreen() {
               <p className="max-w-md text-sm text-muted-foreground">
                 Prueba con otra semana, otro mes u otra empresa. Los registros pendientes o por revisar no cuentan en los reportes.
               </p>
-              <Button onClick={() => navigate({ year: new Date().getFullYear() })} type="button" variant="outline">
+              <Button onClick={() => navigate(clearedReportFilters())} type="button" variant="outline">
                 Limpiar filtros
               </Button>
             </section>

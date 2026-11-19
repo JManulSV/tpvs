@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import type { Company } from "@/features/companies/types";
 import type { ReportFilters } from "../types";
-import { monthName, yearOptions } from "../utils";
+import { clearedReportFilters, hasActiveReportFilters, monthName, yearOptions } from "../utils";
 
 const selectClass =
   "h-10 w-full appearance-none rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -19,16 +19,14 @@ export function ReportFiltersForm({
   filters: ReportFilters;
   onChange: (filters: ReportFilters) => void;
 }) {
-  const hasActiveFilters =
-    filters.month !== undefined || filters.week !== undefined || filters.company_id !== undefined;
+  const hasActiveFilters = hasActiveReportFilters(filters);
 
   function update(patch: Partial<Record<keyof ReportFilters, number | undefined>>) {
     onChange({ ...filters, ...patch } as ReportFilters);
   }
 
   function clear() {
-    // El año vuelve al actual: es obligatorio y no tiene opción «Todos».
-    onChange({ year: new Date().getFullYear() });
+    onChange(clearedReportFilters());
   }
 
   return (

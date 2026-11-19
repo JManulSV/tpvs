@@ -14,7 +14,9 @@ import { reportKeys } from "@/features/reports/hooks/use-reports";
 import { reportsService } from "@/features/reports/services/reports.service";
 import { ReportsApiError, type ReportResponse } from "@/features/reports/types";
 import {
+  clearedReportFilters,
   excelBlockedReason,
+  hasActiveReportFilters,
   monthName,
   parseReportSearch,
   toReportSearchParams,
@@ -223,6 +225,24 @@ describe("excelBlockedReason", () => {
 
   it("allows an export when there are records", () => {
     expect(excelBlockedReason({ isSuccess: true, recordsCount: 3 })).toBeNull();
+  });
+});
+
+describe("clearedReportFilters", () => {
+  it("keeps only the current year, so the year is never left empty or set to 'all'", () => {
+    expect(clearedReportFilters(new Date(2026, 10, 19))).toEqual({ year: 2026 });
+  });
+});
+
+describe("hasActiveReportFilters", () => {
+  it("is false when only the year is set", () => {
+    expect(hasActiveReportFilters({ year: 2026 })).toBe(false);
+  });
+
+  it("is true when any of month, week or company is set", () => {
+    expect(hasActiveReportFilters({ year: 2026, month: 9 })).toBe(true);
+    expect(hasActiveReportFilters({ year: 2026, week: 38 })).toBe(true);
+    expect(hasActiveReportFilters({ year: 2026, company_id: 3 })).toBe(true);
   });
 });
 
