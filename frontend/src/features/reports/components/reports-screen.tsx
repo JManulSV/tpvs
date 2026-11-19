@@ -30,7 +30,8 @@ export function ReportsScreen() {
   const report = query.data?.data;
   const meta = query.data?.meta;
   const error = query.error instanceof ReportsApiError ? query.error : null;
-  const fieldErrors = Object.values(error?.validationErrors ?? {}).flat();
+  // El primer mensaje de validación ya se muestra como error principal; no lo repetimos en la lista.
+  const fieldErrors = Object.values(error?.validationErrors ?? {}).flat().filter((message) => message !== error?.message);
 
   function navigate(nextFilters: ReportFilters, nextPage = 1) {
     excel.reset();

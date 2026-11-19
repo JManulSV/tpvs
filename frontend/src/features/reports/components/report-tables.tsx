@@ -82,7 +82,33 @@ export function CompanyBreakdown({
           {count} {count === 1 ? "empresa" : "empresas"}
         </span>
       </div>
-      <div className="relative overflow-x-auto">
+      <ul aria-label="Totales por empresa" className="divide-y md:hidden">
+        {companies.map((row) => (
+          <li className="space-y-3 px-6 py-4" key={row.company.id}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-semibold">{row.company.name}</span>
+              <span className="text-xs text-muted-foreground">{row.records_count} {row.records_count === 1 ? "registro" : "registros"}</span>
+            </div>
+            <dl className="grid grid-cols-3 gap-3 text-sm">
+              <div><dt className="text-xs text-muted-foreground">Ingreso</dt><dd className="tabular-nums">{formatMoney(row.income_total)}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Comisión</dt><dd className="tabular-nums">{formatMoney(row.commission_total)}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Retorno</dt><dd className="font-semibold tabular-nums">{formatMoney(row.return_total)}</dd></div>
+            </dl>
+          </li>
+        ))}
+        <li className="space-y-3 bg-muted/30 px-6 py-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="font-bold">Total</span>
+            <span className="text-xs text-muted-foreground">{totals.records_count} {totals.records_count === 1 ? "registro" : "registros"}</span>
+          </div>
+          <dl className="grid grid-cols-3 gap-3 text-sm">
+            <div><dt className="text-xs text-muted-foreground">Ingreso</dt><dd className="font-bold tabular-nums">{formatMoney(totals.income_total)}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Comisión</dt><dd className="font-bold tabular-nums">{formatMoney(totals.commission_total)}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Retorno</dt><dd className="font-bold tabular-nums">{formatMoney(totals.return_total)}</dd></div>
+          </dl>
+        </li>
+      </ul>
+      <div className="relative hidden overflow-x-auto md:block">
         <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
           <caption className="sr-only">Registros, ingreso, comisión y retorno por empresa</caption>
           <thead className="border-y bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -137,7 +163,28 @@ export function IncludedRecords({
         <h2 className="text-base font-semibold" id="report-records-heading">Registros incluidos</h2>
         <span className="text-[13px] text-muted-foreground">Solo confirmados</span>
       </div>
-      <div className="relative overflow-x-auto">
+      <ul aria-label="Registros confirmados incluidos en el reporte" className="divide-y md:hidden">
+        {records.map((record) => (
+          <li className="group relative flex items-center gap-3 px-6 py-4 transition-colors hover:bg-muted/50 focus-within:bg-muted/50" key={record.id}>
+            <div className="min-w-0 flex-1 space-y-1">
+              {/* El enlace cubre toda la tarjeta: cualquier toque abre el registro. */}
+              <Link
+                aria-label={`Abrir registro de ${record.company.name}, semana ${record.week ?? "sin semana"}`}
+                className="block truncate font-semibold after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+                href={`/records/${record.id}`}
+              >
+                {record.company.name}
+              </Link>
+              <p className="text-sm text-muted-foreground">
+                Semana {record.week ?? "sin semana"}{record.year ? ` · ${record.year}` : ""} · Fin {formatDate(record.week_end_date)}
+              </p>
+            </div>
+            <p className="font-semibold tabular-nums">{formatMoney(record.return_total)}</p>
+            <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          </li>
+        ))}
+      </ul>
+      <div className="relative hidden overflow-x-auto md:block">
         <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
           <caption className="sr-only">Registros confirmados incluidos en el reporte</caption>
           <thead className="border-y bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
