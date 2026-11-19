@@ -82,7 +82,7 @@ export function CompanyBreakdown({
           {count} {count === 1 ? "empresa" : "empresas"}
         </span>
       </div>
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
           <caption className="sr-only">Registros, ingreso, comisión y retorno por empresa</caption>
           <thead className="border-y bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -137,7 +137,7 @@ export function IncludedRecords({
         <h2 className="text-base font-semibold" id="report-records-heading">Registros incluidos</h2>
         <span className="text-[13px] text-muted-foreground">Solo confirmados</span>
       </div>
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
           <caption className="sr-only">Registros confirmados incluidos en el reporte</caption>
           <thead className="border-y bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
