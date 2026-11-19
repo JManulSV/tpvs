@@ -1,6 +1,6 @@
 # SPEC 24 — Rediseño de la pantalla de Reportes
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 13, SPEC 15, SPEC 16
 > **Date:** 2026-11-19
 > **Objective:** Rediseñar `/reports` con la plantilla `Reports` y los tokens de shadcn dentro del shell existente, sin cambiar el backend, el contrato de API ni las reglas de reportes.

@@ -31,6 +31,7 @@ The screen shows:
 - the resulting period and the `Generar Excel` action in the action bar;
 - three total cards with icon and label: `Ingreso`, `Comisión`, and `Retorno`; `Retorno` uses the hero style (`--hero` / `--on-hero`);
 - the `Por empresa` table (Empresa, Registros, Ingreso, Comisión, Retorno) with a `Total` footer row taken from `totals`, not summed in the browser;
+- on narrow viewports (below `md`), the `Por empresa` and `Registros incluidos` tables are replaced by cards with the same data; the company breakdown ends with a `Total` card;
 - the paginated `Registros incluidos` list (15 per page) with Empresa, Semana, Fin de semana, and Retorno. Each row links to `/records/{id}` through the company name, which covers the whole row, and a chevron marks the row. The list has no status column because every row is confirmed.
 
 After a download, the screen shows `Se generó y descargó {archivo}` with the file name returned by the server.
