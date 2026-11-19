@@ -68,3 +68,13 @@ export function excelBlockedReason({
 
   return null;
 }
+
+/** Filters after «Limpiar filtros»: only the year remains, and it goes back to the current one. */
+export function clearedReportFilters(now: Date = new Date()): ReportFilters {
+  return { year: now.getFullYear() };
+}
+
+/** True when a filter other than the year is set; the year is always present and never counts as active. */
+export function hasActiveReportFilters(filters: ReportFilters): boolean {
+  return filters.month !== undefined || filters.week !== undefined || filters.company_id !== undefined;
+}
