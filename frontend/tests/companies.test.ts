@@ -8,6 +8,16 @@ vi.mock("@/lib/api-client", () => ({
 }));
 
 import { apiClient } from "@/lib/api-client";
+import {
+  COMPANY_DUPLICATE_MESSAGE,
+  getCompaniesSubtitle,
+  getCompanyCountLabel,
+  getCompanyMetaLine,
+  getCompanyNameErrorMessage,
+  getCompanyRecordsHref,
+  getCompanyRowLabel,
+  getConfirmedCountLabel,
+} from "@/features/companies/company-list-utils";
 import { companyFormSchema } from "@/features/companies/schemas/company.schema";
 import { companiesService } from "@/features/companies/services/companies.service";
 
@@ -26,6 +36,67 @@ describe("company form schema", () => {
     expect(
       companyFormSchema.safeParse({ name: "a".repeat(256) }).success,
     ).toBe(false);
+  });
+
+  it("uses the template's Spanish messages", () => {
+    const empty = companyFormSchema.safeParse({ name: "   " });
+    const overlong = companyFormSchema.safeParse({ name: "a".repeat(256) });
+
+    expect(empty.error?.issues[0]?.message).toBe("Escribe el nombre de la empresa.");
+    expect(overlong.error?.issues[0]?.message).toBe(
+      "El nombre no puede superar los 255 caracteres.",
+    );
+  });
+});
+
+describe("company list utils", () => {
+  const company = {
+    id: 1,
+    name: "Company ABC",
+    records_count: 24,
+    created_at: "2026-01-12T17:04:11.000000Z",
+  };
+
+  it("picks the subtitle by role", () => {
+    expect(getCompaniesSubtitle("EDITOR")).toBe("Catálogo de empresas para tus registros");
+    expect(getCompaniesSubtitle("VIEWER")).toBe("Catálogo de empresas");
+  });
+
+  it("pluralizes the company and confirmed counts", () => {
+    expect(getCompanyCountLabel(0)).toBe("0 empresas");
+    expect(getCompanyCountLabel(1)).toBe("1 empresa");
+    expect(getCompanyCountLabel(6)).toBe("6 empresas");
+    expect(getConfirmedCountLabel(0)).toBe("0 confirmados");
+    expect(getConfirmedCountLabel(1)).toBe("1 confirmado");
+    expect(getConfirmedCountLabel(24)).toBe("24 confirmados");
+  });
+
+  it("builds the mobile meta line with the short creation date", () => {
+    expect(getCompanyMetaLine(company)).toBe("24 confirmados · creada 12/01/26");
+    expect(getCompanyMetaLine({ ...company, records_count: 1 })).toBe(
+      "1 confirmado · creada 12/01/26",
+    );
+  });
+
+  it("labels the row link and points it to the company's records", () => {
+    expect(getCompanyRowLabel(company)).toBe("Ver registros de Company ABC");
+    expect(getCompanyRecordsHref(1)).toBe("/records?company_id=1");
+  });
+
+  it("translates the backend duplicate message and keeps any other message", () => {
+    expect(
+      getCompanyNameErrorMessage(["A company with this name already exists."]),
+    ).toBe(COMPANY_DUPLICATE_MESSAGE);
+    expect(
+      getCompanyNameErrorMessage([
+        "The name field must not be greater than 255 characters.",
+        "A company with this name already exists.",
+      ]),
+    ).toBe(COMPANY_DUPLICATE_MESSAGE);
+    expect(getCompanyNameErrorMessage(["The name field is required."])).toBe(
+      "The name field is required.",
+    );
+    expect(getCompanyNameErrorMessage([])).toBe("Revisa el nombre de la empresa.");
   });
 });
 
@@ -57,11 +128,12 @@ describe("companies service", () => {
 
   it("returns the created company and preserves Laravel validation details", async () => {
     apiClientMock.post.mockResolvedValueOnce({
-      data: { data: { id: 7, name: "Acme" } },
+      data: { data: { id: 7, name: "Acme", created_at: "2026-01-12T17:04:11.000000Z" } },
     });
     await expect(companiesService.create("Acme")).resolves.toEqual({
       id: 7,
       name: "Acme",
+      created_at: "2026-01-12T17:04:11.000000Z",
     });
     expect(apiClientMock.post).toHaveBeenCalledWith("companies", {
       name: "Acme",

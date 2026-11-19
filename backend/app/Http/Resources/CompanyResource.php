@@ -10,7 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class CompanyResource extends JsonResource
 {
     /**
-     * @return array{id: int|string, name: string, records_count?: int}
+     * @return array{id: int|string, name: string, records_count?: int, created_at: string|null}
      */
     public function toArray(Request $request): array
     {
@@ -21,6 +21,7 @@ class CompanyResource extends JsonResource
                 isset($this->records_count),
                 fn (): int => (int) $this->records_count,
             ),
+            'created_at' => $this->created_at?->toISOString(),
         ];
     }
 }

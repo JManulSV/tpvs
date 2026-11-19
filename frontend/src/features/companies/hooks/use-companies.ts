@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -18,6 +19,8 @@ export function useCompanies(params: CompanyListParams = {}) {
   return useQuery({
     queryKey: companyKeys.list(params),
     queryFn: () => companiesService.list(params),
+    // Changing page or search keeps the previous list on screen until the new one arrives.
+    placeholderData: keepPreviousData,
   });
 }
 

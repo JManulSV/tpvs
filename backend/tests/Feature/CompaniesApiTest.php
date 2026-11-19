@@ -35,7 +35,8 @@ class CompaniesApiTest extends TestCase
                 ->getJson('/api/companies')
                 ->assertOk()
                 ->assertJsonPath('data.0.id', $company->id)
-                ->assertJsonPath('data.0.name', 'Acme');
+                ->assertJsonPath('data.0.name', 'Acme')
+                ->assertJsonPath('data.0.created_at', $company->created_at->toISOString());
 
             $this->actingAs($user, 'web')
                 ->getJson('/api/companies/'.$company->id)
@@ -43,6 +44,7 @@ class CompaniesApiTest extends TestCase
                 ->assertExactJson(['data' => [
                     'id' => $company->id,
                     'name' => 'Acme',
+                    'created_at' => $company->created_at->toISOString(),
                 ]]);
         }
     }
@@ -65,6 +67,8 @@ class CompaniesApiTest extends TestCase
             ->assertJsonPath('data.0.records_count', 2)
             ->assertJsonPath('data.1.id', $second->id)
             ->assertJsonPath('data.1.records_count', 0)
+            ->assertJsonPath('data.0.created_at', $first->created_at->toISOString())
+            ->assertJsonPath('data.1.created_at', $second->created_at->toISOString())
             ->assertJsonPath('meta.current_page', 1)
             ->assertJsonPath('meta.last_page', 2)
             ->assertJsonPath('meta.per_page', 2)
@@ -117,11 +121,17 @@ class CompaniesApiTest extends TestCase
             ->postJson('/api/companies', ['name' => '  Northwind  ']);
 
         $response->assertCreated()
-            ->assertJsonStructure(['data' => ['id', 'name']])
+            ->assertJsonStructure(['data' => ['id', 'name', 'created_at']])
             ->assertJsonPath('data.name', 'Northwind')
             ->assertJsonMissingPath('data.records_count');
 
-        $this->assertDatabaseHas('companies', ['name' => 'Northwind']);
+        $company = Company::query()->where('name', 'Northwind')->firstOrFail();
+
+        $response->assertJsonPath('data.created_at', $company->created_at->toISOString());
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/',
+            $response->json('data.created_at'),
+        );
     }
 
     public function test_viewer_cannot_create_company(): void
@@ -153,7 +163,9 @@ class CompaniesApiTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => UserRole::EDITOR]), 'web')
             ->postJson('/api/companies', ['name' => '  NORTHWIND  '])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['name']);
+            ->assertJsonValidationErrors(['name'])
+            // The frontend translates this exact message (SPEC 23); keep them in sync.
+            ->assertJsonPath('errors.name.0', 'A company with this name already exists.');
     }
 
     public function test_database_rejects_duplicate_normalized_company_names(): void

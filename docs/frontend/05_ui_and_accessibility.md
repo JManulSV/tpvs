@@ -62,6 +62,20 @@ The record history is a timeline (`<ol>` with a colored dot per row, `aria-hidde
 - **Focus:** every control shows a 2 px `focus-visible` ring with a 2 px offset (`outline-ring`), including the stepper buttons, the input, the document-amount options, and the change checkbox.
 - **Touch targets:** 44 px on mobile for stepper buttons, the cash input, document-amount options, and bar buttons. These sizes come back to 32 px / 40 px from `md`.
 
+## Companies (SPEC 23)
+
+- **Container switch:** the companies list switches between table and cards at `@[40rem]` (not `@[60rem]`), because its table has four columns. Both lists render and CSS hides one with `display: none`.
+- **Row link:** the name link carries the row's whole click area through `after:absolute after:inset-0`. Its `aria-label` is «Ver registros de {nombre}». Focus shows a 2 px inset ring on the row.
+- **Creation container:** `Dialog` from `md` and `Sheet side="bottom"` below it, chosen with `useIsMobile()`. Only one is mounted.
+- **Focus:** the name input gets focus on open. Focus returns to the button that opened the container (`finalFocus`).
+- **Dismissal:** `Escape` and outside clicks do not close the container while a create request is pending (`disablePointerDismissal`).
+- **Field error:** the input has `aria-invalid`, and `aria-describedby` points to the error text. A duplicate name shows the Spanish message.
+- **Notice:** the success notice is a `role="status"` live region that stays mounted, so screen readers announce it.
+- **Pending and error:** while submitting, the button reads «Creando…» and the controls are disabled. A non-field error uses `role="alert"`.
+- **Loading and errors:** the loading state uses an `aria-live="polite"` «Cargando empresas…» text, and the error state uses `role="alert"`.
+- **Pagination:** the nav is labelled «Paginación de empresas». Its buttons are 44 px tall on mobile.
+- **Floating button:** the mobile «Nueva empresa» button is a `<button>` that opens the sheet, not a link.
+
 ## Interaction States
 
 Interactive controls must communicate:

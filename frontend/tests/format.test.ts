@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   formatDate,
   formatDateTime,
   formatFileSize,
   formatMoney,
+  formatShortDate,
 } from "@/lib/format";
 
 const originalTimezone = process.env.TZ;
@@ -46,6 +47,30 @@ describe("formatDateTime", () => {
   it("formats valid ISO date-time strings and preserves invalid input", () => {
     expect(formatDateTime("2026-09-01T12:30:00.000Z")).toMatch(/1 sep\.? 2026/);
     expect(formatDateTime("not a date")).toBe("not a date");
+  });
+});
+
+describe("formatShortDate", () => {
+  it("formats an ISO instant as dd/mm/aa, including Laravel microseconds", () => {
+    expect(formatShortDate("2026-01-12T17:04:11.000000Z")).toBe("12/01/26");
+    expect(formatShortDate("2026-09-05T12:00:00.000Z")).toBe("05/09/26");
+  });
+
+  it("uses the browser time zone because the value is an instant", async () => {
+    for (const [timezone, expected] of [
+      ["UTC", "01/01/26"],
+      ["America/Mexico_City", "31/12/25"],
+    ] as const) {
+      process.env.TZ = timezone;
+      vi.resetModules();
+      const format = await import("@/lib/format");
+
+      expect(format.formatShortDate("2026-01-01T03:00:00.000Z")).toBe(expected);
+    }
+  });
+
+  it.each([null, "", "not a date"])("renders %s as an em dash", (value) => {
+    expect(formatShortDate(value)).toBe("—");
   });
 });
 

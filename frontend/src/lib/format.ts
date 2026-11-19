@@ -12,6 +12,12 @@ const dateFormatter = new Intl.DateTimeFormat("es-MX", {
   timeZone: "UTC",
 });
 
+const shortDateFormatter = new Intl.DateTimeFormat("es-MX", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+});
+
 const dateTimeFormatter = new Intl.DateTimeFormat("es-MX", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -47,6 +53,19 @@ export function formatDate(value: string | null): string {
   }
 
   return dateFormatter.format(date);
+}
+
+/**
+ * Formats an ISO 8601 instant as `dd/mm/aa` in the browser's time zone.
+ * Unlike `formatDate`, the value is an instant, not a `Y-m-d` calendar date.
+ */
+export function formatShortDate(value: string | null): string {
+  if (value === null) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return shortDateFormatter.format(date);
 }
 
 export function formatDateTime(value: string): string {

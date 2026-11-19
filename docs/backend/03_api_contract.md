@@ -121,17 +121,23 @@ The company endpoints below are implemented and covered by `CompaniesApiTest`.
 | `page` | Integer greater than or equal to 1. Invalid values return `422`. | `1` |
 | `per_page` | Integer from 1 to 100. Invalid values return `422`. | `15` |
 
-Results are ordered by company name ascending and use Laravel's standard paginated JSON Resource response, with `data`, `links`, and `meta`. Each item contains `id`, `name`, and `records_count`. `records_count` counts associated records with status `CONFIRMED` only; it is a query result, not persisted company data.
+Results are ordered by company name ascending and use Laravel's standard paginated JSON Resource response, with `data`, `links`, and `meta`. Each item contains `id`, `name`, `records_count`, and `created_at`. `records_count` counts associated records with status `CONFIRMED` only; it is a query result, not persisted company data. `created_at` is the creation instant in ISO 8601 UTC (SPEC 23).
+
+```json
+{ "id": 1, "name": "Company ABC", "records_count": 24, "created_at": "2026-01-12T17:04:11.000000Z" }
+```
 
 ### Detail
 
-`GET /api/companies/{id}` returns `200` with `{ "data": { "id": 1, "name": "Acme" } }`. It returns `404` when the company does not exist. The detail response does not include `records_count`.
+`GET /api/companies/{id}` returns `200` with `{ "data": { "id": 1, "name": "Acme", "created_at": "2026-01-12T17:04:11.000000Z" } }`. It returns `404` when the company does not exist. The detail response does not include `records_count`.
 
 ### Creation and Name Uniqueness
 
-`POST /api/companies` accepts `{ "name": "Acme" }`. The name is required and may contain at most 255 characters. Laravel trims leading and trailing whitespace before persistence. Names that are equivalent after trimming and case-insensitive comparison are duplicates and return the standard `422` validation response. PostgreSQL enforces the same invariant with a unique expression index on `LOWER(BTRIM(name))`, including for concurrent writes. A `VIEWER` receives `403` for this mutation.
+`POST /api/companies` accepts `{ "name": "Acme" }`. The name is required and may contain at most 255 characters. Laravel trims leading and trailing whitespace before persistence. Names that are equivalent after trimming and case-insensitive comparison are duplicates and return the standard `422` validation response with `errors.name = ["A company with this name already exists."]`. The frontend matches this exact text to show a Spanish message (SPEC 23), and `CompaniesApiTest` pins it. PostgreSQL enforces the same invariant with a unique expression index on `LOWER(BTRIM(name))`, including for concurrent writes. A `VIEWER` receives `403` for this mutation.
 
-Successful creation returns `201` with `{ "data": { "id": 1, "name": "Acme" } }`.
+Successful creation returns `201` with `{ "data": { "id": 1, "name": "Acme", "created_at": "2026-01-12T17:04:11.000000Z" } }`.
+
+`created_at` is part of `CompanyResource`, so it is also present wherever a Record resource embeds its company (`company.created_at`). The field is additive.
 
 ## Records Contract — Phase 8.6 / SPEC 07 (Implemented), SPEC 09 (Phase 8.10 Implemented), and SPEC 10 (Phase 8.11 Implemented and verified)
 

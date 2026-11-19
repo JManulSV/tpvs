@@ -9,5 +9,5 @@ export default async function CompaniesPage() {
 
   if (!user) redirect("/login?returnTo=%2Fcompanies");
 
-  return <CompaniesScreen canCreate={user.role === "EDITOR"} />;
+  return <CompaniesScreen role={user.role} />;
 }
