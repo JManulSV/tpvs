@@ -88,7 +88,7 @@ export function ReportsScreen() {
           ) : (
             <>
               <ReportTotalsCards totals={report.totals} />
-              <CompanyBreakdown companies={report.companies} />
+              <CompanyBreakdown companies={report.companies} totals={report.totals} />
               <IncludedRecords
                 isFetching={query.isFetching}
                 meta={meta}

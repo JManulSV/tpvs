@@ -65,33 +65,55 @@ export function ReportTotalsCards({ totals }: { totals: ReportTotals }) {
   );
 }
 
-export function CompanyBreakdown({ companies }: { companies: ReportCompanyRow[] }) {
+export function CompanyBreakdown({
+  companies,
+  totals,
+}: {
+  companies: ReportCompanyRow[];
+  totals: ReportTotals;
+}) {
+  const count = companies.length;
+
   return (
-    <section aria-labelledby="report-companies-heading" className="space-y-3">
-      <h2 className="text-lg font-semibold" id="report-companies-heading">Por empresa</h2>
-      <div className="overflow-x-auto rounded-md border">
+    <section aria-labelledby="report-companies-heading" className="overflow-hidden rounded-lg border bg-card shadow-card">
+      <div className="flex items-baseline justify-between gap-3 px-6 pt-5 pb-4">
+        <h2 className="text-base font-semibold" id="report-companies-heading">Por empresa</h2>
+        <span className="text-[13px] text-muted-foreground">
+          {count} {count === 1 ? "empresa" : "empresas"}
+        </span>
+      </div>
+      <div className="overflow-x-auto">
         <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
           <caption className="sr-only">Registros, ingreso, comisión y retorno por empresa</caption>
-          <thead className="bg-muted/50">
+          <thead className="border-y bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 font-medium" scope="col">Empresa</th>
-              <th className="px-4 py-3 text-right font-medium" scope="col">Registros</th>
-              <th className="px-4 py-3 text-right font-medium" scope="col">Ingreso</th>
-              <th className="px-4 py-3 text-right font-medium" scope="col">Comisión</th>
-              <th className="px-4 py-3 text-right font-medium" scope="col">Retorno</th>
+              <th className="h-10 px-6 font-semibold" scope="col">Empresa</th>
+              <th className="h-10 px-4 text-right font-semibold" scope="col">Registros</th>
+              <th className="h-10 px-4 text-right font-semibold" scope="col">Ingreso</th>
+              <th className="h-10 px-4 text-right font-semibold" scope="col">Comisión</th>
+              <th className="h-10 px-6 text-right font-semibold" scope="col">Retorno</th>
             </tr>
           </thead>
           <tbody>
             {companies.map((row) => (
-              <tr className="border-t" key={row.company.id}>
-                <th className="px-4 py-3 font-medium" scope="row">{row.company.name}</th>
-                <td className="px-4 py-3 text-right tabular-nums">{row.records_count}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(row.income_total)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(row.commission_total)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(row.return_total)}</td>
+              <tr className="border-b transition-colors hover:bg-muted/50" key={row.company.id}>
+                <th className="h-14 px-6 font-semibold" scope="row">{row.company.name}</th>
+                <td className="px-4 text-right text-muted-foreground tabular-nums">{row.records_count}</td>
+                <td className="px-4 text-right text-muted-foreground tabular-nums">{formatMoney(row.income_total)}</td>
+                <td className="px-4 text-right text-muted-foreground tabular-nums">{formatMoney(row.commission_total)}</td>
+                <td className="px-6 text-right font-semibold tabular-nums">{formatMoney(row.return_total)}</td>
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr className="h-12 bg-muted/30 font-bold">
+              <th className="px-6 text-left" scope="row">Total</th>
+              <td className="px-4 text-right tabular-nums">{totals.records_count}</td>
+              <td className="px-4 text-right tabular-nums">{formatMoney(totals.income_total)}</td>
+              <td className="px-4 text-right tabular-nums">{formatMoney(totals.commission_total)}</td>
+              <td className="px-6 text-right tabular-nums">{formatMoney(totals.return_total)}</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </section>
