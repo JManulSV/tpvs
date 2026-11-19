@@ -12,12 +12,16 @@ import { getCompanyCountLabel } from "../company-list-utils";
 import { useCompanies } from "../hooks/use-companies";
 import type { CompanyDetail } from "../types";
 import { CompaniesCardList } from "./companies-card-list";
+import { CompaniesCatalogEmpty, CompaniesSearchEmpty } from "./companies-empty-state";
 import { CompaniesHeader } from "./companies-header";
+import { CompaniesPagination } from "./companies-pagination";
+import { CompaniesSkeleton } from "./companies-skeleton";
 import { CompaniesTable } from "./companies-table";
 import { CompanyCreatedNotice } from "./company-created-notice";
 import { CreateCompanyForm } from "./create-company-form";
 
 const PAGE_SIZE = 15;
+const IMMUTABLE_NAMES_NOTE = "Los nombres no se pueden cambiar ni eliminar";
 
 export function CompaniesScreen({ role }: { role: AuthUser["role"] }) {
   const isEditor = role === "EDITOR";
@@ -93,6 +97,30 @@ export function CompaniesScreen({ role }: { role: AuthUser["role"] }) {
   });
   const companies = companiesQuery.data?.data ?? [];
   const meta = companiesQuery.data?.meta;
+  // An empty placeholder belongs to the previous search; show the skeleton instead of a stale empty state.
+  const showSkeleton =
+    companiesQuery.isPending || (companiesQuery.isPlaceholderData && companies.length === 0);
+
+  function clearSearch() {
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+  }
+
+  function pagination(variant: "footer" | "stacked") {
+    if (!meta || meta.last_page <= 1) return null;
+
+    return (
+      <CompaniesPagination
+        currentPage={meta.current_page}
+        isFetching={companiesQuery.isFetching}
+        lastPage={meta.last_page}
+        onNext={() => setPage((current) => Math.min(meta.last_page, current + 1))}
+        onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+        variant={variant}
+      />
+    );
+  }
 
   return (
     <section aria-labelledby="companies-heading" className="flex flex-col gap-4 md:gap-6">
@@ -110,71 +138,52 @@ export function CompaniesScreen({ role }: { role: AuthUser["role"] }) {
         }}
       />
 
-      <div className="flex flex-col gap-4">
-        {companiesQuery.isPending && (
-          <p aria-live="polite" className="py-8 text-center text-sm text-muted-foreground">
-            Cargando empresas…
-          </p>
-        )}
-
-        {companiesQuery.isError && !companiesQuery.data && (
-          <div className="space-y-3 rounded-md border p-5 text-center" role="alert">
-            <p className="text-sm">No se pudieron cargar las empresas.</p>
-            <Button onClick={() => void companiesQuery.refetch()} type="button" variant="outline">
-              Reintentar
-            </Button>
-          </div>
-        )}
-
-        {companiesQuery.data && companies.length === 0 && (
-          <p className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
-            {search
-              ? "No se encontraron empresas con esa búsqueda."
-              : "Todavía no hay empresas en el catálogo."}
-          </p>
-        )}
-
-        {companiesQuery.data && companies.length > 0 && meta && (
-          <>
-            {/* Both lists render; the container width hides one with `display: none`. */}
-            <div className="@container">
-              <div className="hidden @[40rem]:block">
-                <CompaniesTable companies={companies} createdCompanyId={createdCompanyId} />
-              </div>
-              <div className="flex flex-col gap-3 @[40rem]:hidden">
-                <CompanyCountLabel total={meta.total} />
-                <CompaniesCardList companies={companies} createdCompanyId={createdCompanyId} />
-              </div>
-            </div>
-
-            {meta.last_page > 1 && (
-              <nav aria-label="Paginación de empresas" className="flex items-center justify-between gap-4">
-                <p aria-live="polite" className="text-sm text-muted-foreground">
-                  Página {meta.current_page} de {meta.last_page} · {meta.total} empresas
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    disabled={meta.current_page <= 1 || companiesQuery.isFetching}
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                    type="button"
-                    variant="outline"
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    disabled={meta.current_page >= meta.last_page || companiesQuery.isFetching}
-                    onClick={() => setPage((current) => Math.min(meta.last_page, current + 1))}
-                    type="button"
-                    variant="outline"
-                  >
-                    Siguiente
-                  </Button>
+      {showSkeleton ? (
+        <div className="@container">
+          <CompaniesSkeleton />
+        </div>
+      ) : companiesQuery.isError && !companiesQuery.data ? (
+        <div
+          className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-6 text-center shadow-card"
+          role="alert"
+        >
+          <p>No se pudieron cargar las empresas.</p>
+          <Button onClick={() => void companiesQuery.refetch()} type="button" variant="outline">
+            Reintentar
+          </Button>
+        </div>
+      ) : meta && companies.length === 0 ? (
+        search ? (
+          <CompaniesSearchEmpty onClear={clearSearch} />
+        ) : (
+          <CompaniesCatalogEmpty onCreate={isEditor ? openCreate : undefined} />
+        )
+      ) : meta ? (
+        /* Both lists render; the container width hides one with `display: none`. */
+        <div className="@container">
+          <div className="hidden @[40rem]:block">
+            <CompaniesTable
+              companies={companies}
+              createdCompanyId={createdCompanyId}
+              footer={
+                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-border bg-muted px-6 py-3.5 text-[13px] leading-5 font-medium text-muted-foreground">
+                  <CompanyCountLabel total={meta.total} />
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    <span>{IMMUTABLE_NAMES_NOTE}</span>
+                    {pagination("footer")}
+                  </div>
                 </div>
-              </nav>
-            )}
-          </>
-        )}
-      </div>
+              }
+            />
+          </div>
+          <div className="flex flex-col gap-3 @[40rem]:hidden">
+            <CompanyCountLabel total={meta.total} />
+            <CompaniesCardList companies={companies} createdCompanyId={createdCompanyId} />
+            <p className="text-xs leading-4 font-medium text-muted-foreground">{IMMUTABLE_NAMES_NOTE}</p>
+            {pagination("stacked")}
+          </div>
+        </div>
+      ) : null}
 
       {isEditor && (
         <button
@@ -225,14 +234,14 @@ export function CompaniesScreen({ role }: { role: AuthUser["role"] }) {
   );
 }
 
-/** «**N** empresas» above the mobile cards. */
+/** «**N** empresas» (`meta.total`), above the mobile cards and in the desktop footer. */
 function CompanyCountLabel({ total }: { total: number }) {
   const label = getCompanyCountLabel(total);
   const count = String(total);
 
   return (
     <p className="text-[13px] leading-5 font-medium text-muted-foreground">
-      <strong className="font-semibold text-foreground tabular-nums">{count}</strong>
+      <strong className="font-bold text-foreground tabular-nums">{count}</strong>
       {label.slice(count.length)}
     </p>
   );
