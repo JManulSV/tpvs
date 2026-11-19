@@ -1,5 +1,6 @@
 "use client";
 
+import { Download, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDownloadReportExcel } from "../hooks/use-reports";
 import { ReportsApiError, type ReportFilters } from "../types";
@@ -18,6 +19,8 @@ export function ReportExcelAction({
 }) {
   const blockedReason = excelBlockedReason({ isSuccess, recordsCount });
   const error = mutation.error instanceof ReportsApiError ? mutation.error : null;
+  // El nombre lo define el servidor (SPEC 13); la pantalla solo lo muestra.
+  const downloadedFileName = mutation.data?.fileName;
 
   function handleGenerate() {
     if (blockedReason !== null || mutation.isPending) return;
@@ -26,13 +29,19 @@ export function ReportExcelAction({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col items-end gap-2">
       <Button
         aria-describedby={blockedReason !== null ? "report-excel-blocked" : undefined}
         disabled={blockedReason !== null || mutation.isPending}
         onClick={handleGenerate}
+        size="lg"
         type="button"
       >
+        {mutation.isPending ? (
+          <LoaderCircle aria-hidden="true" className="animate-spin" />
+        ) : (
+          <Download aria-hidden="true" />
+        )}
         {mutation.isPending ? "Generando Excel…" : "Generar Excel"}
       </Button>
 
@@ -40,7 +49,11 @@ export function ReportExcelAction({
         <p className="text-sm text-muted-foreground" id="report-excel-blocked" role="note">{blockedReason}</p>
       )}
 
-      {mutation.isSuccess && <p className="text-sm" role="status">Excel generado y descargado.</p>}
+      {mutation.isSuccess && downloadedFileName && (
+        <p className="text-sm text-muted-foreground" role="status">
+          Se generó y descargó <strong className="font-semibold text-foreground">{downloadedFileName}</strong>
+        </p>
+      )}
 
       {mutation.isError && (
         <p className="rounded-md border border-destructive/40 px-4 py-3 text-sm text-destructive" role="alert">

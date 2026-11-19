@@ -1,4 +1,4 @@
-import { ArrowDown, ChartColumn, Percent } from "lucide-react";
+import { ArrowDown, ChartColumn, ChevronRight, Percent } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -132,44 +132,56 @@ export function IncludedRecords({
   records: ReportRecordRow[];
 }) {
   return (
-    <section aria-labelledby="report-records-heading" className="space-y-3">
-      <h2 className="text-lg font-semibold" id="report-records-heading">Registros incluidos</h2>
-      <div className="overflow-x-auto rounded-md border">
-        <table className="w-full min-w-[48rem] border-collapse text-left text-sm">
+    <section aria-labelledby="report-records-heading" className="overflow-hidden rounded-lg border bg-card shadow-card">
+      <div className="flex items-baseline justify-between gap-3 px-6 pt-5 pb-4">
+        <h2 className="text-base font-semibold" id="report-records-heading">Registros incluidos</h2>
+        <span className="text-[13px] text-muted-foreground">Solo confirmados</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
           <caption className="sr-only">Registros confirmados incluidos en el reporte</caption>
-          <thead className="bg-muted/50">
+          <thead className="border-y bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 font-medium" scope="col">Empresa</th>
-              <th className="px-4 py-3 font-medium" scope="col">Período</th>
-              <th className="px-4 py-3 text-right font-medium" scope="col">Ingreso</th>
-              <th className="px-4 py-3 text-right font-medium" scope="col">Comisión</th>
-              <th className="px-4 py-3 text-right font-medium" scope="col">Retorno</th>
-              <th className="px-4 py-3 font-medium" scope="col">Entrega</th>
+              <th className="h-10 w-full px-6 font-semibold" scope="col">Empresa</th>
+              <th className="h-10 w-px whitespace-nowrap px-6 font-semibold" scope="col">Semana</th>
+              <th className="h-10 w-px whitespace-nowrap px-6 font-semibold" scope="col">Fin de semana</th>
+              <th className="h-10 w-px whitespace-nowrap px-6 text-right font-semibold" scope="col">Retorno</th>
+              <th className="h-10 w-px px-4" scope="col"><span className="sr-only">Abrir</span></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className={cn(isFetching && "opacity-60 transition-opacity")}>
             {records.map((record) => (
-              <tr className="border-t hover:bg-muted/30" key={record.id}>
-                <th className="px-4 py-3 font-medium" scope="row">
-                  <Link className="underline-offset-4 hover:underline focus-visible:outline-2" href={`/records/${record.id}`}>
+              <tr className="group relative cursor-pointer border-b transition-colors hover:bg-muted/50 focus-within:bg-muted/50" key={record.id}>
+                <td className="h-14 px-6 font-semibold">
+                  {/* El enlace cubre toda la fila: cualquier clic en la fila abre el registro. */}
+                  <Link
+                    aria-label={`Abrir registro de ${record.company.name}, semana ${record.week ?? "sin semana"}`}
+                    className="font-semibold after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+                    href={`/records/${record.id}`}
+                  >
                     {record.company.name}
                   </Link>
-                </th>
-                <td className="px-4 py-3">
-                  {record.week ? `Semana ${record.week}` : "Sin semana"}{record.year ? ` · ${record.year}` : ""}
-                  <br />
-                  <span className="text-muted-foreground">{formatDate(record.week_start_date)} – {formatDate(record.week_end_date)}</span>
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.income_total)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.commission_total)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(record.return_total)}</td>
-                <td className="px-4 py-3">{formatDate(record.delivery_date)}</td>
+                <td className="whitespace-nowrap px-6">
+                  <span className="block font-semibold tabular-nums">{record.week ?? "Sin semana"}</span>
+                  <span className="block text-xs text-muted-foreground">{record.year ?? ""}</span>
+                </td>
+                <td className="whitespace-nowrap px-6 text-muted-foreground">{formatDate(record.week_end_date)}</td>
+                <td className="whitespace-nowrap px-6 text-right font-semibold tabular-nums">{formatMoney(record.return_total)}</td>
+                <td className="px-4 text-right">
+                  <span
+                    aria-hidden="true"
+                    className="inline-grid size-8 place-items-center rounded-full text-muted-foreground transition-colors group-hover:bg-accent group-hover:text-accent-foreground group-focus-within:bg-accent group-focus-within:text-accent-foreground"
+                  >
+                    <ChevronRight className="size-4" />
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <nav aria-label="Paginación de registros incluidos" className="flex items-center justify-between gap-4">
+      <nav aria-label="Paginación de registros incluidos" className="flex items-center justify-between gap-4 px-6 py-4">
         <p aria-live="polite" className="text-sm text-muted-foreground">
           Página {meta.current_page} de {meta.last_page} · {meta.total} registros
         </p>
