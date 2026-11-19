@@ -6,14 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { AuthUser } from "@/features/auth/types";
 import { useResetOnHide } from "@/hooks/use-reset-on-hide";
+import { getCompanyCountLabel } from "../company-list-utils";
 import { useCompanies } from "../hooks/use-companies";
 import type { CompanyDetail } from "../types";
+import { CompaniesCardList } from "./companies-card-list";
+import { CompaniesHeader } from "./companies-header";
+import { CompaniesTable } from "./companies-table";
+import { CompanyCreatedNotice } from "./company-created-notice";
 import { CreateCompanyForm } from "./create-company-form";
 
 const PAGE_SIZE = 15;
 
-export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
+export function CompaniesScreen({ role }: { role: AuthUser["role"] }) {
+  const isEditor = role === "EDITOR";
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -88,53 +95,29 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
   const meta = companiesQuery.data?.meta;
 
   return (
-    <section aria-labelledby="companies-heading" className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight" id="companies-heading">
-            Empresas
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Consulta y administra el catálogo de empresas.
-          </p>
-        </div>
-        {canCreate && (
-          <Button className="hidden md:inline-flex" onClick={openCreate} type="button">
-            <Plus aria-hidden="true" />
-            Nueva empresa
-          </Button>
-        )}
-      </header>
+    <section aria-labelledby="companies-heading" className="flex flex-col gap-4 md:gap-6">
+      <CompaniesHeader
+        onCreate={openCreate}
+        onSearchChange={setSearchInput}
+        role={role}
+        searchInput={searchInput}
+      />
 
-      {successMessage && (
-        <p aria-live="polite" className="rounded-md border px-4 py-3 text-sm" role="status">
-          {successMessage}
-        </p>
-      )}
+      <CompanyCreatedNotice
+        message={successMessage}
+        onDismiss={() => {
+          setSuccessMessage(null);
+        }}
+      />
 
-      <div className="space-y-4">
-        <div className="max-w-md space-y-2">
-          <label className="text-sm font-medium" htmlFor="company-search">
-            Buscar empresa
-          </label>
-          <input
-            className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
-            id="company-search"
-            maxLength={255}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Escribe el nombre de una empresa"
-            type="search"
-            value={searchInput}
-          />
-        </div>
-
+      <div className="flex flex-col gap-4">
         {companiesQuery.isPending && (
           <p aria-live="polite" className="py-8 text-center text-sm text-muted-foreground">
             Cargando empresas…
           </p>
         )}
 
-        {companiesQuery.isError && (
+        {companiesQuery.isError && !companiesQuery.data && (
           <div className="space-y-3 rounded-md border p-5 text-center" role="alert">
             <p className="text-sm">No se pudieron cargar las empresas.</p>
             <Button onClick={() => void companiesQuery.refetch()} type="button" variant="outline">
@@ -143,7 +126,7 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
           </div>
         )}
 
-        {companiesQuery.isSuccess && companies.length === 0 && (
+        {companiesQuery.data && companies.length === 0 && (
           <p className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
             {search
               ? "No se encontraron empresas con esa búsqueda."
@@ -151,33 +134,20 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
           </p>
         )}
 
-        {companiesQuery.isSuccess && companies.length > 0 && (
+        {companiesQuery.data && companies.length > 0 && meta && (
           <>
-            <div className="overflow-x-auto rounded-md border">
-              <table className="w-full min-w-[28rem] border-collapse text-left text-sm">
-                <caption className="sr-only">Empresas y cantidad de registros confirmados</caption>
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-4 py-3 font-medium" scope="col">Empresa</th>
-                    <th className="px-4 py-3 text-right font-medium" scope="col">
-                      Registros confirmados
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {companies.map((company) => (
-                    <tr className="border-t" key={company.id}>
-                      <th className="px-4 py-3 font-normal" scope="row">{company.name}</th>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {company.records_count}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Both lists render; the container width hides one with `display: none`. */}
+            <div className="@container">
+              <div className="hidden @[40rem]:block">
+                <CompaniesTable companies={companies} createdCompanyId={createdCompanyId} />
+              </div>
+              <div className="flex flex-col gap-3 @[40rem]:hidden">
+                <CompanyCountLabel total={meta.total} />
+                <CompaniesCardList companies={companies} createdCompanyId={createdCompanyId} />
+              </div>
             </div>
 
-            {meta && meta.last_page > 1 && (
+            {meta.last_page > 1 && (
               <nav aria-label="Paginación de empresas" className="flex items-center justify-between gap-4">
                 <p aria-live="polite" className="text-sm text-muted-foreground">
                   Página {meta.current_page} de {meta.last_page} · {meta.total} empresas
@@ -206,7 +176,7 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
         )}
       </div>
 
-      {canCreate && (
+      {isEditor && (
         <button
           className="fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-30 inline-flex h-12 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-popover transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:hidden"
           onClick={openCreate}
@@ -217,7 +187,7 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
         </button>
       )}
 
-      {canCreate &&
+      {isEditor &&
         (isMobile ? (
           <Sheet
             disablePointerDismissal={isCreateSubmitting}
@@ -252,5 +222,18 @@ export function CompaniesScreen({ canCreate }: { canCreate: boolean }) {
           </Dialog>
         ))}
     </section>
+  );
+}
+
+/** «**N** empresas» above the mobile cards. */
+function CompanyCountLabel({ total }: { total: number }) {
+  const label = getCompanyCountLabel(total);
+  const count = String(total);
+
+  return (
+    <p className="text-[13px] leading-5 font-medium text-muted-foreground">
+      <strong className="font-semibold text-foreground tabular-nums">{count}</strong>
+      {label.slice(count.length)}
+    </p>
   );
 }
