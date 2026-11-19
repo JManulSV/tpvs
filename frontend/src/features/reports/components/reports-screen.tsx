@@ -41,16 +41,19 @@ export function ReportsScreen() {
     <section aria-labelledby="reports-heading" className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight" id="reports-heading">Reportes</h1>
-        <p className="text-sm text-muted-foreground">
-          Totales oficiales de los registros confirmados. El mes corresponde a la fecha final de la semana.
-        </p>
+        <p className="text-sm text-muted-foreground">Totales oficiales de los registros confirmados</p>
       </header>
 
-      <ReportFiltersForm
-        companies={companiesQuery.data?.data ?? []}
-        filters={filters}
-        onChange={(next) => navigate(next)}
-      />
+      <div className="space-y-2">
+        <ReportFiltersForm
+          companies={companiesQuery.data?.data ?? []}
+          filters={filters}
+          onChange={(next) => navigate(next)}
+        />
+        <p className="px-1 text-xs text-muted-foreground">
+          El mes se toma de la fecha de fin de la semana. Solo se incluyen registros confirmados.
+        </p>
+      </div>
 
       {query.isPending && <p aria-live="polite" className="py-8 text-center text-sm text-muted-foreground">Cargando reporte…</p>}
 

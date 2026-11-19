@@ -1,6 +1,8 @@
+import { ArrowDown, ChartColumn, Percent } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { ReportCompanyRow, ReportRecordRow, ReportResponse, ReportTotals } from "../types";
 
 export function ReportPeriod({
@@ -22,17 +24,41 @@ export function ReportPeriod({
 
 export function ReportTotalsCards({ totals }: { totals: ReportTotals }) {
   const cards = [
-    { label: "Ingreso", value: totals.income_total },
-    { label: "Comisión", value: totals.commission_total },
-    { label: "Retorno", value: totals.return_total },
+    { label: "Ingreso", value: totals.income_total, Icon: ArrowDown, hero: false },
+    { label: "Comisión", value: totals.commission_total, Icon: Percent, hero: false },
+    { label: "Retorno", value: totals.return_total, Icon: ChartColumn, hero: true },
   ];
 
   return (
     <dl className="grid gap-4 sm:grid-cols-3">
-      {cards.map((card) => (
-        <div className="rounded-md border p-4" key={card.label}>
-          <dt className="text-sm text-muted-foreground">{card.label}</dt>
-          <dd className="text-2xl font-semibold tabular-nums">{formatMoney(card.value)}</dd>
+      {cards.map(({ label, value, Icon, hero }) => (
+        <div
+          className={cn(
+            "flex flex-col gap-3 rounded-lg border px-6 py-5 shadow-card",
+            hero ? "border-hero bg-hero text-on-hero" : "bg-card",
+          )}
+          key={label}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className={cn(
+                "grid size-10 shrink-0 place-items-center rounded-md",
+                hero ? "bg-white/10" : "bg-accent text-accent-foreground",
+              )}
+            >
+              <Icon className="size-5" />
+            </span>
+            <dt
+              className={cn(
+                "text-xs font-semibold uppercase tracking-wider",
+                hero ? "text-on-hero/70" : "text-muted-foreground",
+              )}
+            >
+              {label}
+            </dt>
+          </div>
+          <dd className="text-[28px] leading-9 font-bold tabular-nums tracking-tight">{formatMoney(value)}</dd>
         </div>
       ))}
     </dl>
