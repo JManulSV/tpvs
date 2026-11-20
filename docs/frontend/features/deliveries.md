@@ -1,16 +1,16 @@
 # Deliveries Feature
 
-## Status
+## SPECs
 
-**SPEC 11 / phase 8.12 complete (2026-10-29). SPEC 12 / phase 8.13 complete (2026-10-29). SPEC 14 implemented; focused backend/frontend checks pass.** The delivery flow includes the approved document-only cash adjustment and customer-change behavior.
+SPEC 11 (preparation), SPEC 12 (Word), SPEC 14 (cash adjustment and customer change), SPEC 22 (redesign). Status: [`../../roadmap.md`](../../roadmap.md).
 
-**SPEC 22 implemented in code (frontend only); manual browser verification is pending.** The screen uses the single-action-bar layout described in [Delivery preparation screen (SPEC 22)](#delivery-preparation-screen-spec-22). The backend, API, and business rules are unchanged.
+**Pending:** manual browser verification of the SPEC 22 layout ([Delivery preparation screen (SPEC 22)](#delivery-preparation-screen-spec-22)).
 
 ## Goal and Scope
 
 Allow an authorized Editor to prepare or update the single editable Delivery associated with a confirmed Record and reconcile its cash denominations. Product behavior is defined in [`../../document-generation.md`](../../document-generation.md), [`../../ui-ux.md`](../../ui-ux.md), and [`../../business-rules.md`](../../business-rules.md).
 
-Phase 8.12 covers delivery preparation. Phase 8.13 adds the Word document download for `EDITOR`. Reports, delivery versions, delivery states, stored documents, and the official UI/UX design remain outside these phases.
+The flow covers delivery preparation and the Word document download for `EDITOR`. Delivery versions, delivery states, and stored documents are out of scope.
 
 ## Route and Screen
 
@@ -31,7 +31,7 @@ The interface includes:
 - save action for `EDITOR`;
 - read-only view for `VIEWER`.
 
-- a `Generar documento Word` action for `EDITOR` (phase 8.13). Since SPEC 22 it lives in the action bar as `Generar recibo (Word)`, next to `Guardar entrega` / `Actualizar entrega`.
+- a `Generar documento Word` action for `EDITOR` (SPEC 12). Since SPEC 22 it lives in the action bar as `Generar recibo (Word)`, next to `Guardar entrega` / `Actualizar entrega`.
 
 ## Delivery preparation screen (SPEC 22)
 
@@ -188,7 +188,7 @@ For `CASH_MISMATCH` and `CHANGE_REQUIRED`, the backend includes `expected_amount
 - [`../../ui-ux.md`](../../ui-ux.md) (Prepare Delivery and outdated delivery)
 - [`../../backend/api-contract.md`](../../backend/api-contract.md) (Delivery Preparation Contract)
 - [`../../backend/files-and-documents.md`](../../backend/files-and-documents.md)
-- [`../../roadmap.md`](../../roadmap.md) (phases 8.12–8.13)
+- [`../../roadmap.md`](../../roadmap.md) (SPEC 11, 12, 14, 22)
 - [`../../../specs/11-delivery-preparation.md`](../../../specs/11-delivery-preparation.md)
 - [`../../../specs/12-delivery-word-document.md`](../../../specs/12-delivery-word-document.md)
 - [`../../../specs/14-delivery-cash-adjustment.md`](../../../specs/14-delivery-cash-adjustment.md)

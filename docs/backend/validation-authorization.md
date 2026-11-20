@@ -42,9 +42,9 @@ Implement resource-specific permissions with Laravel Policies as each resource i
 
 Protect state-changing requests with Laravel CSRF validation. The Next.js BFF is the browser-facing same-origin boundary and must forward the session cookie and `X-XSRF-TOKEN`; do not exempt API mutations from CSRF to simplify the proxy.
 
-## Records — Phase 8.6 / SPEC 09 / SPEC 10 Contract Decisions
+## Records (SPEC 04, 09, 10)
 
-The Records API contract is documented in [`api-contract.md`](api-contract.md). Endpoints are implemented incrementally under SPEC 04; keep this validation guidance aligned with the verified implementation. SPEC 10 adds field-level history and audited reopening.
+The Records API contract is documented in [`api-contract.md`](api-contract.md). Keep this validation guidance aligned with the implementation. SPEC 10 adds field-level history and audited reopening.
 
 ### Authorization and Allowed Operations
 
@@ -60,9 +60,9 @@ The Records API contract is documented in [`api-contract.md`](api-contract.md). 
 
 Every mutation must authorize on the backend, including requests made directly to Laravel or through the BFF. Client-hidden controls are only presentation.
 
-## Record Images — Phase 8.7 Contract Decisions
+## Record Images (SPEC 05)
 
-The target image endpoint contract is documented in [`api-contract.md`](api-contract.md) and remains planned until implemented and tested.
+The image endpoint contract is documented in [`api-contract.md`](api-contract.md).
 
 | Operation | `EDITOR` | `VIEWER` |
 | --- | --- | --- |

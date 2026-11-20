@@ -1,12 +1,14 @@
 # Records Feature
 
-## Status
+## SPECs
 
-**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. **Phase 8.11 / SPEC 10 is implemented and verified (2026-10-26):** record change history with user, reason, and before/after values, plus audited editing and reopening of `CONFIRMED` records. **SPEC 11 / phase 8.12 and SPEC 12 / phase 8.13 are implemented. SPEC 14 cash-adjustment behavior is integrated; focused checks pass.** **SPEC 21 (record capture and edit redesign) is implemented in the frontend**, with these exclusions recorded in its Decisions: the «Documento vs Sistema» strip, the `radiogroup` origin selector (the screen uses two option cards), and a dedicated `RecordEditor` edit mode (editing still uses `ManualRecordForm`). Checkpoint evidence is recorded in each SPEC and in [`../testing.md`](../testing.md).
+SPEC 04 and 07 (manual capture, list, detail), SPEC 05 (images), SPEC 08 and 09 (AI processing, review, confirmation, cancellation), SPEC 10 (history), SPEC 19–21 (redesign). Status: [`../../roadmap.md`](../../roadmap.md).
+
+SPEC 21 left out, as recorded in its Decisions: the «Documento vs Sistema» strip, the `radiogroup` origin selector (the screen uses two option cards), and a dedicated `RecordEditor` edit mode (editing still uses `ManualRecordForm`).
 
 ## Goal and Scope
 
-Support record consultation, manual capture, and the human review workflow. Phase 8.6 includes a general list and detail for all record sources/statuses. A valid manual record is confirmed by Laravel during save. Phase 8.10 adds the minimum functional flow that resolves IMAGE proposals in `NEEDS_REVIEW` and failed records in `ERROR`; the official UI/UX design remains in phase 8.15. Product screen details are in [`../../ui-ux.md`](../../ui-ux.md); authoritative state and business rules are in [`../../business-rules.md`](../../business-rules.md), and the manual capture contract is in [`../../business-rules.md`](../../business-rules.md).
+Support record consultation, manual capture, and the human review workflow: a list and detail for all record sources and statuses, manual records that Laravel confirms on save, and the review flow that resolves IMAGE proposals in `NEEDS_REVIEW` and failed records in `ERROR`. Screen details are in [`../../ui-ux.md`](../../ui-ux.md); states, business rules, and the manual capture contract are in [`../../business-rules.md`](../../business-rules.md).
 
 ## Target Routes and Screens
 
@@ -180,4 +182,4 @@ Verified on 2026-10-26:
 - [`../../ui-ux.md`](../../ui-ux.md) (Records and Review)
 - [`../../backend/api-contract.md`](../../backend/api-contract.md)
 - [`../../backend/validation-authorization.md`](../../backend/validation-authorization.md)
-- [`../../roadmap.md`](../../roadmap.md) (phases 8.6–8.10)
+- [`../../roadmap.md`](../../roadmap.md) (SPEC 04–10, 19–21)

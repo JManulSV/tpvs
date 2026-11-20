@@ -37,7 +37,7 @@ docker compose up --build
 
 Compose starts PostgreSQL, Laravel, the database queue worker, and Next.js. PostgreSQL must pass its health check before Laravel starts. Laravel creates runtime storage directories and runs migrations on startup; the queue worker starts after Laravel is healthy.
 
-### Temporary Ollama AI Spike Service (Phase 8.8)
+### Local Ollama Service (SPEC 06)
 
 Ollama is available as an opt-in Docker Compose profile for local technical experiments. It is deliberately excluded from the normal application stack and is not connected to Laravel or its queue worker. The profile publishes Ollama only on `127.0.0.1` and persists downloaded models in the `tpvs-ollama-data` volume.
 
@@ -56,7 +56,7 @@ python3 tools/ai-spike/run_ollama_spike.py test-images/prueba1.jpeg \
   --url http://127.0.0.1:11435 --model qwen2.5vl:3b
 ```
 
-`OLLAMA_PORT` in the root `.env` optionally changes the host port; it defaults to `11435`. Do not publish the service to a LAN or public interface. The spike profile only supports local testing; the deployment architecture in phase 8.18 places Ollama on the designated AI host and requires separately planned LAN access controls.
+`OLLAMA_PORT` in the root `.env` optionally changes the host port; it defaults to `11435`. Do not publish the service to a LAN or public interface. The spike profile only supports local testing; the office-LAN deployment (roadmap 8.18) places Ollama on the designated AI host and requires separately planned LAN access controls.
 
 Stop the temporary service while preserving downloaded model data:
 
@@ -76,7 +76,7 @@ To remove the downloaded model data as well, explicitly delete the named volume:
 docker volume rm tpvs_tpvs-ollama-data
 ```
 
-Ollama/model storage can consume several gigabytes. This temporary profile does not represent production integration: no Laravel provider, queue job, backend URL, AI API endpoint, or production retry configuration is added in phase 8.8.
+Ollama/model storage can consume several gigabytes. This profile is for local testing only; the production provider, queue job, and retry policy are described in [`conventions.md`](conventions.md#4-queues-jobs-and-ai-integration).
 
 Root `.env` variables configure the Compose services. `.env.example` contains local-only defaults; set a unique `APP_KEY` and database password before deployment. PostgreSQL persists data in the `tpvs-postgres-data` volume. `docker compose down` keeps that volume; `docker compose down --volumes` deletes it.
 
@@ -123,7 +123,7 @@ The production integration is configured in Laravel/worker environment only; nev
 
 Run the queue worker with a timeout of `330` seconds so the order is provider HTTP timeout < worker timeout < queue `retry_after`. The image-processing job owns the three-call transient retry policy for its initial cycle; Compose must not globally cap jobs at one attempt. Manual retry dispatches are single-call. Keep PostgreSQL and private image storage backups coordinated, and monitor failed jobs plus persisted AIProcessing errors. The regular Compose stack passes these variables to Laravel and the worker but does not start Ollama; configure the URL to the Ollama host reachable from both services, then recreate those containers after environment changes.
 
-### Private Record Image Storage (Phase 8.7)
+### Private Record Image Storage (SPEC 05)
 
 The implemented image configuration uses the `record_images` local private disk rooted at `storage/app/private/record-images`. It is separate from the public disk and does not depend on `FILESYSTEM_DISK`; do not run `storage:link` for the image root.
 

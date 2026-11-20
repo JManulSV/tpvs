@@ -1,8 +1,8 @@
 # Files and Documents
 
-## Current Status
+## SPECs
 
-Laravel local filesystem configuration and Record image upload, replacement, private viewing, authorization, and feature tests are implemented for phase 8.7. Word delivery document generation is implemented for phase 8.13 under SPEC 12. Excel report generation is approved for phase 8.14 under SPEC 13.
+Record images: SPEC 05. Word delivery document: SPEC 12, 14. Excel report: SPEC 13.
 
 ## Private Images
 
@@ -42,4 +42,4 @@ Excel reports (SPEC 13):
 
 See [`../document-generation.md`](../document-generation.md) for the office format, workbook layout, file names, and data mapping.
 
-The phase 8.7 API contract is implemented in Laravel and documented in [`api-contract.md`](api-contract.md). The roadmap checkpoint is recorded only after the integrated HTTP acceptance flow passes.
+The API contract is documented in [`api-contract.md`](api-contract.md).

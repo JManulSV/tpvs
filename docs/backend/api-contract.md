@@ -1,14 +1,12 @@
 # Backend API Contract
 
-## Status
-
-The health, authentication, Companies, Records, image, and AI pipeline endpoints are implemented and covered by backend feature tests. The Delivery Preparation contract for SPEC 11 / phase 8.12 is documented below and is implemented incrementally under that spec. The Reports and Excel contract for SPEC 13 / phase 8.14 is approved and documented below; it is implemented incrementally under that spec. The Dashboard summary contract for SPEC 18 is implemented and documented below.
+Every endpoint below is implemented and covered by Laravel feature tests unless a section says otherwise. Each heading names the SPEC that defines the contract; module status lives in [`../roadmap.md`](../roadmap.md).
 
 ## Base Path
 
 Application API routes use `/api`.
 
-## Implemented Health Endpoints
+## Health Endpoints
 
 ### Application Health
 
@@ -33,7 +31,7 @@ GET /up
 
 This route is Laravel's framework health route configured in `backend/bootstrap/app.php`. It is separate from the application API health response.
 
-## Planned API Rules
+## API Rules
 
 - Use nouns for resource paths.
 - Use HTTP methods according to their standard meaning.
@@ -41,9 +39,9 @@ This route is Laravel's framework health route configured in `backend/bootstrap/
 - Authorize mutations independently of frontend visibility.
 - Return stable JSON structures through API Resources when resources exist.
 - Do not expose private storage paths.
-- Mark undocumented endpoints as planned, not implemented.
+- Document every new endpoint here when its SPEC is implemented.
 
-## Implemented Authentication Contract
+## Authentication (SPEC 01, 02)
 
 Authentication uses Laravel Sanctum's stateful SPA mode and Laravel's database-backed session. It does not issue a JWT or personal access token.
 
@@ -68,13 +66,13 @@ The current-user response is:
 
 Laravel sets the `tpvs_session` cookie with `HttpOnly`, `SameSite=Lax`, and no persistent expiry so it expires when the browser closes. Secure-cookie mode defaults on in production, which must use HTTPS; local HTTPS deployments must set `SESSION_SECURE_COOKIE=true`. The server session expires after 120 minutes of inactivity. Manual HTTP verification confirmed `tpvs_session` has no expiry attribute and is `HttpOnly`; `XSRF-TOKEN` is issued with a two-hour expiry and is not `HttpOnly`. The BFF must preserve `Set-Cookie` and forward `Cookie`, `Origin`/`Referer`, and `X-XSRF-TOKEN` as required.
 
-The BFF's planned browser-facing CSRF bridge is `GET /api/auth/csrf-cookie`, which proxies Laravel's `GET /sanctum/csrf-cookie` endpoint. The browser receives `XSRF-TOKEN` through the same-origin BFF and sends its decoded value in `X-XSRF-TOKEN` on state-changing requests. Manual HTTP verification confirmed valid CSRF allows login and invalid CSRF is rejected with `419`.
+The BFF's browser-facing CSRF bridge is `GET /api/auth/csrf-cookie`, which proxies Laravel's `GET /sanctum/csrf-cookie` endpoint. The browser receives `XSRF-TOKEN` through the same-origin BFF and sends its decoded value in `X-XSRF-TOKEN` on state-changing requests. Manual HTTP verification confirmed valid CSRF allows login and invalid CSRF is rejected with `419`.
 
 Authentication failures return `401`, forbidden role actions return `403`, and invalid input returns Laravel's standard `422` validation response.
 
 Authenticated users may access permitted reads. Mutation routes require the `EDITOR` role. `VIEWER` mutation attempts return `403`.
 
-## Planned Error Shape
+## Error Shape
 
 Validation errors should use Laravel's standard structure:
 
@@ -89,7 +87,7 @@ Validation errors should use Laravel's standard structure:
 }
 ```
 
-Business errors should expose a stable code when implemented:
+Business errors expose a stable code:
 
 ```json
 {
@@ -101,9 +99,9 @@ Business errors should expose a stable code when implemented:
 }
 ```
 
-## Implemented Companies Contract — Phase 8.5
+## Companies (SPEC 03, 23)
 
-The company endpoints below are implemented and covered by `CompaniesApiTest`.
+Covered by `CompaniesApiTest`.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -139,9 +137,9 @@ Successful creation returns `201` with `{ "data": { "id": 1, "name": "Acme", "cr
 
 `created_at` is part of `CompanyResource`, so it is also present wherever a Record resource embeds its company (`company.created_at`). The field is additive.
 
-## Records Contract — Phase 8.6 / SPEC 07 (Implemented), SPEC 09 (Phase 8.10 Implemented), and SPEC 10 (Phase 8.11 Implemented and verified)
+## Records (SPEC 04, 07, 09, 10)
 
-The endpoints below implement the manual-record workflow for phase 8.6 and are covered by Laravel feature tests. SPEC 09 extends review, correction, confirmation, and cancellation and was verified on 2026-10-22. SPEC 10 adds field-level change history and audited reopening of confirmed records and was verified on 2026-10-26.
+Manual records (SPEC 04, 07); review, correction, confirmation, and cancellation (SPEC 09); field-level change history and audited reopening of confirmed records (SPEC 10).
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -286,9 +284,9 @@ Results are ordered by `created_at` descending and `id` descending and use Larav
 
 Both `EDITOR` and `VIEWER` may read history. Unauthenticated requests return `401`, a missing record returns `404`, and invalid pagination returns `422`. The endpoint never exposes `raw_response`, private storage paths, tokens, stack traces, or AIProcessing data. History is read-only: no update or delete endpoint exists.
 
-## Delivery Preparation Contract — SPEC 11 (Phase 8.12)
+## Delivery Preparation (SPEC 11, 14)
 
-The delivery contract was implemented for phase 8.12 under SPEC 11 and extended by SPEC 14 for preparation cash tolerance. It requires Laravel's authenticated Sanctum session. State-changing browser requests require valid CSRF.
+SPEC 14 adds the preparation cash tolerance. Requires Laravel's authenticated Sanctum session. State-changing browser requests require valid CSRF.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -368,9 +366,9 @@ Delivery creation and updates write field-level History rows with `record_id`, `
 - `422` for invalid shape, date, names, unsupported denomination, duplicate positive denomination, or invalid quantity.
 - `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=INVALID_RECORD_STATE` or `CASH_MISMATCH` (cash shortfall greater than `$1.00`).
 
-## Delivery Document Contract — SPEC 12 (Phase 8.13), extended by SPEC 14
+## Delivery Word Document (SPEC 12, 14)
 
-The Word delivery document contract was implemented for phase 8.13 under SPEC 12 and extended for SPEC 14. It requires Laravel's authenticated Sanctum session and valid CSRF.
+Requires Laravel's authenticated Sanctum session and valid CSRF.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -418,9 +416,9 @@ A successful generation writes one `document_generated` History row with `delive
 
 Errors: `401` unauthenticated; `403` Viewer; `404` missing Delivery; `419` invalid CSRF; `422` malformed or unsupported document adjustment; `409 DOCUMENT_GENERATION_BLOCKED` with `INVALID_RECORD_STATE`, `MISSING_IMAGE`, `STALE_DELIVERY`, `CASH_MISMATCH`, `CHANGE_REQUIRED`, or `IMAGE_UNAVAILABLE`; a generic safe `500` if document construction fails, with no History written.
 
-## Reports and Excel Contract — SPEC 13 (Phase 8.14)
+## Reports and Excel (SPEC 13)
 
-The reports and Excel contract is approved for phase 8.14 and is implemented incrementally under SPEC 13. Both routes require Laravel's authenticated Sanctum session. They are read-only `GET` requests, so they need no CSRF token. `EDITOR` and `VIEWER` may call both.
+Both routes require Laravel's authenticated Sanctum session. They are read-only `GET` requests, so they need no CSRF token. `EDITOR` and `VIEWER` may call both.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |
@@ -506,7 +504,7 @@ The workbook has the sheets `Resumen`, `Registros`, `Detalles`, and `Efectivo`, 
 
 Errors for both routes: `401` unauthenticated; `422` invalid filters, including a missing `year` or a non-existent `company_id`. A generic, safe `500` is returned if workbook construction fails, with no private details and no temporary file left behind.
 
-## Dashboard Contract — SPEC 18 (Implemented)
+## Dashboard (SPEC 18)
 
 `GET /api/dashboard` returns the role-aware summary for the Dashboard work center. It requires an authenticated Sanctum session (`auth:sanctum`) and is read-only, so it needs no CSRF token. `EDITOR` and `VIEWER` may call it. Without a session it returns `401`. It accepts no parameters; unknown parameters are ignored.
 
@@ -550,7 +548,7 @@ Values in this example are illustrative.
 
 Errors: `401` unauthenticated. No `403` exists, because both roles may read.
 
-## Record Images Contract — Phase 8.7 (Implemented)
+## Record Images (SPEC 05)
 
 The endpoints below implement private Record image handling. Uploading an image stores and associates the file only; it does not create an AI processing attempt or dispatch a job.
 
@@ -597,9 +595,9 @@ The Record resource includes an `image` object or `null`:
 
 The metadata contains no `file_path`, storage key, physical path, or public URL. It is included in Record detail and Record responses where the relation is loaded; a Record without an image reports `image: null`.
 
-## Asynchronous AI Image Extraction — SPEC 08 (Implemented; PostgreSQL verified)
+## Asynchronous AI Image Extraction (SPEC 08)
 
-The following routes implement the SPEC 08 asynchronous pipeline. They require Laravel's authenticated Sanctum session. Stateful browser mutations also require valid CSRF.
+These routes require Laravel's authenticated Sanctum session. Stateful browser mutations also require valid CSRF.
 
 | Method | Path | Purpose | Authentication / authorization |
 | --- | --- | --- | --- |

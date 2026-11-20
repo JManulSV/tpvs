@@ -12,9 +12,9 @@
 - Use `frontend/src/lib/status.ts` as the single source for record status labels, icons, and token classes. Render status with `StatusBadge` where the UI contract calls for a status indicator, and use the shared label for filters and history values.
 - Use `frontend/src/lib/format.ts` for money, calendar dates, date-times, and file sizes. Keep domain-specific date and amount calculations in their feature utilities.
 
-## Status
+## Scope
 
-The project includes Tailwind CSS, shadcn/ui tooling, and initial UI primitives. The approved screen designs and flows are in [`../ui-ux.md`](../ui-ux.md); feature screens remain planned until implemented.
+Screen designs and flows are in [`../ui-ux.md`](../ui-ux.md); templates are mapped to screens in [`../design/README.md`](../design/README.md).
 
 ## Application shell
 

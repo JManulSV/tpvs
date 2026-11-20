@@ -1,16 +1,12 @@
 # Companies Feature
 
-## Status
+## SPECs
 
-**Phase 8.5 implemented and verified (2026-10-14).** Laravel list/detail/create endpoints, the same-origin BFF integration, and the basic `/companies` screen are implemented.
-
-**Redesign implemented and verified (SPEC 23, 2026-11-18 to 2026-11-19).** The screen follows the `Companies`, `CompaniesNew` and `CompaniesMobile` templates. Backend `CompaniesApiTest` (371 tests in the suite) and frontend tests (255) pass, and `lint`, `tsc --noEmit` and `build` pass. Browser checks for `EDITOR` and `VIEWER` ran at desktop and 390 px, in light and dark themes. The acceptance list is in [`specs/23-companies-screen-redesign.md`](../../../specs/23-companies-screen-redesign.md).
+SPEC 03 (catalog), SPEC 23 (redesign, templates `Companies`, `CompaniesNew`, `CompaniesMobile`). Status: [`../../roadmap.md`](../../roadmap.md).
 
 ## Goal and Scope
 
 Provide a simple catalog for consulting companies and creating entries. Company names are immutable in the MVP; there is no rename or delete action. Laravel does not create companies automatically from AI extraction.
-
-Phase 8.5 delivers a basic, functional interface for the company workflows. The official UI/UX design and visual polish are deferred to phase 8.15.
 
 ## Routes and Screens
 
@@ -35,7 +31,7 @@ Removed: `components/create-company-dialog.tsx`, the hand-made modal with its ow
 
 ## API and Data
 
-The phase 8.5 API contract is:
+The API contract is:
 
 ```text
 GET  /api/companies?search={text}&page={page}&per_page={page_size}
@@ -60,7 +56,7 @@ Do not add update or delete UI; those operations are out of MVP scope.
 - Keep the previous list visible while a page or search loads. Show the skeleton instead of an empty state when the only data is a stale empty placeholder.
 - Pagination: 15 per page, with «Página X de Y» only when there is more than one page.
 - Distinguish loading, empty catalog, no search results, request error, and mutation-pending states.
-- Keep the interface basic and functional in Spanish. The official UI/UX and visual refinement belong to phase 8.15.
+- The interface is in Spanish and follows the SPEC 23 templates.
 
 ## Acceptance Criteria
 
@@ -71,7 +67,6 @@ Do not add update or delete UI; those operations are out of MVP scope.
 - Search resets pagination and list results reflect the approved paginated API contract.
 - The record count shows only associated `CONFIRMED` records as supplied by Laravel.
 - Empty, no-search-results, pending, mutation-pending, and error states are distinguishable.
-- The basic Spanish interface supports the phase 8.5 workflows; official UI/UX alignment is deferred to phase 8.15.
 
 ## Related Documents
 
@@ -82,4 +77,4 @@ Do not add update or delete UI; those operations are out of MVP scope.
 - [`../../ui-ux.md`](../../ui-ux.md) (Companies)
 - [`../../backend/api-contract.md`](../../backend/api-contract.md)
 - [`../../backend/validation-authorization.md`](../../backend/validation-authorization.md)
-- [`../../roadmap.md`](../../roadmap.md) (phase 8.5)
+- [`../../roadmap.md`](../../roadmap.md) (SPEC 03, 23)

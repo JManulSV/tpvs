@@ -1,14 +1,14 @@
 # Reports Feature
 
-## Status
+## SPECs
 
-**SPEC 13 / phase 8.14 complete (2026-11-03).** The reports read endpoint, the Excel endpoint, and the minimum `/reports` screen are defined below.
+SPEC 13 (reports and Excel), SPEC 24 (redesign). Status: [`../../roadmap.md`](../../roadmap.md).
 
 ## Goal and Scope
 
 Let `EDITOR` and `VIEWER` review official confirmed-record summaries and request an Excel export. The report month rule, period filters, and workbook contents are defined in [`../../business-rules.md`](../../business-rules.md), [`../../document-generation.md`](../../document-generation.md), and [`../../ui-ux.md`](../../ui-ux.md).
 
-Phase 8.14 delivers the minimum working screen. The official UI/UX design belongs to phase 8.15. Out of scope: stored or asynchronous Excel files, CSV or PDF export, charts, period comparisons, and non-confirmed records.
+Out of scope: stored or asynchronous Excel files, CSV or PDF export, charts, period comparisons, and non-confirmed records.
 
 ## Route and Screen
 
@@ -78,5 +78,5 @@ Code lives in `src/features/reports/` (`services`, `hooks`, `components`, `types
 - [`../../document-generation.md`](../../document-generation.md)
 - [`../../ui-ux.md`](../../ui-ux.md) (Reports and Excel)
 - [`../../backend/api-contract.md`](../../backend/api-contract.md) (Reports and Excel Contract)
-- [`../../roadmap.md`](../../roadmap.md) (phase 8.14)
+- [`../../roadmap.md`](../../roadmap.md) (SPEC 13, 24)
 - [`../../../specs/13-reports-excel-export.md`](../../../specs/13-reports-excel-export.md)

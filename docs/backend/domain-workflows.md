@@ -1,13 +1,13 @@
 # Domain Workflows
 
-The workflows below are target MVP workflows. They are planned until implemented in Laravel and covered by tests.
+Backend workflows of the MVP. Each one names its SPEC; module status lives in [`../roadmap.md`](../roadmap.md).
 
 ## Workflow Documentation Template
 
 Every workflow should document:
 
 ```text
-Status
+SPEC
 Purpose
 Entry point
 Preconditions
@@ -22,7 +22,7 @@ Tests
 
 ## Manual Record
 
-**Status:** Implemented for phase 8.6 (2026-10-15); automated tests and browser acceptance passed.
+**SPEC:** 04, 07.
 
 **Entry points:** `POST /api/records`, `PUT /api/records/{id}`, and `POST /api/records/{id}/confirm`.
 
@@ -44,7 +44,7 @@ Tests
 
 ## Image Record
 
-**Storage and association — phase 8.7:**
+**Storage and association (SPEC 05):**
 
 1. An authenticated Editor uploads one JPEG, PNG, or WebP image of at most 10 MiB to `POST /api/records/{record}/image`.
 2. Laravel validates file content and Record state, stores the file under a generated key on a private local disk, and transactionally associates the Image metadata with the Record.
@@ -62,7 +62,7 @@ Tests
 
 ## Image Review, Correction, Confirmation, and Cancellation
 
-**Status:** SPEC 09 / phase 8.10 implemented and verified (2026-10-22); checkpoint recorded in the roadmap.
+**SPEC:** 09.
 
 **Purpose:** Let an authorized Editor resolve the output of image extraction or a failed processing attempt without bypassing backend validation or the human-confirmation rule.
 
@@ -96,7 +96,7 @@ Tests
 
 ## Record Change History
 
-**Status:** SPEC 10 / phase 8.11 implemented and verified (2026-10-26).
+**SPEC:** 10.
 
 **Purpose:** Expose the human audit trail of a Record with user, reason, previous/new values, and timestamp.
 
@@ -137,7 +137,7 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 ## Delivery
 
-**Status:** SPEC 11 / phase 8.12 implemented (2026-10-29); SPEC 14 cash-save rules implemented.
+**SPEC:** 11; cash-save rules from SPEC 14.
 
 **Purpose:** Persist the single editable delivery preparation for a confirmed Record, reconcile its cash breakdown against the current return, and audit changes without creating delivery versions or states.
 
@@ -173,7 +173,7 @@ SPEC 14 verification also covers save-time tolerance boundaries, allowed excess 
 
 ## Delivery Document
 
-**Status:** SPEC 12 / phase 8.13 complete (2026-10-29); SPEC 14 document cash-adjustment logic implemented.
+**SPEC:** 12; document cash adjustment from SPEC 14.
 
 **Purpose:** Generate the Word delivery receipt on demand from the persisted Delivery, its Record, the Record Image, and the cash denominations, without storing the file.
 
@@ -207,7 +207,7 @@ SPEC 14 coverage includes the three document amount options, transient customer-
 
 ## Reports and Excel
 
-**Status:** SPEC 13 / phase 8.14 complete (2026-11-03).
+**SPEC:** 13.
 
 **Purpose:** Let users review official totals of confirmed Records and export the same data to an on-demand Excel file, without storing the file.
 

@@ -1,8 +1,10 @@
 # Dashboard Feature
 
-## Status
+## SPECs
 
-**Implemented (SPEC 18, 2026-11-10).** `/dashboard` replaces the foundation placeholder with the role-aware work center. It reads `GET /api/dashboard` through the BFF. The Dashboard shows no charts. Polling is not used: the data refreshes on mount, on focus after the stale time, and when a record mutation invalidates the record list.
+SPEC 18. Status: [`../../roadmap.md`](../../roadmap.md).
+
+`/dashboard` is the role-aware work center. It reads `GET /api/dashboard` through the BFF and shows no charts. There is no polling: data refreshes on mount, on focus after the stale time, and when a record mutation invalidates the record list.
 
 ## Goal and Scope
 
@@ -69,4 +71,4 @@ Failed requests and legitimately empty results are distinguishable: a failure ne
 - [`records.md`](records.md)
 - [`../../ui-ux.md`](../../ui-ux.md) (dashboard section)
 - [`../../business-rules.md`](../../business-rules.md)
-- [`../../roadmap.md`](../../roadmap.md) (phase 8.15)
+- [`../../roadmap.md`](../../roadmap.md) (SPEC 18)

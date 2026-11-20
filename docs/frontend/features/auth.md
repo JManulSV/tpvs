@@ -1,8 +1,8 @@
 # Authentication Feature
 
-## Status
+## SPECs
 
-**Implemented and verified (2026-10-14).** Laravel Sanctum session authentication and the frontend BFF CSRF/cookie bridge are integrated. `/login`, protected `/dashboard`, current-user lookup, logout, and session-aware root/login redirects passed Vitest and Playwright browser verification against the running Laravel stack for both roles. See [`../testing.md`](../testing.md) and SPEC 01–02.
+SPEC 01 (Sanctum), SPEC 02 (BFF), SPEC 17 (login redesign). Status: [`../../roadmap.md`](../../roadmap.md).
 
 ## Goal and Scope
 
@@ -79,4 +79,4 @@ Expected failures are `401` for invalid credentials or missing/expired session, 
 - [`../../backend/api-contract.md`](../../backend/api-contract.md)
 - [`../../backend/validation-authorization.md`](../../backend/validation-authorization.md)
 - [`../../backend/conventions.md`](../../backend/conventions.md)
-- [`../../roadmap.md`](../../roadmap.md) (phase 8.4)
+- [`../../roadmap.md`](../../roadmap.md) (SPEC 01, 02, 17)

@@ -1,6 +1,7 @@
 # SPEC 11 — Preparación de entrega
 
-> **Status:** Approved
+> **Status:** Implemented (2026-10-29)
+> **Note:** Los criterios de aceptación no se marcaron al cerrar la spec. Los cubre `DeliveryApiTest` (pasa contra `tpvs_test`, 2026-11-20). SPEC 14 cambió después la regla de efectivo: el desglose puede quedar hasta `$1.00` abajo del retorno o cualquier monto arriba, así que los criterios de coincidencia exacta ya no describen el comportamiento actual.
 > **Depends on:** SPEC 04, SPEC 09, SPEC 10
 > **Date:** 2026-10-26
 > **Objective:** Implementar la preparación editable de una entrega por registro confirmado, validar que el desglose de efectivo cuadre con el retorno actual y auditar sus cambios.

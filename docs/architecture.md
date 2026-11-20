@@ -1,23 +1,6 @@
 # Technical Architecture and Stack Recommendations
 
-## 0. Current Implementation Status
-
-This document describes the target MVP architecture and the recommended Laravel boundaries. The repository currently implements the foundation, authentication, and Companies catalog; remaining business modules are planned.
-
-| Area | Status | Current location or note |
-| --- | --- | --- |
-| Laravel application bootstrap | Implemented | `backend/bootstrap/app.php` |
-| PostgreSQL configuration | Implemented | `backend/config/database.php` and `.env.example` |
-| Application health endpoint | Implemented | `GET /api/health` in `backend/routes/api.php` |
-| Laravel framework health endpoint | Implemented | `GET /up`, configured in `backend/bootstrap/app.php` |
-| Users foundation | Partially implemented | Default Laravel model and migration only |
-| Authentication and roles | Planned | Not implemented |
-| Domain modules | Planned | Not implemented |
-| Business API | Planned | Only `/api/health` is currently available |
-| Queue-based AI processing | Planned | Queue configuration exists; workflow does not |
-| Reports and document generation | Planned | Not implemented |
-
-The target architecture below must not be used to claim that planned endpoints or modules are available. Verify implementation in `backend/` before depending on a feature.
+This document describes the MVP architecture and the Laravel boundaries. Module status lives in [`roadmap.md`](roadmap.md); verify behavior in `backend/` before depending on it.
 
 ## 1. Recommended Architecture Style
 
@@ -234,7 +217,7 @@ For the MVP:
 
 ## 11. Official API Surface
 
-The endpoint groups in this section are target interfaces, not a list of currently implemented routes. Implemented application routes currently include `GET /api/health`, authentication endpoints under `/api/auth`, and the Companies endpoints under `/api/companies`. Other resource groups remain planned; Laravel also exposes `GET /up` as its framework health route.
+The endpoint groups below summarize the API surface. The exact contract (payloads, errors, authorization) is in [`backend/api-contract.md`](backend/api-contract.md).
 
 Base path:
 

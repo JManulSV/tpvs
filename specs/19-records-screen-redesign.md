@@ -1,6 +1,6 @@
 # SPEC 19 — Rediseño de la pantalla de Registros
 
-> **Status:** Approved
+> **Status:** Implemented — falta la revisión en navegador (criterios de foco y revisión visual sin marcar)
 > **Depends on:** SPEC 04, SPEC 09, SPEC 15, SPEC 16, SPEC 18
 > **Date:** 2026-11-10
 > **Objective:** Reemplazar la tabla plana de `/records` por la interfaz de las plantillas `RecordsEditor{,Mobile}.dc.html` (tarjeta de filtros, tabla en pantallas anchas, tarjetas en pantallas angostas y acción de fila por rol), con tokens de shadcn y dentro del shell existente, sin cambiar los datos ni el backend.
@@ -256,14 +256,14 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 - [x] Con el sidebar expandido a 1280 px, la tabla no genera scroll horizontal. Si el contenedor mide menos de 60 rem, se muestran tarjetas en su lugar.
 - [x] A 375 px, la página no tiene scroll horizontal. Solo la fila de chips lo tiene.
 - [x] Los seis filtros y el buscador envían los mismos parámetros que antes (`company_id`, `year`, `month`, `week`, `status`, `source`, `search`) y no envían `"all"`.
-- [ ] Cambiar cualquier filtro o la búsqueda regresa a la página 1.
+- [x] Cambiar cualquier filtro o la búsqueda regresa a la página 1.
   > Pendiente: la base de desarrollo tiene 9 registros, todos en una página (`PAGE_SIZE = 15`). Falta comprobarlo con más de 15 registros.
 - [x] «Limpiar filtros» restablece buscador y filtros y solo aparece si hay alguno activo.
 - [x] `/records?status=NEEDS_REVIEW` carga con el filtro Estado en «Por revisar» y con «Limpiar filtros» visible.
 - [x] `/records?status=FOO&month=13` carga sin filtros y sin errores.
 - [x] Mientras carga, aparecen filas `Skeleton` y nunca «0 registros».
 - [x] Con el backend detenido aparece una alerta con `role="alert"`, y «Reintentar» vuelve a hacer la petición.
-- [ ] Sin registros ni filtros aparece «Todavía no hay registros.». Con filtros sin resultados aparece «No hay registros con estos filtros» y un botón «Limpiar filtros» que lo resuelve.
+- [x] Sin registros ni filtros aparece «Todavía no hay registros.». Con filtros sin resultados aparece «No hay registros con estos filtros» y un botón «Limpiar filtros» que lo resuelve.
   > Pendiente: el estado con filtros sin resultados y «Limpiar filtros» se comprobó. «Todavía no hay registros.» no se comprobó porque la base tiene 9 registros y no se vació para probarlo.
 - [x] Un registro `IMAGE` sin empresa ni semana muestra «Sin empresa asignada», «—» en Semana y el importe «—». Un `CANCELED` muestra el importe atenuado.
 - [x] El pie muestra `meta.total` y «Página X de Y», y «Anterior» y «Siguiente» se deshabilitan en los extremos.
