@@ -6,7 +6,7 @@
 
 ## Goal and Scope
 
-Provide a role-aware operational starting point. The dashboard is a work center, not an analytics dashboard. Its approved content is in [`../../10_ui_ux.md`](../../10_ui_ux.md) and the implementation contract is [`../../../specs/18-role-aware-dashboard.md`](../../../specs/18-role-aware-dashboard.md).
+Provide a role-aware operational starting point. The dashboard is a work center, not an analytics dashboard. Its approved content is in [`../../ui-ux.md`](../../ui-ux.md) and the implementation contract is [`../../../specs/18-role-aware-dashboard.md`](../../../specs/18-role-aware-dashboard.md).
 
 - `EDITOR`: hero with the number of records to review and a link to them, a six-cell status strip, and recent activity. The status strip covers records needing review, errors, pending, processing, and this month's confirmed and canceled counts.
 - `VIEWER`: hero with this month's accumulated return and confirmed count, and recent activity. There is no status strip and no mutation action.
@@ -28,7 +28,7 @@ The shell (sidebar, topbar, bottom navigation, and the mobile «Nuevo registro»
 ## Data and Permissions
 
 - Single request: `GET /api/dashboard`. Laravel returns the official counts, the month return, and the recent activity filtered by role. The browser does not sum records or compute official totals.
-- Period: the current month in `America/Mexico_City`, using the same rule as Reports. See [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md#dashboard-contract--spec-18-implemented).
+- Period: the current month in `America/Mexico_City`, using the same rule as Reports. See [`../../backend/api-contract.md`](../../backend/api-contract.md#dashboard-contract--spec-18-implemented).
 - Query key: `[...recordKeys.lists(), "dashboard"]`. Create, update, confirm, cancel, retry, and image-upload mutations invalidate it through the existing record-list invalidation.
 - Refresh: `refetchOnWindowFocus: true` applies only to this query. The global `QueryClient` default stays `false`. Because the global `staleTime` is 30 s, returning to the tab fetches only when the data is older than that.
 - Relative times («hace 12 min», «ayer») are computed in the client and use the business calendar day.
@@ -63,10 +63,10 @@ Failed requests and legitimately empty results are distinguishable: a failure ne
 
 ## Related Documents
 
-- [`../02_routing_and_rendering.md`](../02_routing_and_rendering.md)
-- [`../04_data_fetching_and_forms.md`](../04_data_fetching_and_forms.md)
-- [`../05_ui_and_accessibility.md`](../05_ui_and_accessibility.md)
+- [`../conventions.md`](../conventions.md)
+- [`../conventions.md`](../conventions.md)
+- [`../ui-and-accessibility.md`](../ui-and-accessibility.md)
 - [`records.md`](records.md)
-- [`../../10_ui_ux.md`](../../10_ui_ux.md) (dashboard section)
-- [`../../02_business_rules_and_states.md`](../../02_business_rules_and_states.md)
-- [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md) (phase 8.15)
+- [`../../ui-ux.md`](../../ui-ux.md) (dashboard section)
+- [`../../business-rules.md`](../../business-rules.md)
+- [`../../roadmap.md`](../../roadmap.md) (phase 8.15)

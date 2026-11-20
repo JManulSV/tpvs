@@ -32,7 +32,7 @@ El criterio de esta spec es **la menor complejidad posible**: no hay endpoints n
 - Banner de entrega obsoleta (`is_stale`) con «Retorno actual» y «Entrega preparada».
 - Vista de solo lectura con el mismo layout para `VIEWER` y para un `EDITOR` con registro no `CONFIRMED`.
 - Utilidades puras con pruebas unitarias.
-- Documentar en `docs/frontend/features/deliveries.md`, `docs/frontend/05_ui_and_accessibility.md` y `docs/10_ui_ux.md` §8 y §9.
+- Documentar en `docs/frontend/features/deliveries.md`, `docs/frontend/ui-and-accessibility.md` y `docs/ui-ux.md` §8 y §9.
 
 **Out of scope (for future specs):**
 
@@ -312,8 +312,8 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
    - Ajustar solo espaciados y tamaños.
 10. **Documentación.**
     - Actualizar `docs/frontend/features/deliveries.md`: layout, barra única, checklist, adjuntar imagen, precarga de «Entrega» y lo que queda fuera.
-    - Actualizar `docs/frontend/05_ui_and_accessibility.md`: `radiogroup` del monto del documento, `aria-label` del stepper y la barra fija sobre `AppBottomNav`.
-    - Actualizar `docs/10_ui_ux.md` §8 (nueva pantalla) y §9 (adjuntar imagen a un registro manual desde la entrega).
+    - Actualizar `docs/frontend/ui-and-accessibility.md`: `radiogroup` del monto del documento, `aria-label` del stepper y la barra fija sobre `AppBottomNav`.
+    - Actualizar `docs/ui-ux.md` §8 (nueva pantalla) y §9 (adjuntar imagen a un registro manual desde la entrega).
 
 ## Acceptance criteria
 

@@ -195,7 +195,7 @@ El BFF ya reenvía `content-type`, `content-disposition` y el cuerpo binario; no
 
 ## Implementation plan
 
-1. Documentación: actualizar `docs/08_document_generation.md` (hojas en español, columnas, nombre de archivo, `year` obligatorio), `docs/backend/03_api_contract.md` (`GET /api/reports`, `GET /api/documents/excel`), `docs/backend/06_domain_workflows.md`, `docs/backend/08_files_and_documents.md`, `docs/04_technical_architecture.md` (reemplazar `/api/reports/weekly` por `/api/reports`) y `docs/frontend/features/reports.md`.
+1. Documentación: actualizar `docs/document-generation.md` (hojas en español, columnas, nombre de archivo, `year` obligatorio), `docs/backend/api-contract.md` (`GET /api/reports`, `GET /api/documents/excel`), `docs/backend/domain-workflows.md`, `docs/backend/files-and-documents.md`, `docs/architecture.md` (reemplazar `/api/reports/weekly` por `/api/reports`) y `docs/frontend/features/reports.md`.
 2. Dependencia: `composer require phpoffice/phpspreadsheet`; verificar que carga en el contenedor.
 3. `IndexReportRequest` (Form Request compartido para ambas rutas) y `ReportPolicy` o habilidad equivalente para `EDITOR`/`VIEWER`.
 4. `ReportQuery`: consulta base de `CONFIRMED` con filtros, totales globales, agregados por empresa, lista paginada y conjunto completo con detalles, entrega y denominaciones para el Excel. Pruebas feature de inclusión por estado, regla de mes por `week_end_date`, combinación de filtros, orden y precisión decimal.
@@ -204,7 +204,7 @@ El BFF ya reenvía `content-type`, `content-disposition` y el cuerpo binario; no
 7. `ReportExcelController` y la ruta `GET /api/documents/excel`: nombre de archivo según filtros, cabeceras, borrado del temporal. Pruebas feature de cabeceras, nombres, Excel vacío, ambos roles, `401`, `422`, exclusión de registros no confirmados y que no se escribe `History`.
 8. Frontend: `src/features/reports/` (tipos, servicio JSON, servicio de descarga binaria, hooks con TanStack Query), página `/reports`, componentes de filtros/totales/tablas y enlace en la navegación. Pruebas Vitest del servicio, construcción de query, nombre de archivo, estado vacío y manejo de errores.
 9. Ejecutar suite backend contra `tpvs_test`, Pint, Vitest, ESLint, TypeScript y build.
-10. Checkpoint en navegador: con datos de prueba en varios estados, empresas y una semana que cruza meses, comparar pantalla y Excel con consultas SQL; verificar descarga como `EDITOR` y `VIEWER`; documentar en `docs/frontend/06_testing.md` y marcar 8.14 completo solo entonces.
+10. Checkpoint en navegador: con datos de prueba en varios estados, empresas y una semana que cruza meses, comparar pantalla y Excel con consultas SQL; verificar descarga como `EDITOR` y `VIEWER`; documentar en `docs/frontend/testing.md` y marcar 8.14 completo solo entonces.
 
 ## Acceptance criteria
 
@@ -255,7 +255,7 @@ El BFF ya reenvía `content-type`, `content-disposition` y el cuerpo binario; no
 | --- | --- |
 | Totales en pantalla y Excel divergen. | Ambos usan el mismo `ReportQuery`; prueba que compara `TOTAL` del Excel con `GET /api/reports`. |
 | Errores de redondeo por float al sumar o escribir celdas. | Sumas en SQL `numeric` y strings decimales; conversión a número solo al escribir la celda, con pruebas de precisión. |
-| Semana 53 que termina en enero del año siguiente queda fuera de `month=1` del nuevo año. | Comportamiento esperado: `year` es el año del periodo de negocio; documentarlo en `08_document_generation.md`. |
+| Semana 53 que termina en enero del año siguiente queda fuera de `month=1` del nuevo año. | Comportamiento esperado: `year` es el año del periodo de negocio; documentarlo en `document-generation.md`. |
 | Un año completo genera un Excel pesado o lento. | `year` obligatorio; carga anticipada de relaciones sin N+1; si crece, generación asíncrona en otra spec. |
 | Archivos temporales acumulados si falla el envío. | `deleteFileAfterSend` y limpieza en `finally`. |
 | El BFF altera el binario o las cabeceras. | Prueba Vitest del servicio con respuesta binaria y verificación en navegador. |

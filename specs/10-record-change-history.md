@@ -175,7 +175,7 @@ Respuesta:
 
 ## Implementation plan
 
-1. Actualizar `docs/02_business_rules_and_states.md`, `docs/03_data_model.md`, `docs/backend/03_api_contract.md`, `docs/backend/05_validation_authorization.md`, `docs/backend/06_domain_workflows.md`, `docs/frontend/features/records.md` y `docs/frontend/06_testing.md` con creación, diff, reapertura e historial.
+1. Actualizar `docs/business-rules.md`, `docs/data-model.md`, `docs/backend/api-contract.md`, `docs/backend/validation-authorization.md`, `docs/backend/domain-workflows.md`, `docs/frontend/features/records.md` y `docs/frontend/testing.md` con creación, diff, reapertura e historial.
 2. Crear `App\Domain\Records\RecordHistoryService` para canonicalizar snapshots, comparar Record/detalles por orden y escribir filas de `History`; cubrirlo con pruebas unitarias/feature.
 3. Integrar `record_created` en `RecordController::store` y `RecordFromImageController::store`, reemplazando el `status` de creación manual y manteniendo la transacción.
 4. Extender `RecordController::update` y `UpdateRecordRequest` para aceptar `CONFIRMED`, calcular el diff, escribir el evento de reapertura y rechazar el no-op con `422 RECORD_UPDATE_NO_CHANGES`; conservar el comportamiento de `NEEDS_REVIEW`.

@@ -8,7 +8,7 @@
 
 ## Goal and Scope
 
-Allow an authorized Editor to prepare or update the single editable Delivery associated with a confirmed Record and reconcile its cash denominations. Product behavior is defined in [`../../08_document_generation.md`](../../08_document_generation.md), [`../../10_ui_ux.md`](../../10_ui_ux.md), and [`../../02_business_rules_and_states.md`](../../02_business_rules_and_states.md).
+Allow an authorized Editor to prepare or update the single editable Delivery associated with a confirmed Record and reconcile its cash denominations. Product behavior is defined in [`../../document-generation.md`](../../document-generation.md), [`../../ui-ux.md`](../../ui-ux.md), and [`../../business-rules.md`](../../business-rules.md).
 
 Phase 8.12 covers delivery preparation. Phase 8.13 adds the Word document download for `EDITOR`. Reports, delivery versions, delivery states, stored documents, and the official UI/UX design remain outside these phases.
 
@@ -178,17 +178,17 @@ For `CASH_MISMATCH` and `CHANGE_REQUIRED`, the backend includes `expected_amount
 
 ## Related Documents
 
-- `../03_api_bff_and_sessions.md`
-- `../04_data_fetching_and_forms.md`
-- `../05_ui_and_accessibility.md`
-- `../06_testing.md`
-- [`../../02_business_rules_and_states.md`](../../02_business_rules_and_states.md) (Delivery rules)
-- [`../../03_data_model.md`](../../03_data_model.md) (Delivery entities)
-- [`../../08_document_generation.md`](../../08_document_generation.md)
-- [`../../10_ui_ux.md`](../../10_ui_ux.md) (Prepare Delivery and outdated delivery)
-- [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md) (Delivery Preparation Contract)
-- [`../../backend/08_files_and_documents.md`](../../backend/08_files_and_documents.md)
-- [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md) (phases 8.12–8.13)
+- `../conventions.md`
+- `../conventions.md`
+- `../ui-and-accessibility.md`
+- `../testing.md`
+- [`../../business-rules.md`](../../business-rules.md) (Delivery rules)
+- [`../../data-model.md`](../../data-model.md) (Delivery entities)
+- [`../../document-generation.md`](../../document-generation.md)
+- [`../../ui-ux.md`](../../ui-ux.md) (Prepare Delivery and outdated delivery)
+- [`../../backend/api-contract.md`](../../backend/api-contract.md) (Delivery Preparation Contract)
+- [`../../backend/files-and-documents.md`](../../backend/files-and-documents.md)
+- [`../../roadmap.md`](../../roadmap.md) (phases 8.12–8.13)
 - [`../../../specs/11-delivery-preparation.md`](../../../specs/11-delivery-preparation.md)
 - [`../../../specs/12-delivery-word-document.md`](../../../specs/12-delivery-word-document.md)
 - [`../../../specs/14-delivery-cash-adjustment.md`](../../../specs/14-delivery-cash-adjustment.md)

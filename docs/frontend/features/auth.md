@@ -2,11 +2,11 @@
 
 ## Status
 
-**Implemented and verified (2026-10-14).** Laravel Sanctum session authentication and the frontend BFF CSRF/cookie bridge are integrated. `/login`, protected `/dashboard`, current-user lookup, logout, and session-aware root/login redirects passed Vitest and Playwright browser verification against the running Laravel stack for both roles. See [`../06_testing.md`](../06_testing.md) and the phase 8.4 checkpoint in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
+**Implemented and verified (2026-10-14).** Laravel Sanctum session authentication and the frontend BFF CSRF/cookie bridge are integrated. `/login`, protected `/dashboard`, current-user lookup, logout, and session-aware root/login redirects passed Vitest and Playwright browser verification against the running Laravel stack for both roles. See [`../testing.md`](../testing.md) and SPEC 01–02.
 
 ## Goal and Scope
 
-Provide login and logout, expose the current authenticated user to the application shell, and handle expired or invalid sessions. Roles are `EDITOR` and `VIEWER`; their authoritative permissions are documented in [`../../backend/05_validation_authorization.md`](../../backend/05_validation_authorization.md) and [`../../10_ui_ux.md`](../../10_ui_ux.md).
+Provide login and logout, expose the current authenticated user to the application shell, and handle expired or invalid sessions. Roles are `EDITOR` and `VIEWER`; their authoritative permissions are documented in [`../../backend/validation-authorization.md`](../../backend/validation-authorization.md) and [`../../ui-ux.md`](../../ui-ux.md).
 
 ## Routes and Screens
 
@@ -69,14 +69,14 @@ Expected failures are `401` for invalid credentials or missing/expired session, 
 - Server-side authorization remains effective even if the UI is manipulated.
 - `EDITOR` and `VIEWER` UI affordances follow the approved permission matrix.
 - Authenticated views use Laravel `me` as the source of identity and clear user-scoped client state after logout or identity change.
-- The BFF CSRF bridge, session/cookie forwarding, login UI, and protected navigation pass the automated and manual checks documented in `../06_testing.md`.
+- The BFF CSRF bridge, session/cookie forwarding, login UI, and protected navigation pass the automated and manual checks documented in `../testing.md`.
 
 ## Related Documents
 
-- `../03_api_bff_and_sessions.md`
-- `../02_routing_and_rendering.md`
-- [`../../04_technical_architecture.md`](../../04_technical_architecture.md)
-- [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md)
-- [`../../backend/05_validation_authorization.md`](../../backend/05_validation_authorization.md)
-- [`../../backend/11_security.md`](../../backend/11_security.md)
-- [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md) (phase 8.4)
+- `../conventions.md`
+- `../conventions.md`
+- [`../../architecture.md`](../../architecture.md)
+- [`../../backend/api-contract.md`](../../backend/api-contract.md)
+- [`../../backend/validation-authorization.md`](../../backend/validation-authorization.md)
+- [`../../backend/conventions.md`](../../backend/conventions.md)
+- [`../../roadmap.md`](../../roadmap.md) (phase 8.4)

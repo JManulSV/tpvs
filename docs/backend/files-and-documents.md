@@ -40,6 +40,6 @@ Excel reports (SPEC 13):
 - Write the `.xlsx` to the system temporary directory, send it with `Content-Disposition: attachment` and `Cache-Control: private, no-store`, and delete it after sending. Delete temporary files on every failure path as well.
 - Do not store, version, or index generated workbooks, and do not write `History` for exports.
 
-See [`../08_document_generation.md`](../08_document_generation.md) for the office format, workbook layout, file names, and data mapping.
+See [`../document-generation.md`](../document-generation.md) for the office format, workbook layout, file names, and data mapping.
 
-The phase 8.7 API contract is implemented in Laravel and documented in [`03_api_contract.md`](03_api_contract.md). The roadmap checkpoint is recorded only after the integrated HTTP acceptance flow passes.
+The phase 8.7 API contract is implemented in Laravel and documented in [`api-contract.md`](api-contract.md). The roadmap checkpoint is recorded only after the integrated HTTP acceptance flow passes.

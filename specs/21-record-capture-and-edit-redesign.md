@@ -39,7 +39,7 @@ Esta spec sigue las plantillas, con los cambios que impone el sistema (ver Decis
 - Franja «Documento vs Sistema»: **fuera de esta spec** (ver Decisions). No se implementa.
 - Reintentar lectura en `ERROR` (`POST /api/records/{id}/ai-processing/retry`).
 - Utilidades puras con pruebas unitarias.
-- Documentar en `docs/frontend/features/records.md`, `docs/frontend/05_ui_and_accessibility.md` y `docs/10_ui_ux.md` §6 y §9.
+- Documentar en `docs/frontend/features/records.md`, `docs/frontend/ui-and-accessibility.md` y `docs/ui-ux.md` §6 y §9.
 
 **Out of scope (for future specs):**
 
@@ -310,8 +310,8 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
    - Ajustar solo espaciados y tamaños.
 10. **Documentación.**
     - Actualizar `docs/frontend/features/records.md`: `/records/new` y sus estados, `/records/{id}` editable, chips, procesamiento automático y lo que queda fuera.
-    - Actualizar `docs/frontend/05_ui_and_accessibility.md`: `role="progressbar"`, `aria-live` de los estados de lectura, `radiogroup` del selector de origen y la barra fija con su posición sobre la barra inferior.
-    - Actualizar `docs/10_ui_ux.md` §6 y §9 con el nuevo comportamiento.
+    - Actualizar `docs/frontend/ui-and-accessibility.md`: `role="progressbar"`, `aria-live` de los estados de lectura, `radiogroup` del selector de origen y la barra fija con su posición sobre la barra inferior.
+    - Actualizar `docs/ui-ux.md` §6 y §9 con el nuevo comportamiento.
 
 ## Acceptance criteria
 

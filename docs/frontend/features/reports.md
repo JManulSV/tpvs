@@ -6,7 +6,7 @@
 
 ## Goal and Scope
 
-Let `EDITOR` and `VIEWER` review official confirmed-record summaries and request an Excel export. The report month rule, period filters, and workbook contents are defined in [`../../02_business_rules_and_states.md`](../../02_business_rules_and_states.md), [`../../08_document_generation.md`](../../08_document_generation.md), and [`../../10_ui_ux.md`](../../10_ui_ux.md).
+Let `EDITOR` and `VIEWER` review official confirmed-record summaries and request an Excel export. The report month rule, period filters, and workbook contents are defined in [`../../business-rules.md`](../../business-rules.md), [`../../document-generation.md`](../../document-generation.md), and [`../../ui-ux.md`](../../ui-ux.md).
 
 Phase 8.14 delivers the minimum working screen. The official UI/UX design belongs to phase 8.15. Out of scope: stored or asynchronous Excel files, CSV or PDF export, charts, period comparisons, and non-confirmed records.
 
@@ -70,13 +70,13 @@ Code lives in `src/features/reports/` (`services`, `hooks`, `components`, `types
 
 ## Related Documents
 
-- `../03_api_bff_and_sessions.md`
-- `../04_data_fetching_and_forms.md`
-- `../05_ui_and_accessibility.md`
-- `../06_testing.md`
-- [`../../02_business_rules_and_states.md`](../../02_business_rules_and_states.md) (report inclusion and period rules)
-- [`../../08_document_generation.md`](../../08_document_generation.md)
-- [`../../10_ui_ux.md`](../../10_ui_ux.md) (Reports and Excel)
-- [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md) (Reports and Excel Contract)
-- [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md) (phase 8.14)
+- `../conventions.md`
+- `../conventions.md`
+- `../ui-and-accessibility.md`
+- `../testing.md`
+- [`../../business-rules.md`](../../business-rules.md) (report inclusion and period rules)
+- [`../../document-generation.md`](../../document-generation.md)
+- [`../../ui-ux.md`](../../ui-ux.md) (Reports and Excel)
+- [`../../backend/api-contract.md`](../../backend/api-contract.md) (Reports and Excel Contract)
+- [`../../roadmap.md`](../../roadmap.md) (phase 8.14)
 - [`../../../specs/13-reports-excel-export.md`](../../../specs/13-reports-excel-export.md)

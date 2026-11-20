@@ -28,7 +28,7 @@ Antes de rediseñar cada pantalla hace falta una base común: tokens, fuentes, t
 - Migrar los usos existentes de etiquetas de estado y formato a `lib/status.ts` y `lib/format.ts`.
 - Mostrar `StatusBadge` donde hoy se muestra el estado como texto en tabla o encabezado.
 - Sustituir `bg-black/40` por `bg-overlay` en los dos diálogos existentes.
-- Actualizar `docs/frontend/05_ui_and_accessibility.md` con las reglas del sistema de diseño.
+- Actualizar `docs/frontend/ui-and-accessibility.md` con las reglas del sistema de diseño.
 - Pruebas unitarias de `lib/format.ts` y `lib/status.ts`.
 
 **Out of scope (for future specs):**
@@ -81,7 +81,7 @@ JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
 
 ### Mapa de estados — `frontend/src/lib/status.ts`
 
-`lib/` no puede importar código de features (`docs/frontend/01_architecture_and_structure.md`). Por eso `lib/status.ts` pasa a ser el dueño de `recordStatuses` y `RecordStatus`. `features/records/types.ts` los reexporta para no romper los imports actuales.
+`lib/` no puede importar código de features (`docs/frontend/conventions.md`). Por eso `lib/status.ts` pasa a ser el dueño de `recordStatuses` y `RecordStatus`. `features/records/types.ts` los reexporta para no romper los imports actuales.
 
 ```ts
 export const recordStatuses = ["PENDING", "PROCESSING", "NEEDS_REVIEW", "ERROR", "CONFIRMED", "CANCELED"] as const;
@@ -174,7 +174,7 @@ Las clases se escriben como cadenas literales completas para que Tailwind las de
     - eliminar los `formatFileSize` locales de `image-record-form.tsx` y `record-detail-screen.tsx`;
     - actualizar los imports en `report-tables.tsx`, `delivery-form.tsx`, `delivery-screen.tsx` y los demás consumidores.
 13. Sustituir `bg-black/40` por `bg-overlay` en `record-action-dialog.tsx` y `create-company-dialog.tsx`.
-14. Actualizar `docs/frontend/05_ui_and_accessibility.md` con una sección «Design system». Debe cubrir: tokens y ruta del tema, regla de no usar colores literales, par `primary`/`primary-foreground`, escala de radios, foco, iconos, `tabular-nums` en cifras, `lib/status.ts` y `lib/format.ts`.
+14. Actualizar `docs/frontend/ui-and-accessibility.md` con una sección «Design system». Debe cubrir: tokens y ruta del tema, regla de no usar colores literales, par `primary`/`primary-foreground`, escala de radios, foco, iconos, `tabular-nums` en cifras, `lib/status.ts` y `lib/format.ts`.
 
 ## Acceptance criteria
 
@@ -198,7 +198,7 @@ Las clases se escriben como cadenas literales completas para que Tailwind las de
 - [x] `formatMoney("9800")` devuelve `"$9,800.00"` y `formatMoney(null)` devuelve `"—"`.
 - [x] `formatDate("2026-09-01")` devuelve `1 sep 2026` (con o sin punto) en cualquier zona horaria.
 - [x] Los diálogos de acción de registro y de crear empresa usan `bg-overlay`, y en oscuro el velo es más oscuro que el fondo.
-- [x] `docs/frontend/05_ui_and_accessibility.md` tiene la sección «Design system» con las reglas del paso 14.
+- [x] `docs/frontend/ui-and-accessibility.md` tiene la sección «Design system» con las reglas del paso 14.
 - [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
 - [x] Dashboard, registros, detalle de registro, entrega, empresas, reportes y login se revisaron en el navegador en tema claro y oscuro, a ancho de escritorio y de tablet, sin texto ilegible ni controles invisibles.
 
@@ -207,7 +207,7 @@ Las clases se escriben como cadenas literales completas para que Tailwind las de
 - **Sí:** solo fundamentos en esta spec. El rediseño de pantallas va después. Así un cambio que toca todo el frontend se revisa en dos partes más pequeñas.
 - **Sí:** la escala de radios del CSS manda (`sm` 8, `md` 12, `lg` 16, `xl` 24). Respeta la convención de shadcn. Las guías que decían inputs `rounded-lg` y tarjetas `rounded-2xl` se corrigen.
 - **No:** reescribir la escala para que `rounded-lg` valga 8 px. Rompería la expectativa de los componentes de shadcn.
-- **Sí:** guardar solo `docs/design/shadcn-theme.css` como referencia. Las reglas de uso van en `docs/frontend/05_ui_and_accessibility.md`, que ya es la guía de UI del repo.
+- **Sí:** guardar solo `docs/design/shadcn-theme.css` como referencia. Las reglas de uso van en `docs/frontend/ui-and-accessibility.md`, que ya es la guía de UI del repo.
 - **No:** agregar `CLAUDE.md`, `tokens.json` o `IMPLEMENTATION.md` en esta spec. Los dos últimos no están disponibles, y el primero contenía reglas que ya no aplican (`lib/mock`).
 - **Sí:** tema por defecto `system`, con un botón que alterna entre claro y oscuro y persistencia estándar de `next-themes` (localStorage). No se ofrece una tercera opción «sistema» en el botón, para mantener un solo control de icono.
 - **No:** guardar la preferencia de tema en el backend. No es dato de negocio.

@@ -236,7 +236,7 @@ El panel `Historial de cambios` del detalle debe reconocer y formatear los campo
 
 ## Implementation plan
 
-1. Actualizar `docs/02_business_rules_and_states.md`, `docs/03_data_model.md`, `docs/backend/03_api_contract.md`, `docs/backend/05_validation_authorization.md`, `docs/backend/06_domain_workflows.md`, `docs/frontend/features/deliveries.md`, `docs/frontend/features/records.md` y `docs/frontend/06_testing.md` con el contrato de entrega.
+1. Actualizar `docs/business-rules.md`, `docs/data-model.md`, `docs/backend/api-contract.md`, `docs/backend/validation-authorization.md`, `docs/backend/domain-workflows.md`, `docs/frontend/features/deliveries.md`, `docs/frontend/features/records.md` y `docs/frontend/testing.md` con el contrato de entrega.
 2. Crear `App\Domain\Deliveries\DeliveryValidator` con denominaciones oficiales, aritmética en centavos, cálculo del retorno actual, validación de suma y canonicalización; cubrirlo con pruebas unitarias.
 3. Crear `App\Domain\Deliveries\DeliveryHistoryService` para snapshot, diff y escritura de eventos con `delivery_id`; cubrirlo con pruebas unitarias.
 4. Añadir `UpsertDeliveryRequest`, `DeliveryResource`, `DeliveryController` (`show`, `upsert`) y las rutas `GET`/`PUT` en `routes/api.php`.

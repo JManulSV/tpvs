@@ -28,30 +28,9 @@ The database is the source of truth. AI proposes data, the backend validates it,
 
 ## Current Status
 
-The repository contains Laravel and Next.js foundations, Dockerfiles, PostgreSQL Compose infrastructure, authentication, and the phase 8.5 Companies module.
+The MVP modules (authentication, companies, manual and image records with AI extraction, review, history, delivery preparation, Word, reports, and Excel) are implemented, and the frontend uses the final design. End-to-end integration, release testing, and office-LAN deployment remain.
 
-Implemented foundation:
-
-- Laravel 12 backend with PHP 8.3 support.
-- Next.js 16 frontend with React 19 and TypeScript.
-- PostgreSQL service in Docker Compose.
-- Backend health endpoint at `GET /api/health`.
-- Sanctum authentication and role-based authorization.
-- Companies list, detail, and create API plus a basic role-aware `/companies` screen.
-- Initial Laravel migrations and test scaffolding.
-- Local filesystem configuration for application files.
-
-Remaining planned MVP modules:
-
-- Records, record details, images, and audit history.
-- Manual record capture and human review.
-- Ollama vision-model processing and asynchronous AI jobs.
-- Delivery preparation and cash-denomination validation.
-- Word delivery document generation.
-- Confirmed-record reports and Excel export.
-- Office-LAN deployment and end-to-end integration.
-
-The business API is still in progress. Health, authentication, and Companies endpoints are implemented; later resource endpoints remain planned.
+The single source of truth for module status is [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Architecture
 
@@ -442,17 +421,16 @@ Start with [`docs/README.md`](docs/README.md) for the complete documentation map
 | Document | Contents |
 | --- | --- |
 | [`docs/frontend/README.md`](docs/frontend/README.md) | Next.js frontend architecture, conventions, feature guides, and verification |
-| [`docs/01_product_prd.md`](docs/01_product_prd.md) | Product vision, scope, personas, and requirements |
-| [`docs/02_business_rules_and_states.md`](docs/02_business_rules_and_states.md) | State machine, validations, reporting rules, and delivery rules |
-| [`docs/03_data_model.md`](docs/03_data_model.md) | Entities, fields, relationships, and constraints |
-| [`docs/04_technical_architecture.md`](docs/04_technical_architecture.md) | Stack, modules, data flow, security, and API direction |
-| [`docs/05_ai_development_blueprint.md`](docs/05_ai_development_blueprint.md) | AI-assisted implementation prompts and testing guidance |
-| [`docs/06_ai_design.md`](docs/06_ai_design.md) | AI contracts, validation layers, retry behavior, and infrastructure |
-| [`docs/07_ai_design_overview.md`](docs/07_ai_design_overview.md) | Short AI implementation summary |
-| [`docs/08_document_generation.md`](docs/08_document_generation.md) | Excel and Word generation rules |
-| [`docs/09_manual_capture.md`](docs/09_manual_capture.md) | Manual record workflow |
-| [`docs/10_ui_ux.md`](docs/10_ui_ux.md) | Screens, navigation, role behavior, and user flows |
-| [`docs/11_technical_roadmap.md`](docs/11_technical_roadmap.md) | Implementation phases, checkpoints, and definition of done |
+| [`docs/product.md`](docs/product.md) | Product vision, scope, personas, and requirements |
+| [`docs/business-rules.md`](docs/business-rules.md) | State machine, validations, manual capture, reporting, and delivery rules |
+| [`docs/data-model.md`](docs/data-model.md) | Entities, fields, relationships, and constraints |
+| [`docs/architecture.md`](docs/architecture.md) | Stack, modules, data flow, security, and API direction |
+| [`docs/ai-extraction.md`](docs/ai-extraction.md) | AI contracts, validation layers, retry behavior, and infrastructure |
+| [`docs/document-generation.md`](docs/document-generation.md) | Excel and Word generation rules |
+| [`docs/ui-ux.md`](docs/ui-ux.md) | Screens, navigation, role behavior, and user flows |
+| [`docs/roadmap.md`](docs/roadmap.md) | Module status by SPEC, pending phases, and definition of done |
+| [`docs/BACKLOG.md`](docs/BACKLOG.md) | Pending ideas that do not have a SPEC yet |
+| [`docs/backend/README.md`](docs/backend/README.md) | Laravel backend conventions, API contract, workflows, and operations |
 
 ## Contribution Guidelines
 

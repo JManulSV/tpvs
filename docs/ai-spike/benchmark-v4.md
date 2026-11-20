@@ -17,7 +17,7 @@ This is a relative candidate selection, not a claim that any model is production
 | Models | `gemma3:4b`, `qwen2.5vl:3b`, `minicpm-v:8b` |
 | Repetitions | Two per image/model; 30 total requests |
 | Execution order | Round 1: gemma3, qwen2.5vl, minicpm-v. Round 2: minicpm-v, qwen2.5vl, gemma3. Images 1–5 within each group. Strictly sequential. |
-| References | Corrected expected values in [`benchmark-v2-raw.txt`](benchmark-v2-raw.txt) |
+| References | Corrected expected values in `docs/ai-spike/benchmark-v2-raw.txt`, removed from the tree; recover with `git show 7f508f8:docs/ai-spike/benchmark-v2-raw.txt` |
 
 The final controlled run used one frozen runner version for all 30 calls. Raw outputs were kept outside the repository at `/tmp/opencode/spec-06-benchmark-final/` and are not versioned. An earlier exploratory set is also local at `/tmp/opencode/spec-06-benchmark/`; it is excluded because a validator change happened during that run.
 

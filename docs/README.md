@@ -1,64 +1,37 @@
-# Documentation Set
+# Documentation
 
-This repository contains the MVP documentation for the automation platform in English, organized by role so AI tools and developers can work from the right level of detail.
+TPVS MVP documentation. Module status lives only in [`roadmap.md`](roadmap.md); per-feature scope and decisions live in the SPECs under `specs/`.
 
-The documentation describes both the current repository implementation and the target MVP. These are not the same thing. Documents must mark planned modules and endpoints as planned until they exist in the codebase.
+When documentation conflicts with the code, the code is authoritative for implemented behavior. These documents remain authoritative for business rules and planned behavior.
 
-## Documents
+## Map
 
-- `docs/01_product_prd.md` - Product requirements, user goals, and functional scope.
-- `docs/02_business_rules_and_states.md` - Business rules, validations, and state machine logic.
-- `docs/03_data_model.md` - Complete MVP data model and relationships.
-- `docs/04_technical_architecture.md` - Architecture and implementation recommendations.
-- `docs/05_ai_development_blueprint.md` - AI-assisted implementation roadmap and coding prompts.
-- `docs/06_ai_design.md` - AI vision extraction contract, validation layers, and retry behavior.
-- `docs/07_ai_design_overview.md` - Short implementation summary for the AI design phase.
-- `docs/08_document_generation.md` - On-demand Excel and Word document generation rules.
-- `docs/09_manual_capture.md` - Manual record capture rules and hybrid workflow.
-- `docs/10_ui_ux.md` - UI/UX phase 7 screens, flows, and role-based behavior.
-- `docs/11_technical_roadmap.md` - Phase 8 implementation sequence, checkpoints, and module acceptance criteria.
-- `docs/ai-spike/benchmark-v1.md` - Initial Ollama vision-model spike results; v2 runner is `tools/ai-spike/run_ollama_spike.py`.
-- `docs/ai-spike/benchmark-v2.md` - Second-round Ollama measurements, contract adherence, and follow-up assessment.
-- `docs/ai-spike/benchmark-v3.md` - English prompt/schema diagnostics, controlled failures, and remaining 8.8 work.
-- `docs/ai-spike/benchmark-v4.md` - SPEC 06 controlled comparison of three vision models, per-image metrics, and recommended SPEC 08 candidate.
-- `docs/ai-spike/prompt-v4.txt` - Versioned experimental extraction prompt used for the SPEC 06 comparison.
-- Temporary local Ollama AI-spike Compose profile usage is documented in `docs/backend/10_configuration_operations.md`.
-- `docs/frontend/README.md` - Next.js frontend status, architecture, conventions, and feature guides.
-- `docs/backend/README.md` - Laravel backend status, structure, conventions, API, operations, security, and AI development rules.
+| Document | Contents |
+| --- | --- |
+| [`product.md`](product.md) | Product vision, personas, scope, and requirements |
+| [`business-rules.md`](business-rules.md) | States, validations, manual capture, delivery, reporting, and history rules |
+| [`data-model.md`](data-model.md) | Entities, fields, relationships, and constraints |
+| [`architecture.md`](architecture.md) | Stack, modules, data flow, and API direction |
+| [`ai-extraction.md`](ai-extraction.md) | AI extraction contract, validation layers, and retries |
+| [`document-generation.md`](document-generation.md) | Word and Excel generation rules |
+| [`ui-ux.md`](ui-ux.md) | Screens, navigation, and role behavior |
+| [`roadmap.md`](roadmap.md) | Module status by SPEC, pending phases, definition of done |
+| [`BACKLOG.md`](BACKLOG.md) | Pending ideas that do not have a SPEC yet |
+| [`backend/README.md`](backend/README.md) | Laravel conventions, API contract, workflows, testing, operations |
+| [`frontend/README.md`](frontend/README.md) | Next.js conventions, UI, testing, and feature guides |
+| `design/` | Design tokens (`shadcn-theme.css`) and screen templates (`templates/*.dc.html`) |
+| `ai-spike/` | Vision-model benchmark that chose the production model, and its prompt |
 
-## Implementation Status
+## Where to Start
 
-The current backend is a Laravel 12 application with authentication, Companies, Records, private images, and the SPEC 08 asynchronous AI extraction implementation; SPEC 08 is complete and verified against PostgreSQL, and it is not the complete MVP backend.
+- **Product or business question:** `product.md`, then `business-rules.md`.
+- **Backend change:** `backend/README.md`, then the relevant global document.
+- **Frontend change:** `frontend/README.md`, then `ui-ux.md` and the feature guide.
+- **New feature:** add it to `BACKLOG.md`, then write a SPEC in `specs/` when you are ready to build it.
 
-Implemented now:
+## Writing Rule
 
-- Laravel 12 application bootstrap with PHP 8.3 support.
-- PostgreSQL configuration and initial Laravel migrations.
-- `GET /api/health` application endpoint.
-- `GET /up` Laravel framework health endpoint.
-- Laravel Sanctum authentication and role authorization.
-- Companies list, detail, and create API with normalized unique names.
-- Manual Records, private image handling, and asynchronous AI image extraction with Editor retry and human-review-only outcomes.
-- Basic Laravel test scaffolding and Docker runtime.
-
-Planned and not yet implemented:
-
-- History, delivery, and report modules, plus frontend AI upload/review.
-- The business API described in `04_technical_architecture.md`.
-- Document generation and production Ollama-host operations.
-
-When documentation conflicts with the code, current behavior in the repository is authoritative for implemented features. Product, business, and target architecture documents remain authoritative for planned behavior.
-
-Laravel Sanctum stateful authentication, Next.js BFF session integration, and the phase 8.5 Companies workflow are implemented. Browser verification for authentication and Companies is documented in the respective frontend testing guide.
-
-## Intended Roles
-
-- Product and operations stakeholders should start with `01_product_prd.md`.
-- Backend and architecture work should start with `02_business_rules_and_states.md`, `03_data_model.md`, and `04_technical_architecture.md`.
-- Cursor, Copilot, Claude Engineer, and similar tools should use `05_ai_development_blueprint.md`.
-- Implementation sequencing and checkpoints are defined in `11_technical_roadmap.md`.
-- Next.js developers and AI coding assistants should start with `frontend/README.md` after reading this document.
-- Laravel developers and AI coding assistants should start with `backend/README.md` after reading this document.
+Create a new document only if a SPEC or the regular workflow will read it. Otherwise add a section to an existing document. Do not copy module status into other files; link to `roadmap.md`.
 
 ## Core MVP Principles
 

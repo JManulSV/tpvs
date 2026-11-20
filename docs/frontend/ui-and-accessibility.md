@@ -14,7 +14,7 @@
 
 ## Status
 
-The project includes Tailwind CSS, shadcn/ui tooling, and initial UI primitives. The approved screen designs and flows are in [`../10_ui_ux.md`](../10_ui_ux.md); feature screens remain planned until implemented.
+The project includes Tailwind CSS, shadcn/ui tooling, and initial UI primitives. The approved screen designs and flows are in [`../ui-ux.md`](../ui-ux.md); feature screens remain planned until implemented.
 
 ## Application shell
 
@@ -27,7 +27,7 @@ The project includes Tailwind CSS, shadcn/ui tooling, and initial UI primitives.
 
 ## Design and Component Use
 
-- Treat [`../10_ui_ux.md`](../10_ui_ux.md) as the source for MVP navigation, screen content, and role-specific experience.
+- Treat [`../ui-ux.md`](../ui-ux.md) as the source for MVP navigation, screen content, and role-specific experience.
 - Use existing primitives in `src/components/ui/` and add shadcn components only when a feature needs them.
 - Keep domain-specific compositions inside their feature; promote a component to shared UI only after more than one feature needs a consistent primitive.
 - Prefer semantic HTML and native controls where suitable.
@@ -106,8 +106,8 @@ Use the authenticated user's role to improve the experience by showing relevant 
 
 ## Related Documents
 
-- `02_routing_and_rendering.md`
-- `04_data_fetching_and_forms.md`
-- `06_testing.md`
-- [`../10_ui_ux.md`](../10_ui_ux.md)
-- [`../backend/05_validation_authorization.md`](../backend/05_validation_authorization.md)
+- `conventions.md`
+- `conventions.md`
+- `testing.md`
+- [`../ui-ux.md`](../ui-ux.md)
+- [`../backend/validation-authorization.md`](../backend/validation-authorization.md)

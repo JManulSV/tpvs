@@ -2,11 +2,11 @@
 
 ## Status
 
-**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. **Phase 8.11 / SPEC 10 is implemented and verified (2026-10-26):** record change history with user, reason, and before/after values, plus audited editing and reopening of `CONFIRMED` records. **SPEC 11 / phase 8.12 and SPEC 12 / phase 8.13 are implemented. SPEC 14 cash-adjustment behavior is integrated; focused checks pass.** **SPEC 21 (record capture and edit redesign) is implemented in the frontend**, with these exclusions recorded in its Decisions: the «Documento vs Sistema» strip, the `radiogroup` origin selector (the screen uses two option cards), and a dedicated `RecordEditor` edit mode (editing still uses `ManualRecordForm`). The checkpoint is recorded in the roadmap.
+**Phase 8.6 and SPEC 07 are implemented (2026-10-20).** Manual capture, record list/detail, backend validation and confirmation, role-aware actions, and movement-level affiliation/branch are implemented. **Phase 8.10 / SPEC 09 is implemented and verified (2026-10-22).** Image upload, processing progress, human review, correction, confirmation, cancellation, and retry are available with role-aware actions. **Phase 8.11 / SPEC 10 is implemented and verified (2026-10-26):** record change history with user, reason, and before/after values, plus audited editing and reopening of `CONFIRMED` records. **SPEC 11 / phase 8.12 and SPEC 12 / phase 8.13 are implemented. SPEC 14 cash-adjustment behavior is integrated; focused checks pass.** **SPEC 21 (record capture and edit redesign) is implemented in the frontend**, with these exclusions recorded in its Decisions: the «Documento vs Sistema» strip, the `radiogroup` origin selector (the screen uses two option cards), and a dedicated `RecordEditor` edit mode (editing still uses `ManualRecordForm`). Checkpoint evidence is recorded in each SPEC and in [`../testing.md`](../testing.md).
 
 ## Goal and Scope
 
-Support record consultation, manual capture, and the human review workflow. Phase 8.6 includes a general list and detail for all record sources/statuses. A valid manual record is confirmed by Laravel during save. Phase 8.10 adds the minimum functional flow that resolves IMAGE proposals in `NEEDS_REVIEW` and failed records in `ERROR`; the official UI/UX design remains in phase 8.15. Product screen details are in [`../../10_ui_ux.md`](../../10_ui_ux.md); authoritative state and business rules are in [`../../02_business_rules_and_states.md`](../../02_business_rules_and_states.md), and the manual capture contract is in [`../../09_manual_capture.md`](../../09_manual_capture.md).
+Support record consultation, manual capture, and the human review workflow. Phase 8.6 includes a general list and detail for all record sources/statuses. A valid manual record is confirmed by Laravel during save. Phase 8.10 adds the minimum functional flow that resolves IMAGE proposals in `NEEDS_REVIEW` and failed records in `ERROR`; the official UI/UX design remains in phase 8.15. Product screen details are in [`../../ui-ux.md`](../../ui-ux.md); authoritative state and business rules are in [`../../business-rules.md`](../../business-rules.md), and the manual capture contract is in [`../../business-rules.md`](../../business-rules.md).
 
 ## Target Routes and Screens
 
@@ -98,7 +98,7 @@ Do not calculate official commission, return, totals, or state transitions as cl
 
 ## API Contract
 
-The implemented phase 8.6, SPEC 09, and SPEC 10 contracts are documented in [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md): `GET /api/records`, `POST /api/records`, `GET /api/records/{id}`, full-replacement `PUT /api/records/{id}`, `POST /api/records/{id}/confirm`, `POST /api/records/{id}/cancel`, `GET /api/records/{id}/history`, `POST /api/records/from-image`, `POST /api/records/{record}/ai-processing/retry`, and authorized `GET /api/records/{record}/image`. All browser requests use same-origin services through the Next.js BFF. Standard validation errors are `422`; unauthorized, forbidden, missing-resource, and disallowed transition responses retain `401`, `403`, `404`, and `409` respectively.
+The implemented phase 8.6, SPEC 09, and SPEC 10 contracts are documented in [`../../backend/api-contract.md`](../../backend/api-contract.md): `GET /api/records`, `POST /api/records`, `GET /api/records/{id}`, full-replacement `PUT /api/records/{id}`, `POST /api/records/{id}/confirm`, `POST /api/records/{id}/cancel`, `GET /api/records/{id}/history`, `POST /api/records/from-image`, `POST /api/records/{record}/ai-processing/retry`, and authorized `GET /api/records/{record}/image`. All browser requests use same-origin services through the Next.js BFF. Standard validation errors are `422`; unauthorized, forbidden, missing-resource, and disallowed transition responses retain `401`, `403`, `404`, and `409` respectively.
 
 The list query uses `search`, `company_id`, `year`, `month`, `week`, `status`, `source`, `page`, and `per_page`. Search spans company name, affiliation, and branch across any movement. A week filter is scoped by business `year`, not ISO; month filters by `week_end_date`. The create payload requires company, business period identifiers and valid date range, and non-empty ordered `details`. Each detail includes `affiliation`, `branch`, `income`, and exactly one of `commission_percentage` or fixed `commission`. Affiliation and branch are not accepted at the Record root. Laravel calculates `commission` and `return_amount`. Replacement submits the full aggregate plus required `reason` and accepts `MANUAL` or `IMAGE` records in `NEEDS_REVIEW` or `CONFIRMED`; a changed `CONFIRMED` replacement returns `NEEDS_REVIEW`, while a no-change replacement returns `422 RECORD_UPDATE_NO_CHANGES`. Confirmation accepts no client state or reason. Cancellation requires `reason` and accepts `NEEDS_REVIEW` or `ERROR`. IMAGE records may expose nullable company, period, and provisional detail fields; this does not relax MANUAL capture or confirmation validation.
 
@@ -143,17 +143,17 @@ Mutation errors are handled from the backend response: `RECORD_UPDATE_BLOCKED`, 
 ## Phase 8.6 Verification
 
 - Backend feature suite, Vitest, lint, TypeScript, production build, and changed-file Pint checks pass.
-- Browser acceptance with `EDITOR` and `VIEWER` is documented in [`../06_testing.md`](../06_testing.md).
-- The implementation checkpoint is recorded in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
+- Browser acceptance with `EDITOR` and `VIEWER` is documented in [`../testing.md`](../testing.md).
+- Checkpoint evidence is recorded in the SPEC and in [`../testing.md`](../testing.md).
 
 ## Phase 8.10 Verification
 
 Verified on 2026-10-22:
 
 - Backend feature suite (133 tests, 778 assertions), Vitest, lint, TypeScript, production build, and changed-file Pint checks pass.
-- Browser acceptance with `EDITOR` and `VIEWER` covers upload, processing, review, correction, confirmation, cancellation, retry, and stale-state `409` handling as documented in [`../06_testing.md`](../06_testing.md).
+- Browser acceptance with `EDITOR` and `VIEWER` covers upload, processing, review, correction, confirmation, cancellation, retry, and stale-state `409` handling as documented in [`../testing.md`](../testing.md).
 - The live AI provider was Ollama `qwen2.5vl:3b`; its documented structural limitation produced an `ERROR` proposal, so the review/confirmation path used a controlled IMAGE Record in `NEEDS_REVIEW`. The same checkpoint covered the real upload, retry, and cancellation flow.
-- The implementation checkpoint is recorded in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
+- Checkpoint evidence is recorded in the SPEC and in [`../testing.md`](../testing.md).
 
 ## Phase 8.11 Verification
 
@@ -161,23 +161,23 @@ Verified on 2026-10-26:
 
 - History contract tests cover pagination, ordering, role access, and response shape.
 - `CONFIRMED` editing tests cover the reopen flow, the no-change `422`, and role visibility.
-- The browser checkpoint demonstrates manual and image creation, correction with diff, confirmation, reopening with preserved source/Image/AI evidence, reconfirmation, cancellation, history display and pagination, loading/error/empty states, and `VIEWER` read access. The evidence is recorded in [`../06_testing.md`](../06_testing.md).
+- The browser checkpoint demonstrates manual and image creation, correction with diff, confirmation, reopening with preserved source/Image/AI evidence, reconfirmation, cancellation, history display and pagination, loading/error/empty states, and `VIEWER` read access. The evidence is recorded in [`../testing.md`](../testing.md).
 - Backend suite (149 tests, 922 assertions), Pint, Vitest (36 tests), ESLint, TypeScript, and production build pass.
-- The implementation checkpoint is recorded in [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md).
+- Checkpoint evidence is recorded in the SPEC and in [`../testing.md`](../testing.md).
 
 ## Related Documents
 
-- `../02_routing_and_rendering.md`
-- `../03_api_bff_and_sessions.md`
-- `../04_data_fetching_and_forms.md`
-- `../05_ui_and_accessibility.md`
-- `../06_testing.md`
-- [`../../02_business_rules_and_states.md`](../../02_business_rules_and_states.md)
-- [`../../03_data_model.md`](../../03_data_model.md)
+- `../conventions.md`
+- `../conventions.md`
+- `../conventions.md`
+- `../ui-and-accessibility.md`
+- `../testing.md`
+- [`../../business-rules.md`](../../business-rules.md)
+- [`../../data-model.md`](../../data-model.md)
 - [`deliveries.md`](deliveries.md)
 - [`../../../specs/11-delivery-preparation.md`](../../../specs/11-delivery-preparation.md)
-- [`../../09_manual_capture.md`](../../09_manual_capture.md)
-- [`../../10_ui_ux.md`](../../10_ui_ux.md) (Records and Review)
-- [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md)
-- [`../../backend/05_validation_authorization.md`](../../backend/05_validation_authorization.md)
-- [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md) (phases 8.6–8.10)
+- [`../../business-rules.md`](../../business-rules.md)
+- [`../../ui-ux.md`](../../ui-ux.md) (Records and Review)
+- [`../../backend/api-contract.md`](../../backend/api-contract.md)
+- [`../../backend/validation-authorization.md`](../../backend/validation-authorization.md)
+- [`../../roadmap.md`](../../roadmap.md) (phases 8.6–8.10)

@@ -11,7 +11,7 @@ El layout autenticado actual es un header con nombre, correo, rol, cuatro enlace
 
 El diseño entregado («Sidebar y topbar») define el shell: sidebar de 248 px que colapsa a 72 px y topbar en tarjeta. También trae un título de página y tarjetas skeleton. Esos dos elementos son placeholders del dashboard y no entran aquí.
 
-La regla de `docs/frontend/01_architecture_and_structure.md` dice que lo compartido no importa código de features. Por eso el shell compartido recibe por slots las piezas que dependen de `auth` y `records` (cerrar sesión y contador por revisar).
+La regla de `docs/frontend/conventions.md` dice que lo compartido no importa código de features. Por eso el shell compartido recibe por slots las piezas que dependen de `auth` y `records` (cerrar sesión y contador por revisar).
 
 ## Scope
 
@@ -29,7 +29,7 @@ La regla de `docs/frontend/01_architecture_and_structure.md` dice que lo compart
 - Extraer la lógica de cierre de sesión a un hook `useLogout` en `features/auth`.
 - Renombrar el enlace «Inicio» a «Dashboard». La página `/dashboard` no cambia.
 - Pruebas unitarias de las utilidades puras del shell.
-- Documentar el shell en `docs/frontend/05_ui_and_accessibility.md` y la ubicación de cierre de sesión en `docs/frontend/features/auth.md`.
+- Documentar el shell en `docs/frontend/ui-and-accessibility.md` y la ubicación de cierre de sesión en `docs/frontend/features/auth.md`.
 
 **Out of scope (for future specs):**
 
@@ -183,7 +183,7 @@ type AppShellProps = {
    - conservar la validación de sesión, el estado de error y `instant = false`.
    Eliminar el header anterior.
 9. Revisar en el navegador `/dashboard`, `/records`, `/records/new`, detalle, entrega, `/companies` y `/reports` como `EDITOR` y `VIEWER`. Hacerlo en claro y oscuro, a 1440, 1024 y 375 px, y con el sidebar expandido y colapsado. Ajustar solo espaciados del shell.
-10. Actualizar `docs/frontend/05_ui_and_accessibility.md` con una sección «Application shell»: ubicación en `components/app-shell/`, slots para piezas de features, cookie `sidebar_state`, breakpoint del drawer, regla de `aria-current` y de que las pantallas conservan su `<h1>`. Actualizar `docs/frontend/features/auth.md` con las dos ubicaciones de «Cerrar sesión» y `useLogout`.
+10. Actualizar `docs/frontend/ui-and-accessibility.md` con una sección «Application shell»: ubicación en `components/app-shell/`, slots para piezas de features, cookie `sidebar_state`, breakpoint del drawer, regla de `aria-current` y de que las pantallas conservan su `<h1>`. Actualizar `docs/frontend/features/auth.md` con las dos ubicaciones de «Cerrar sesión» y `useLogout`.
 
 ## Acceptance criteria
 
@@ -212,7 +212,7 @@ type AppShellProps = {
 - [x] Con Tab se recorren en orden el botón de colapso, los ítems del sidebar y los controles habilitados del topbar, y todos muestran el anillo de foco de 2 px.
 - [x] Si `getAuthenticatedUser` lanza error, se muestra el mensaje de sesión a pantalla completa sin sidebar ni topbar.
 - [x] La consola del navegador no muestra advertencias de hidratación en `/dashboard`, `/records` ni `/reports`, con el sidebar expandido ni colapsado.
-- [x] `docs/frontend/05_ui_and_accessibility.md` tiene la sección «Application shell» y `docs/frontend/features/auth.md` documenta `useLogout` y las dos ubicaciones de «Cerrar sesión».
+- [x] `docs/frontend/ui-and-accessibility.md` tiene la sección «Application shell» y `docs/frontend/features/auth.md` documenta `useLogout` y las dos ubicaciones de «Cerrar sesión».
 - [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
 - [x] Las pantallas del paso 9 se revisaron en claro y oscuro, a 1440, 1024 y 375 px, sin texto ilegible, controles invisibles ni scroll horizontal de página.
 
@@ -237,7 +237,7 @@ type AppShellProps = {
 - **Sí:** «Cerrar sesión» en el sidebar y en el menú del avatar, con un solo hook `useLogout`.
 - **Sí:** `ThemeToggle` en el topbar. El diseño no lo incluye, pero SPEC 15 exige que esté en el header autenticado.
 - **Sí:** etiqueta de rol «Editor» / «Viewer», como el diseño.
-- **Sí:** «Dashboard» en lugar de «Inicio», como el diseño y `docs/10_ui_ux.md`.
+- **Sí:** «Dashboard» en lugar de «Inicio», como el diseño y `docs/ui-ux.md`.
 - **Sí:** marca «TPVS» en mayúsculas, como el README y el header actual. El diseño muestra «Tpvs».
 - **Sí:** conservar `max-w-6xl` en `<main>`. Con el sidebar abierto a 1440 px el ancho útil es casi el mismo, y las pantallas ya están probadas con ese ancho.
 

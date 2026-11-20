@@ -9,7 +9,7 @@
 
 SPEC 18 dejó `/records` leyendo filtros iniciales desde la URL, pero su aspecto sigue siendo el de la Fase 8.6: una rejilla de filtros con bordes literales, una tabla con `min-w-[58rem]` que obliga a hacer scroll horizontal y un botón «+ Nuevo registro» propio que, en escritorio, ya está duplicado en el topbar del shell.
 
-`docs/10_ui_ux.md` §5 define Registros como la pantalla operativa principal: búsqueda por empresa, afiliación y sucursal, seis filtros y fila completa clicable. Las plantillas de `docs/design/templates/` aportan el diseño visual de esos requisitos.
+`docs/ui-ux.md` §5 define Registros como la pantalla operativa principal: búsqueda por empresa, afiliación y sucursal, seis filtros y fila completa clicable. Las plantillas de `docs/design/templates/` aportan el diseño visual de esos requisitos.
 
 Las plantillas pintan dentro de la página el sidebar, el buscador del encabezado, «Nuevo registro», las notificaciones, la barra inferior y el FAB. Todo eso ya existe en el shell (SPEC 16), así que no se repite. Esta spec toma de las plantillas solo el **contenido** de la página.
 
@@ -33,7 +33,7 @@ Las plantillas pintan dentro de la página el sidebar, el buscador del encabezad
 - Estados de carga (skeleton), error con reintento, vacío sin registros y vacío por filtros con «Limpiar filtros».
 - Pie con el conteo y la paginación existente.
 - Utilidades puras con pruebas unitarias.
-- Documentar en `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md`.
+- Documentar en `docs/frontend/features/records.md` y `docs/frontend/ui-and-accessibility.md`.
 
 **Out of scope (for future specs):**
 
@@ -241,7 +241,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
    - Ajustar solo espaciados y tamaños.
 8. **Documentación.**
    - Actualizar `docs/frontend/features/records.md`: estructura de la lista, acción por rol y FAB.
-   - Actualizar `docs/frontend/05_ui_and_accessibility.md`: el FAB aparece en `/dashboard` y `/records`, y el cambio entre tabla y tarjetas se decide por el ancho del contenedor.
+   - Actualizar `docs/frontend/ui-and-accessibility.md`: el FAB aparece en `/dashboard` y `/records`, y el cambio entre tabla y tarjetas se decide por el ancho del contenedor.
 
 ## Acceptance criteria
 
@@ -275,7 +275,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 - [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
 - [ ] La revisión visual del paso 7 se hizo en claro y oscuro, a 1440, 1024, 768 y 375 px, sin texto cortado ni solapamientos.
   > Pendiente: se revisaron capturas en claro a 1024 px y en oscuro a 768 px, y se comprobó el scroll en las 8 combinaciones. Faltan las capturas restantes y la revisión del FAB de 375 px contra la paginación al final de la lista. El sidebar colapsado no se revisó.
-- [x] `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md` describen el nuevo comportamiento.
+- [x] `docs/frontend/features/records.md` y `docs/frontend/ui-and-accessibility.md` describen el nuevo comportamiento.
 
 ## Decisions
 

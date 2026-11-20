@@ -43,7 +43,7 @@ La plantilla muestra la fecha de creación de cada empresa. La API no la devuelv
 - Mensajes del formulario en español. El duplicado del backend se traduce en el frontend.
 - Estados de carga (skeleton), error con reintento, catálogo vacío y búsqueda sin resultados con «Limpiar búsqueda».
 - Utilidades puras con pruebas unitarias.
-- Documentar en `docs/backend/03_api_contract.md`, `docs/frontend/features/companies.md`, `docs/frontend/05_ui_and_accessibility.md` y `docs/10_ui_ux.md` §11.
+- Documentar en `docs/backend/api-contract.md`, `docs/frontend/features/companies.md`, `docs/frontend/ui-and-accessibility.md` y `docs/ui-ux.md` §11.
 
 **Out of scope (for future specs):**
 
@@ -286,7 +286,7 @@ El backend sigue siendo la autoridad. Un `VIEWER` que llama `POST /api/companies
    - Agregar `created_at` a `CompanyResource`.
    - Extender `backend/tests/Feature/CompaniesApiTest.php` para que listado, detalle y alta lo incluyan en ISO 8601.
    - Ejecutar la suite con `-e DB_DATABASE=tpvs_test`.
-   - Actualizar `docs/backend/03_api_contract.md`.
+   - Actualizar `docs/backend/api-contract.md`.
 2. **Tipos, formato y utilidades.**
    - Agregar `created_at` a `Company` y `CompanyDetail`.
    - Agregar `formatShortDate` a `lib/format.ts` con pruebas en `frontend/tests/format.test.ts`.
@@ -305,8 +305,8 @@ El backend sigue siendo la autoridad. Un `VIEWER` que llama `POST /api/companies
 5. **Estados, pie y paginación.**
    - Implementar el skeleton, el error, el catálogo vacío, la búsqueda sin resultados, el pie y la paginación con el aspecto nuevo.
 6. **Documentación.**
-   - Actualizar `docs/frontend/features/companies.md` y `docs/frontend/05_ui_and_accessibility.md`.
-   - En `docs/10_ui_ux.md` §11, describir el layout implementado y que el conteo es de confirmados.
+   - Actualizar `docs/frontend/features/companies.md` y `docs/frontend/ui-and-accessibility.md`.
+   - En `docs/ui-ux.md` §11, describir el layout implementado y que el conteo es de confirmados.
 7. **Verificación.**
    - Ejecutar `npm test`, `npm run lint`, `npx tsc --noEmit` y `npm run build`.
    - Revisar en navegador con `EDITOR` y `VIEWER`, en escritorio y a 390 px, en tema claro y oscuro.

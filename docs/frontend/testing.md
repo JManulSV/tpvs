@@ -2,7 +2,7 @@
 
 ## Status
 
-The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../11_technical_roadmap.md`](../11_technical_roadmap.md). Backend-only phase 8.7 image HTTP acceptance is recorded in [`../11_technical_roadmap.md`](../11_technical_roadmap.md) and its API contract in [`../backend/03_api_contract.md`](../backend/03_api_contract.md). Phase 8.10 / SPEC 09 adds the review, correction, confirmation, and cancellation acceptance flow described below. Phase 8.11 / SPEC 10 adds change-history and confirmed-record reopening checks; its browser evidence is recorded below. Phase 8.12 / SPEC 11 adds delivery preparation checks; its browser evidence is recorded below, and the phase is complete once the frontend build and backend checks pass. Phase 8.13 / SPEC 12 adds the Word document download checks; its browser evidence is recorded below. Phase 8.14 / SPEC 13 adds the reports and Excel checks; its browser evidence is recorded below.
+The frontend uses Vitest for focused unit/Route Handler tests. Authentication has a browser acceptance flow against Laravel, verified with Playwright MCP; see the phase 8.4 evidence in [`../roadmap.md`](../roadmap.md). Backend-only phase 8.7 image HTTP acceptance is recorded in [`../roadmap.md`](../roadmap.md) and its API contract in [`../backend/api-contract.md`](../backend/api-contract.md). Phase 8.10 / SPEC 09 adds the review, correction, confirmation, and cancellation acceptance flow described below. Phase 8.11 / SPEC 10 adds change-history and confirmed-record reopening checks; its browser evidence is recorded below. Phase 8.12 / SPEC 11 adds delivery preparation checks; its browser evidence is recorded below, and the phase is complete once the frontend build and backend checks pass. Phase 8.13 / SPEC 12 adds the Word document download checks; its browser evidence is recorded below. Phase 8.14 / SPEC 13 adds the reports and Excel checks; its browser evidence is recorded below.
 
 ## Verification Layers
 
@@ -261,13 +261,13 @@ Automated coverage is in `DeliveryApiTest`, `DeliveryValidatorTest`, `DeliveryDo
 
 ### Integration and end-to-end checks
 
-Verify important user journeys against a running backend once their API contracts are implemented. Cover at least the accepted MVP flows in [`../11_technical_roadmap.md`](../11_technical_roadmap.md), including failure and authorization paths. Backend feature tests remain responsible for proving persistence, business validation, and authorization enforcement.
+Verify important user journeys against a running backend once their API contracts are implemented. Cover at least the accepted MVP flows in [`../roadmap.md`](../roadmap.md), including failure and authorization paths. Backend feature tests remain responsible for proving persistence, business validation, and authorization enforcement.
 
 ## Feature Acceptance Checklist
 
 Before marking a frontend feature implemented:
 
-- approved routes and screen behavior match [`../10_ui_ux.md`](../10_ui_ux.md);
+- approved routes and screen behavior match [`../ui-ux.md`](../ui-ux.md);
 - requests use the same-origin BFF and an implemented Laravel contract;
 - loading, empty, error, success, and forbidden cases are handled;
 - form/server validation errors are visible and actionable;
@@ -279,10 +279,10 @@ Before marking a frontend feature implemented:
 
 ## Related Documents
 
-- `03_api_bff_and_sessions.md`
-- `04_data_fetching_and_forms.md`
-- [`../10_ui_ux.md`](../10_ui_ux.md)
-- [`../11_technical_roadmap.md`](../11_technical_roadmap.md)
+- `conventions.md`
+- `conventions.md`
+- [`../ui-ux.md`](../ui-ux.md)
+- [`../roadmap.md`](../roadmap.md)
 - [`features/deliveries.md`](features/deliveries.md)
-- [`../backend/09_testing.md`](../backend/09_testing.md)
+- [`../backend/testing.md`](../backend/testing.md)
 - [`../../specs/11-delivery-preparation.md`](../../specs/11-delivery-preparation.md)

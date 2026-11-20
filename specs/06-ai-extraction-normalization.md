@@ -35,7 +35,7 @@ El benchmark v3 mostró que `qwen2.5vl:3b` suele devolver JSON con información 
 
 Esta spec no modifica datos persistidos ni introduce estructuras de base de datos. El runner experimental reportará la respuesta cruda durante la ejecución, la versión normalizada, los issues y el total de valores numéricos no convertibles. El resumen comparativo versionado contendrá métricas agregadas por modelo y la decisión, no imágenes ni respuestas crudas nuevas. El pipeline de producción conservará la evidencia del procesamiento en `AIProcessing.result` según SPEC 08.
 
-El contrato conserva los campos actuales en `docs/06_ai_design.md`: raíz `record`, `details` y `source_totals`; cada campo extraído tiene `value` y `confidence`.
+El contrato conserva los campos actuales en `docs/ai-extraction.md`: raíz `record`, `details` y `source_totals`; cada campo extraído tiene `value` y `confidence`.
 
 ## Normalization and classification contract
 
@@ -71,7 +71,7 @@ El contrato conserva los campos actuales en `docs/06_ai_design.md`: raíz `recor
 4. Actualizar la salida del runner para reportar versión de prompt, validez estructural, valores normalizados, issues, contador numérico y tiempo de la solicitud; conservar códigos de salida distintos para fallo de transporte, JSON/estructura inválidos y extracción no utilizable.
 5. Ejecutar casos controlados para formatos aceptados/ambiguos y fallas estructurales; verificar que el runner informe métricas comparables para cada modelo.
 6. Ejecutar secuencialmente las 30 inferencias con las cinco imágenes locales, en el orden de dos vueltas definido en esta spec, y comparar las salidas con las referencias corregidas.
-7. Guardar solo el resumen de métricas, observaciones de lectura/movimientos, validez estructural, latencias y modelo seleccionado; actualizar `docs/06_ai_design.md`, los documentos del spike y `docs/README.md` para que SPEC 08 use el candidato seleccionado.
+7. Guardar solo el resumen de métricas, observaciones de lectura/movimientos, validez estructural, latencias y modelo seleccionado; actualizar `docs/ai-extraction.md`, los documentos del spike y `docs/README.md` para que SPEC 08 use el candidato seleccionado.
 
 ## Acceptance criteria
 

@@ -155,7 +155,7 @@ La UI de esta fase es funcional, no el diseño final de 8.15.
 
 ## Implementation plan
 
-1. Actualizar `docs/02_business_rules_and_states.md`, `docs/backend/03_api_contract.md`, `docs/backend/05_validation_authorization.md`, `docs/backend/06_domain_workflows.md`, `docs/frontend/features/records.md` y `docs/frontend/06_testing.md` con revisión, corrección, cancelación y `ERROR -> CANCELED`.
+1. Actualizar `docs/business-rules.md`, `docs/backend/api-contract.md`, `docs/backend/validation-authorization.md`, `docs/backend/domain-workflows.md`, `docs/frontend/features/records.md` y `docs/frontend/testing.md` con revisión, corrección, cancelación y `ERROR -> CANCELED`.
 2. Añadir `cancel` a `RecordPolicy`, crear `CancelRecordRequest`, registrar la ruta y extender `RecordController` con la cancelación transaccional.
 3. Extender `RecordController::update` para aceptar `MANUAL` e `IMAGE` en `NEEDS_REVIEW`, conservar el agregado de imagen/AI y escribir `record_updated`.
 4. Ajustar la confirmación para usar el motivo de History según la fuente y mantener el gate de agregado completo.

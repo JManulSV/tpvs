@@ -156,6 +156,10 @@ It does not require:
 - `Image`
 - `AIProcessing`
 
+Manual capture keeps the office working when the image is unreadable, the supplier sent no image, the AI provider is unavailable, or an extraordinary case occurs. It uses the same `Record` model; there is no separate entity.
+
+MANUAL creation requires the company and all period fields (they may be null only on provisional IMAGE records). Each movement requires its own `affiliation`, `branch`, `income`, and exactly one commission input (`commission_percentage` or fixed `commission`); its positive `order` comes from its position in the submitted array. MANUAL capture never accepts missing movement values.
+
 A valid manual record is confirmed when the Editor saves it, because the Editor enters and reviews the data in the same workflow. The creation transaction records a single `record_created` event with `new_value=CONFIRMED` in `History`, replacing the former creation `status` event. The audited `CONFIRMED -> NEEDS_REVIEW -> CONFIRMED` editing workflow is available through the record replacement endpoint.
 
 ### Shared Rule

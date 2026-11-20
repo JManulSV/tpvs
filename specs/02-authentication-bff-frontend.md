@@ -55,7 +55,7 @@ Las cookies de sesión y CSRF siguen siendo propiedad de Laravel. No se guardan 
 5. Añadir `/dashboard` bajo un grupo de rutas autenticado con layout servidor que consulte `/me`; mostrar nombre y rol y ofrecer logout. Redirigir solicitudes anónimas a `/login` sin contenido protegido.
 6. Convertir `/` en punto de entrada que consulte la sesión en servidor y redirija a `/dashboard` o `/login`. Mantener `/api/health` como endpoint de salud.
 7. Añadir pruebas Vitest focalizadas al puente CSRF y al contrato de proxy —cookies, encabezados, estados y errores—, y documentar el flujo manual navegador-backend junto con los comandos de verificación frontend.
-8. Actualizar `docs/frontend/features/auth.md`, `docs/frontend/03_api_bff_and_sessions.md`, `docs/frontend/06_testing.md` y la documentación de configuración necesaria. Marcar 8.4 completa en el roadmap solo después de pasar el recorrido integrado.
+8. Actualizar `docs/frontend/features/auth.md`, `docs/frontend/conventions.md`, `docs/frontend/testing.md` y la documentación de configuración necesaria. Marcar 8.4 completa en el roadmap solo después de pasar el recorrido integrado.
 
 ## Acceptance criteria
 

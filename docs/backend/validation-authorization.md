@@ -21,7 +21,7 @@ Use Laravel Form Requests for endpoint payloads. Validate types, required fields
 
 ## Business Validation
 
-Business validators must enforce the rules in `docs/02_business_rules_and_states.md`, including financial consistency, state transitions, confirmed-only reporting, delivery cash reconciliation, and human confirmation.
+Business validators must enforce the rules in `docs/business-rules.md`, including financial consistency, state transitions, confirmed-only reporting, delivery cash reconciliation, and human confirmation.
 
 Backend calculations are authoritative. AI values are input for review, never official financial truth.
 
@@ -44,7 +44,7 @@ Protect state-changing requests with Laravel CSRF validation. The Next.js BFF is
 
 ## Records — Phase 8.6 / SPEC 09 / SPEC 10 Contract Decisions
 
-The Records API contract is documented in [`03_api_contract.md`](03_api_contract.md). Endpoints are implemented incrementally under SPEC 04; keep this validation guidance aligned with the verified implementation. SPEC 10 adds field-level history and audited reopening.
+The Records API contract is documented in [`api-contract.md`](api-contract.md). Endpoints are implemented incrementally under SPEC 04; keep this validation guidance aligned with the verified implementation. SPEC 10 adds field-level history and audited reopening.
 
 ### Authorization and Allowed Operations
 
@@ -62,7 +62,7 @@ Every mutation must authorize on the backend, including requests made directly t
 
 ## Record Images — Phase 8.7 Contract Decisions
 
-The target image endpoint contract is documented in [`03_api_contract.md`](03_api_contract.md) and remains planned until implemented and tested.
+The target image endpoint contract is documented in [`api-contract.md`](api-contract.md) and remains planned until implemented and tested.
 
 | Operation | `EDITOR` | `VIEWER` |
 | --- | --- | --- |
@@ -110,7 +110,7 @@ The list's `month` filter uses `week_end_date`, consistent with the product repo
 
 ## Delivery — SPEC 11 Contract Decisions
 
-The delivery contract is documented in [`03_api_contract.md`](03_api_contract.md) and is implemented incrementally under SPEC 11. Keep this validation guidance aligned with the verified implementation.
+The delivery contract is documented in [`api-contract.md`](api-contract.md) and is implemented incrementally under SPEC 11. Keep this validation guidance aligned with the verified implementation.
 
 ### Authorization and Allowed Operations
 

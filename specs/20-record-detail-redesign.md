@@ -9,7 +9,7 @@
 
 Hoy `RecordDetailScreen` (372 líneas) mezcla todo en una sola columna con bordes literales (`rounded-md border`), una tabla de movimientos con `min-w-[64rem]` que obliga a hacer scroll horizontal y un historial en otra tabla de `min-w-[64rem]`. Los botones de acción quedan al final de la página, lejos del estado del registro.
 
-`docs/10_ui_ux.md` §6 define esta pantalla como la más importante del sistema para los registros que vienen de una imagen: el Editor revisa y confirma ahí. Las plantillas de `docs/design/templates/` aportan el diseño visual: acciones arriba, retorno oficial destacado y una columna lateral con imagen y entrega.
+`docs/ui-ux.md` §6 define esta pantalla como la más importante del sistema para los registros que vienen de una imagen: el Editor revisa y confirma ahí. Las plantillas de `docs/design/templates/` aportan el diseño visual: acciones arriba, retorno oficial destacado y una columna lateral con imagen y entrega.
 
 Las plantillas pintan dentro de la página el sidebar, la barra superior móvil y la barra inferior. Todo eso ya existe en el shell (SPEC 16), así que no se repite. Esta spec toma de las plantillas solo el **contenido** de la página, como SPEC 18 y SPEC 19.
 
@@ -33,7 +33,7 @@ Las plantillas también muestran cosas que el sistema no tiene: «Creado por», 
 - Estados de carga (skeleton), error con reintento y registro sin datos (importes y periodo vacíos).
 - Se conservan los diálogos `RecordActionDialog` para confirmar y cancelar, y `ManualRecordForm` para editar y reabrir.
 - Utilidades puras con pruebas unitarias.
-- Documentar en `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md`.
+- Documentar en `docs/frontend/features/records.md` y `docs/frontend/ui-and-accessibility.md`.
 - Manejo de errores de sesión del shell cuando el backend no responde: `error.tsx` en `frontend/src/app/(app)/` con una tarjeta dentro de `AppShell` y «Reintentar» (ver paso 10).
 
 **Out of scope (for future specs):**
@@ -311,7 +311,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
    - Ajustar solo espaciados y tamaños.
 9. **Documentación.**
    - Actualizar `docs/frontend/features/records.md`: estructura del detalle, orden de tarjetas, acciones por rol y qué queda fuera.
-   - Actualizar `docs/frontend/05_ui_and_accessibility.md`: el detalle usa el ancho del contenedor para elegir columnas y tabla o tarjetas, y el historial es una línea de tiempo.
+   - Actualizar `docs/frontend/ui-and-accessibility.md`: el detalle usa el ancho del contenedor para elegir columnas y tabla o tarjetas, y el historial es una línea de tiempo.
 
 10. **Errores de sesión con el backend caído.**
    - Crear `frontend/src/app/(app)/error.tsx` como componente cliente (`"use client"`), con las props `error` y `reset`, siguiendo la plantilla `docs/design/templates/ErrorBackend.dc.html`. No se toca `page.tsx` ni `app/(app)/layout.tsx`.
@@ -319,7 +319,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
    - «Reintentar» llama a `router.refresh()` y luego a `reset()`. Sin `refresh()`, Next vuelve a renderizar el payload fallido y no pide de nuevo al servidor.
    - Registrar el error con `console.error` y no mostrar `error.message`.
    - Verificar con el backend detenido: navegar dentro de la app a `/records/{id}` debe mostrar la tarjeta y no la página «This page couldn't load» de Next. Iniciar el backend, pulsar «Reintentar» y confirmar que la página carga. Una carga completa con el backend detenido debe seguir mostrando el mensaje de `app/(app)/layout.tsx` sin cambios.
-   - Documentar el comportamiento en `docs/frontend/02_routing_and_rendering.md` (sección «Error Boundaries»).
+   - Documentar el comportamiento en `docs/frontend/conventions.md` (sección «Error Boundaries»).
 
 ## Acceptance criteria
 
@@ -350,7 +350,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 - [x] La consola del navegador no muestra advertencias de hidratación en `/records/{id}`.
 - [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
 - [x] La revisión visual del paso 8 se hizo en claro y oscuro, a 1440, 1024, 768 y 375 px, sin texto cortado ni solapamientos.
-- [x] `docs/frontend/features/records.md` y `docs/frontend/05_ui_and_accessibility.md` describen el nuevo comportamiento.
+- [x] `docs/frontend/features/records.md` y `docs/frontend/ui-and-accessibility.md` describen el nuevo comportamiento.
 - [x] Con el backend detenido, navegar dentro de la app a `/records/{id}` muestra la tarjeta «No pudimos cargar la información» con `role="alert"` y no la página de error de Next.
 - [x] La tarjeta de error ofrece «Reintentar», que vuelve a cargar la página cuando el backend está disponible, y «Ir al dashboard». «Detalles técnicos» muestra el tipo y el código.
 - [x] Una carga completa con el backend detenido sigue mostrando «No se pudo validar la sesión con el servidor…» sin cambios.
@@ -401,7 +401,7 @@ El backend sigue siendo la autoridad. El rol solo decide qué se muestra.
 | La imagen es grande y empuja la columna lateral. | `max-h-[32rem]` con `object-contain`, como hoy. |
 | El historial muestra muchas filas y alarga la página. | Se conserva la paginación de 20 y el historial va al final. |
 | Quitar la tabla de historial pierde la columna de correo. | Es una decisión aceptada; el nombre del usuario basta para el MVP. |
-| Un registro reabierto (`NEEDS_REVIEW` manual con entrega previa) muestra «Bloqueada». | Es coherente con `docs/10_ui_ux.md` §8: la entrega solo está disponible tras `CONFIRMED`. La entrega previa se conserva y se ve de nuevo al reconfirmar. |
+| Un registro reabierto (`NEEDS_REVIEW` manual con entrega previa) muestra «Bloqueada». | Es coherente con `docs/ui-ux.md` §8: la entrega solo está disponible tras `CONFIRMED`. La entrega previa se conserva y se ve de nuevo al reconfirmar. |
 | `error.tsx` no captura errores lanzados en `app/(app)/layout.tsx`. | Ese layout ya captura el error de sesión con su propio `try/catch`. El paso 10 lo verifica con el backend detenido en carga completa. |
 
 ## What is **not** in this spec

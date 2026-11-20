@@ -6,8 +6,7 @@ Next.js 16 and React 19 application for the TPVS internal operations platform. T
 
 - Foundation includes the App Router, TypeScript, Tailwind CSS, shared UI primitives, Axios, TanStack Query, React Hook Form, and Zod.
 - `src/app/api/[...path]/route.ts` proxies browser API requests to Laravel through the server-only `src/lib/server/laravel-api.ts` helper and `LARAVEL_API_URL`.
-- Laravel Sanctum authentication is integrated with the BFF: CSRF bridge, cookie/header forwarding, login/logout, protected `/dashboard`, and session-aware redirects are implemented. BFF tests are available with `npm test`; the browser acceptance flow is documented in `../docs/frontend/06_testing.md`.
-- Business screens and resource API workflows remain planned.
+- Laravel Sanctum authentication is integrated with the BFF: CSRF bridge, cookie/header forwarding, login/logout, protected `/dashboard`, and session-aware redirects are implemented. BFF tests are available with `npm test`; the browser acceptance flow is documented in `../docs/frontend/testing.md`.
 
 ## Development
 
@@ -32,5 +31,5 @@ npm run build
 ## Project Conventions
 
 - Start with [`../docs/frontend/README.md`](../docs/frontend/README.md) for the architecture, current status, feature guides, and implementation rules.
-- Use [`../docs/10_ui_ux.md`](../docs/10_ui_ux.md) for approved screen flows and [`../docs/11_technical_roadmap.md`](../docs/11_technical_roadmap.md) for implementation order.
+- Use [`../docs/ui-ux.md`](../docs/ui-ux.md) for approved screen flows and [`../docs/roadmap.md`](../docs/roadmap.md) for implementation order.
 - Read `AGENTS.md` and the installed Next.js documentation under `node_modules/next/dist/docs/` before changing Next.js APIs; this repository pins Next.js 16.4.0.

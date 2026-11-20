@@ -25,7 +25,7 @@ La plantilla `docs/design/templates/Reports.dc.html` cubre esta pantalla. `Repor
 - Botón «Generar Excel» en la barra de acciones de la pantalla. Al terminar la descarga muestra «Se generó y descargó {archivo}», con el nombre que devuelve el servidor.
 - Estados: cargando, sin registros (con «Limpiar filtros»), error con «Reintentar».
 - Pruebas Vitest de las utilidades puras nuevas.
-- Actualizar `docs/frontend/features/reports.md` y el checkpoint de navegador en `docs/frontend/06_testing.md`.
+- Actualizar `docs/frontend/features/reports.md` y el checkpoint de navegador en `docs/frontend/testing.md`.
 
 **Out of scope (for future specs):**
 
@@ -60,7 +60,7 @@ Convenciones que no cambian:
 7. **Estados.** Estado vacío con «No hay registros confirmados en este periodo», la línea «Prueba con otra semana, otro mes u otra empresa. Los registros pendientes o por revisar no cuentan en los reportes.» y botón «Limpiar filtros». Error con «Reintentar».
 8. **Pruebas.** Vitest en `frontend/tests/reports.test.ts` para las utilidades nuevas (ver Decisions). Ejecutar `npm test`.
 9. **Verificación.** Ejecutar ESLint, TypeScript y `npm run build` desde `frontend/`.
-10. **Documentación y checkpoint.** Actualizar `docs/frontend/features/reports.md` con la nueva UI y registrar en `docs/frontend/06_testing.md` la verificación en navegador como `EDITOR` y `VIEWER`: pantalla contra la plantilla, Excel descargado y nombre correcto, y estado vacío.
+10. **Documentación y checkpoint.** Actualizar `docs/frontend/features/reports.md` con la nueva UI y registrar en `docs/frontend/testing.md` la verificación en navegador como `EDITOR` y `VIEWER`: pantalla contra la plantilla, Excel descargado y nombre correcto, y estado vacío.
 
 ## Acceptance criteria
 

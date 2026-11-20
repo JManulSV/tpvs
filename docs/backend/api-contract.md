@@ -502,7 +502,7 @@ A successful response is `200` with a binary body and:
 - `Content-Disposition: attachment; filename="Reporte_Semana_38_2026.xlsx"`
 - `Cache-Control: private, no-store`
 
-The workbook has the sheets `Resumen`, `Registros`, `Detalles`, and `Efectivo`, and no AI extraction sheet. Sheet columns, number formats, and the file-name rules are defined in [`../08_document_generation.md`](../08_document_generation.md). An empty result still returns `200` with the four sheets. The file is written to a temporary location and deleted after it is sent; the export writes no `History`.
+The workbook has the sheets `Resumen`, `Registros`, `Detalles`, and `Efectivo`, and no AI extraction sheet. Sheet columns, number formats, and the file-name rules are defined in [`../document-generation.md`](../document-generation.md). An empty result still returns `200` with the four sheets. The file is written to a temporary location and deleted after it is sent; the export writes no `History`.
 
 Errors for both routes: `401` unauthenticated; `422` invalid filters, including a missing `year` or a non-existent `company_id`. A generic, safe `500` is returned if workbook construction fails, with no private details and no temporary file left behind.
 

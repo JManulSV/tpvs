@@ -22,7 +22,7 @@ La fase 8.12 dejó persistida la `Delivery` y su desglose, pero la oficina sigue
 - Registrar un evento `document_generated` en `History` por cada generación exitosa.
 - Botón `Generar documento Word` en `/records/[recordId]/delivery` para `EDITOR`, con motivos de bloqueo y errores del backend.
 - Etiqueta del evento en el panel `Historial de cambios`.
-- Agregar el mockup del formato a `docs/08_document_generation.md` y actualizar la documentación relacionada y el checkpoint 8.13.
+- Agregar el mockup del formato a `docs/document-generation.md` y actualizar la documentación relacionada y el checkpoint 8.13.
 
 **Out of scope (for future specs):**
 
@@ -144,7 +144,7 @@ El BFF ya reenvía `content-type`, `content-disposition` y el cuerpo binario; no
 
 ## Implementation plan
 
-1. Documentación: agregar el mockup y el mapeo a `docs/08_document_generation.md`; actualizar `docs/backend/03_api_contract.md`, `docs/backend/08_files_and_documents.md`, `docs/backend/06_domain_workflows.md`, `docs/02_business_rules_and_states.md`, `docs/frontend/features/deliveries.md` y `docs/backend/10_configuration_operations.md` (extensiones PHP).
+1. Documentación: agregar el mockup y el mapeo a `docs/document-generation.md`; actualizar `docs/backend/api-contract.md`, `docs/backend/files-and-documents.md`, `docs/backend/domain-workflows.md`, `docs/business-rules.md`, `docs/frontend/features/deliveries.md` y `docs/backend/configuration-operations.md` (extensiones PHP).
 2. Infraestructura: añadir `zip` y `gd` (con soporte WebP/JPEG/PNG) al `backend/Dockerfile`; `composer require phpoffice/phpword`; reconstruir y verificar `php -m`.
 3. `MoneyToWordsService` con pruebas unitarias (0, 1, 21, 100, 101, 1000, 1001, 21,000, 1,000,000, 2,500,000.50, 920.17, máximo, negativo).
 4. Formateador de fechas en español (día de semana, mes, rango de semana con años distintos) con pruebas unitarias.
@@ -155,7 +155,7 @@ El BFF ya reenvía `content-type`, `content-disposition` y el cuerpo binario; no
 9. Pruebas feature: éxito con JPEG/PNG/WebP, cabeceras, borrado del temporal, `403`/`401`/`404`, cada razón `409`, sin historial en fallos, historial en éxito, registro sin modificar.
 10. Frontend: servicio de descarga binaria, hook de mutación, botón con motivos de bloqueo en `delivery-screen.tsx`, etiqueta en `record-history-panel.tsx`; pruebas Vitest del servicio, nombre de archivo y mensajes `409`.
 11. Ejecutar suite backend contra `tpvs_test`, Pint, Vitest, ESLint, TypeScript y build.
-12. Checkpoint en navegador: descargar el Word de una entrega válida y abrirlo; comprobar bloqueo sin imagen, con entrega obsoleta y para `VIEWER`; documentar en `docs/frontend/06_testing.md` y marcar 8.13 completo solo entonces.
+12. Checkpoint en navegador: descargar el Word de una entrega válida y abrirlo; comprobar bloqueo sin imagen, con entrega obsoleta y para `VIEWER`; documentar en `docs/frontend/testing.md` y marcar 8.13 completo solo entonces.
 
 ## Acceptance criteria
 
@@ -172,7 +172,7 @@ El BFF ya reenvía `content-type`, `content-disposition` y el cuerpo binario; no
 - [x] No queda archivo temporal tras la respuesta.
 - [x] El botón aparece solo para `EDITOR`, se deshabilita con motivo en los casos bloqueados y descarga el archivo a través del BFF.
 - [x] El panel de historial muestra `Documento Word generado`.
-- [x] `docs/08_document_generation.md` incluye el mockup del formato.
+- [x] `docs/document-generation.md` incluye el mockup del formato.
 - [x] Suite backend, Pint, Vitest, ESLint, TypeScript y build pasan.
 - [x] El checkpoint de navegador se documenta y 8.13 se marca completo solo entonces.
 
@@ -204,7 +204,7 @@ El BFF ya reenvía `content-type`, `content-disposition` y el cuerpo binario; no
 | El retorno cambia entre la consulta y la generación. | Bloqueo de `Record`/`Delivery` y revalidación dentro de la transacción. |
 | Archivos temporales acumulados si falla el envío. | `deleteFileAfterSend` y limpieza en `finally` ante excepciones. |
 | El BFF altera el binario o las cabeceras. | Prueba Vitest del proxy con respuesta binaria y verificación en navegador. |
-| Falta de `zip`/`gd` en otro entorno. | Documentar las extensiones en `10_configuration_operations.md`. |
+| Falta de `zip`/`gd` en otro entorno. | Documentar las extensiones en `configuration-operations.md`. |
 
 ## What is **not** in this spec
 

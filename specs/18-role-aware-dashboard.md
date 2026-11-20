@@ -13,7 +13,7 @@ Hoy `/dashboard` muestra «Panel de TPVS» y un texto fijo. SPEC 16 dejó fuera 
 
 Las plantillas pintan dentro de la página un buscador, «Nuevo registro» y notificaciones. Esos controles ya existen en el topbar y en el FAB móvil del shell (SPEC 16 y el commit `3f8a25b`), así que no se repiten aquí.
 
-`docs/10_ui_ux.md` define el Dashboard como centro de trabajo, no como analítica. No lleva gráficas.
+`docs/ui-ux.md` define el Dashboard como centro de trabajo, no como analítica. No lleva gráficas.
 
 ## Scope
 
@@ -37,11 +37,11 @@ Las plantillas pintan dentro de la página un buscador, «Nuevo registro» y not
 - Envolver `getAuthenticatedUser` en `cache()` de React, para que el layout y la página no consulten `/me` dos veces.
 - Estados de carga (skeleton), error con reintento y actividad vacía.
 - Pruebas unitarias de las utilidades en `frontend/tests/dashboard.test.ts`.
-- Documentar el contrato en `docs/backend/03_api_contract.md` y actualizar `docs/frontend/features/dashboard.md` y `docs/frontend/features/records.md`.
+- Documentar el contrato en `docs/backend/api-contract.md` y actualizar `docs/frontend/features/dashboard.md` y `docs/frontend/features/records.md`.
 
 **Out of scope (for future specs):**
 
-- Gráficas o analítica (`docs/10_ui_ux.md`: «No charts are required»).
+- Gráficas o analítica (`docs/ui-ux.md`: «No charts are required»).
 - Buscador funcional, notificaciones y atajo `⌘K`. Siguen deshabilitados en el topbar.
 - Polling o actualización en tiempo real del Dashboard.
 - Actividad basada en eventos de `History` (por ejemplo, «María confirmó…»).
@@ -66,7 +66,7 @@ return [
 ### Mes actual
 
 - `now(config('tpvs.business_timezone'))` define `year` y `month`.
-- Un registro pertenece al mes si `records.year = year` y el mes de `week_end_date` es `month`. Es exactamente el filtro de `ReportQuery::base` (`docs/10_ui_ux.md` §16.1). En las semanas que cruzan el año, manda el año de negocio del registro.
+- Un registro pertenece al mes si `records.year = year` y el mes de `week_end_date` es `month`. Es exactamente el filtro de `ReportQuery::base` (`docs/ui-ux.md` §16.1). En las semanas que cruzan el año, manda el año de negocio del registro.
 - Los registros con `week_end_date = null` no cuentan en ningún total mensual.
 
 ### Contrato — `GET /api/dashboard`
@@ -331,7 +331,7 @@ Los colores literales de la plantilla (`--canvas`, `--surface`, `--ink`, etc.) s
    - Probar el estado de carga con la red lenta, el error deteniendo el backend y la actividad vacía con la base sin registros.
    - Ajustar solo espaciados.
 10. **Documentación.**
-    - Agregar la sección «Dashboard Contract — SPEC 18» a `docs/backend/03_api_contract.md`.
+    - Agregar la sección «Dashboard Contract — SPEC 18» a `docs/backend/api-contract.md`.
     - Marcar `docs/frontend/features/dashboard.md` como implementado: ruta `/dashboard`, endpoint, regla de mes, sin polling y estados.
     - Documentar en `docs/frontend/features/records.md` los filtros iniciales que se leen de la URL.
 
@@ -375,7 +375,7 @@ Los colores literales de la plantilla (`--canvas`, `--surface`, `--ink`, etc.) s
 - [x] `npm run lint`, `npx tsc --noEmit`, `npm test` y `npm run build` en `frontend/` pasan sin errores.
 - [ ] La revisión del paso 9 se hizo en claro y oscuro, a 1440, 1024, 768 y 375 px, sin scroll horizontal de página ni texto ilegible.
   > Pendiente: no se revisó visualmente el modo oscuro a 375 px ni a 768 px. Se verificó el scroll horizontal en las 16 combinaciones.
-- [x] `docs/backend/03_api_contract.md`, `docs/frontend/features/dashboard.md` y `docs/frontend/features/records.md` describen el nuevo comportamiento.
+- [x] `docs/backend/api-contract.md`, `docs/frontend/features/dashboard.md` y `docs/frontend/features/records.md` describen el nuevo comportamiento.
 
 ## Decisions
 

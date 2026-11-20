@@ -4,7 +4,7 @@
 
 **Phase 8.5 implemented and verified (2026-10-14).** Laravel list/detail/create endpoints, the same-origin BFF integration, and the basic `/companies` screen are implemented.
 
-**Redesign implemented and verified (SPEC 23, 2026-11-18 to 2026-11-19).** The screen follows the `Companies`, `CompaniesNew` and `CompaniesMobile` templates. Backend `CompaniesApiTest` (371 tests in the suite) and frontend tests (255) pass, and `lint`, `tsc --noEmit` and `build` pass. Browser checks for `EDITOR` and `VIEWER` ran at desktop and 390 px, in light and dark themes. The acceptance list is in [`../../specs/23-companies-screen-redesign.md`](../../specs/23-companies-screen-redesign.md).
+**Redesign implemented and verified (SPEC 23, 2026-11-18 to 2026-11-19).** The screen follows the `Companies`, `CompaniesNew` and `CompaniesMobile` templates. Backend `CompaniesApiTest` (371 tests in the suite) and frontend tests (255) pass, and `lint`, `tsc --noEmit` and `build` pass. Browser checks for `EDITOR` and `VIEWER` ran at desktop and 390 px, in light and dark themes. The acceptance list is in [`specs/23-companies-screen-redesign.md`](../../../specs/23-companies-screen-redesign.md).
 
 ## Goal and Scope
 
@@ -75,11 +75,11 @@ Do not add update or delete UI; those operations are out of MVP scope.
 
 ## Related Documents
 
-- `../01_architecture_and_structure.md`
-- `../04_data_fetching_and_forms.md`
-- `../05_ui_and_accessibility.md`
-- [`../../03_data_model.md`](../../03_data_model.md) (Company)
-- [`../../10_ui_ux.md`](../../10_ui_ux.md) (Companies)
-- [`../../backend/03_api_contract.md`](../../backend/03_api_contract.md)
-- [`../../backend/05_validation_authorization.md`](../../backend/05_validation_authorization.md)
-- [`../../11_technical_roadmap.md`](../../11_technical_roadmap.md) (phase 8.5)
+- `../conventions.md`
+- `../conventions.md`
+- `../ui-and-accessibility.md`
+- [`../../data-model.md`](../../data-model.md) (Company)
+- [`../../ui-ux.md`](../../ui-ux.md) (Companies)
+- [`../../backend/api-contract.md`](../../backend/api-contract.md)
+- [`../../backend/validation-authorization.md`](../../backend/validation-authorization.md)
+- [`../../roadmap.md`](../../roadmap.md) (phase 8.5)

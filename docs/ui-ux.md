@@ -1,4 +1,4 @@
-# UI/UX Phase 7
+# UI/UX
 
 ## 1. Objective
 
