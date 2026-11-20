@@ -38,6 +38,7 @@ Before asking questions about the feature, make sure you have project context:
 1. Read the project-memory file, if one exists. Try in order and stop at the first hit: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `README.md`. This adapts the skill to whichever agent is running it (Claude Code, Codex, Gemini CLI, etc.).
 2. Look at the `specs/` listing in the session context above to see which specs already exist and how they are numbered.
 3. If previous specs exist, read at least the two most recent ones to pick up the project's conventions — including the **language** they are written in and the exact wording they use for states and section headings. A new spec must match the existing ones.
+4. If `docs/BACKLOG.md` exists, check whether the feature matches one of its entries. If it does, use the entry as extra context and remember it for Phase 4.
 
 If the `$ARGUMENTS` argument comes in empty, ask the user for an initial **single-sentence** description of what they want to build. If the description does not fit in one sentence, that is the first signal that the feature is too big — suggest splitting it before continuing.
 
@@ -127,9 +128,12 @@ When the content is ready (either because you had everything, or because all sec
    AutoCreateBranch: true
    ```
 
-8. Confirm to the user:
+8. **Update the backlog.** If the feature came from an entry in `docs/BACKLOG.md` (see Phase 1), move that entry to the «Convertido a SPEC» section, mark it `[x]`, and append `→ SPEC NN`. Do not touch other entries.
+
+9. Confirm to the user:
    - Path of the created file.
    - Reminder: the spec is in `Draft` state. Change it to `Approved` once you have re-read it.
+   - If you moved a backlog entry, say which one.
    - If you just created `specs/.spec-config.yml`, mention it exists and that `AutoCreateBranch` defaults to `true` (set it to `false` to control branch creation yourself).
    - Next step: once reviewed and approved, run `/spec-impl NN-slug` to implement it.
    - **Stop here.** Do not propose implementing the spec, writing code, or taking any further action beyond this confirmation.

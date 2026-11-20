@@ -197,7 +197,7 @@ Once confirmed, follow these rules during the entire implementation:
 **If the user asks for something that is out of the spec's scope:**
 
 - Remind them that it is out of this spec's scope.
-- Suggest noting it down for the next spec.
+- Suggest adding it to `docs/BACKLOG.md` so it becomes a later spec.
 - Do not implement it on this branch.
 
 **When finishing the last step:**
@@ -207,7 +207,8 @@ Once confirmed, follow these rules during the entire implementation:
 
 Next step: verify the spec's acceptance criteria one by one.
 If they all pass, update the spec's state to "Implemented" (or the equivalent
-in your repo's language) and make the final commit before merging this branch.
+in your repo's language), update the module's row in docs/roadmap.md, and make
+the final commit before merging this branch.
 ```
 
 ---
