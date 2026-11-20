@@ -19,7 +19,7 @@ When documentation conflicts with the code, the code is authoritative for implem
 | [`BACKLOG.md`](BACKLOG.md) | Pending ideas that do not have a SPEC yet |
 | [`backend/README.md`](backend/README.md) | Laravel conventions, API contract, workflows, testing, operations |
 | [`frontend/README.md`](frontend/README.md) | Next.js conventions, UI, testing, and feature guides |
-| `design/` | Design tokens (`shadcn-theme.css`) and screen templates (`templates/*.dc.html`) |
+| [`design/README.md`](design/README.md) | Design tokens and screen templates, mapped to routes |
 | `ai-spike/` | Vision-model benchmark that chose the production model, and its prompt |
 
 ## Where to Start
