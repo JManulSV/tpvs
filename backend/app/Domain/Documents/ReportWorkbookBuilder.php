@@ -5,6 +5,7 @@ namespace App\Domain\Documents;
 use App\Domain\Deliveries\DeliveryValidator;
 use App\Domain\Reports\ReportFilters;
 use App\Domain\Reports\ReportQuery;
+use App\Domain\Shared\Money;
 use App\Models\Record;
 use Illuminate\Support\Collection;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -297,9 +298,9 @@ class ReportWorkbookBuilder
     /**
      * @return array{0: string, 1: mixed}
      */
-    private static function money(mixed $value): array
+    private static function money(string|int|null $value): array
     {
-        return ['money', $value];
+        return ['money', $value === null ? null : Money::fromDecimal($value)->toDecimal()];
     }
 
     /**

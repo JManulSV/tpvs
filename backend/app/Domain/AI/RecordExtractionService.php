@@ -2,6 +2,7 @@
 
 namespace App\Domain\AI;
 
+use App\Domain\Shared\Money;
 use App\Enums\RecordSource;
 use App\Models\Company;
 use App\Models\Record;
@@ -145,7 +146,7 @@ class RecordExtractionService
 
                     continue;
                 }
-                $totals[$field] = $this->addMoney($totals[$field], $detail->{$field});
+                $totals[$field] = Money::fromDecimal($totals[$field])->add(Money::fromDecimal($detail->{$field}))->toDecimal();
             }
         }
 
@@ -161,15 +162,6 @@ class RecordExtractionService
         }
 
         return $issues;
-    }
-
-    private function addMoney(string $left, string $right): string
-    {
-        [$leftWhole, $leftFraction] = explode('.', $left, 2);
-        [$rightWhole, $rightFraction] = explode('.', $right, 2);
-        $cents = ((int) $leftWhole * 100) + (int) $leftFraction + ((int) $rightWhole * 100) + (int) $rightFraction;
-
-        return intdiv($cents, 100).'.'.str_pad((string) ($cents % 100), 2, '0', STR_PAD_LEFT);
     }
 
     /** @return array{path: string, code: string, severity: string, message: string, value?: mixed} */

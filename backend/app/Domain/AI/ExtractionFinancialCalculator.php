@@ -4,10 +4,13 @@ namespace App\Domain\AI;
 
 use App\Domain\AI\DTO\ExtractedDetailFinancialValues;
 use App\Domain\Records\BusinessValidator;
+use App\Domain\Shared\Money;
 
 class ExtractionFinancialCalculator
 {
     private const MAX_MONEY_CENTS = 999_999_999_999;
+
+    private const MAX_PERCENTAGE_HUNDREDTHS = 10_000;
 
     public function __construct(private readonly BusinessValidator $businessValidator = new BusinessValidator) {}
 
@@ -44,7 +47,7 @@ class ExtractionFinancialCalculator
             return null;
         }
 
-        if (! is_string($value) || preg_match('/^(?:0|[1-9]\d{0,9})\.\d{2}$/D', $value) !== 1 || $this->toCents($value) > self::MAX_MONEY_CENTS) {
+        if (! is_string($value) || preg_match('/^(?:0|[1-9]\d{0,9})\.\d{2}$/D', $value) !== 1 || Money::fromDecimal($value)->cents > self::MAX_MONEY_CENTS) {
             $issues[] = $this->issue($path, 'MONEY_OUT_OF_RANGE', 'The monetary value is outside the supported database range.', $value);
 
             return null;
@@ -59,7 +62,7 @@ class ExtractionFinancialCalculator
             return null;
         }
 
-        if (! is_string($value) || preg_match('/^(?:0|[1-9]\d{0,2})\.\d{2}$/D', $value) !== 1 || $this->toCents($value) > 10000) {
+        if (! is_string($value) || preg_match('/^(?:0|[1-9]\d{0,2})\.\d{2}$/D', $value) !== 1 || Money::fromDecimal($value)->cents > self::MAX_PERCENTAGE_HUNDREDTHS) {
             $issues[] = $this->issue($path, 'PERCENTAGE_OUT_OF_RANGE', 'The commission percentage must be between 0 and 100.', $value);
 
             return null;
@@ -74,13 +77,6 @@ class ExtractionFinancialCalculator
         $fieldValue = $detail[$field] ?? null;
 
         return is_array($fieldValue) ? ($fieldValue['value'] ?? null) : null;
-    }
-
-    private function toCents(string $amount): int
-    {
-        [$whole, $fraction] = explode('.', $amount, 2);
-
-        return ((int) $whole * 100) + (int) $fraction;
     }
 
     /** @return array{path: string, code: string, severity: string, message: string, value?: mixed} */

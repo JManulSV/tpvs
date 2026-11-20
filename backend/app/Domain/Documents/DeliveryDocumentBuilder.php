@@ -3,6 +3,7 @@
 namespace App\Domain\Documents;
 
 use App\Domain\Deliveries\DeliveryValidator;
+use App\Domain\Shared\Money;
 use App\Models\Delivery;
 use PhpOffice\PhpWord\Element\Section;
 use PhpOffice\PhpWord\IOFactory;
@@ -298,7 +299,7 @@ class DeliveryDocumentBuilder
     /** "9800.50" => "$9,800.50" */
     private function money(string $amount): string
     {
-        [$whole, $fraction] = explode('.', $amount);
+        [$whole, $fraction] = explode('.', Money::fromDecimal($amount)->toDecimal());
 
         return '$'.number_format((int) $whole).'.'.$fraction;
     }

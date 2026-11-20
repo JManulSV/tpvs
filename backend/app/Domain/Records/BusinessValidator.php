@@ -2,6 +2,7 @@
 
 namespace App\Domain\Records;
 
+use App\Domain\Shared\Money;
 use App\Models\Record;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
@@ -20,12 +21,11 @@ class BusinessValidator
             return ['commission' => null, 'return_amount' => null, 'issues' => []];
         }
 
-        $incomeCents = $this->toCents($income);
+        $incomeAmount = Money::fromDecimal($income);
         if ($percentage !== null) {
-            $percentageHundredths = $this->toHundredths($percentage);
-            $commissionCents = intdiv(($incomeCents * $percentageHundredths) + 5000, 10000);
+            $commission = $incomeAmount->applyPercentage($percentage);
 
-            if ($commissionCents > $incomeCents) {
+            if ($commission->compare($incomeAmount) > 0) {
                 return [
                     'commission' => null,
                     'return_amount' => null,
@@ -34,8 +34,8 @@ class BusinessValidator
             }
 
             return [
-                'commission' => $this->fromCents($commissionCents),
-                'return_amount' => $this->fromCents($incomeCents - $commissionCents),
+                'commission' => $commission->toDecimal(),
+                'return_amount' => $incomeAmount->subtract($commission)->toDecimal(),
                 'issues' => [],
             ];
         }
@@ -44,8 +44,8 @@ class BusinessValidator
             return ['commission' => null, 'return_amount' => null, 'issues' => []];
         }
 
-        $commissionCents = $this->toCents($sourceCommission);
-        if ($commissionCents > $incomeCents) {
+        $commission = Money::fromDecimal($sourceCommission);
+        if ($commission->compare($incomeAmount) > 0) {
             return [
                 'commission' => null,
                 'return_amount' => null,
@@ -55,7 +55,7 @@ class BusinessValidator
 
         return [
             'commission' => $sourceCommission,
-            'return_amount' => $this->fromCents($incomeCents - $commissionCents),
+            'return_amount' => $incomeAmount->subtract($commission)->toDecimal(),
             'issues' => [],
         ];
     }
@@ -81,21 +81,20 @@ class BusinessValidator
                 ]);
             }
 
-            $incomeCents = $this->toCents($detail['income']);
+            $income = Money::fromDecimal($detail['income']);
 
             if ($percentageProvided) {
-                $percentageHundredths = $this->toHundredths($detail['commission_percentage']);
-                $commissionCents = intdiv(($incomeCents * $percentageHundredths) + 5000, 10000);
+                $commission = $income->applyPercentage($detail['commission_percentage']);
             } else {
-                $commissionCents = $this->toCents($detail['commission']);
-                if ($commissionCents > $incomeCents) {
+                $commission = Money::fromDecimal($detail['commission']);
+                if ($commission->compare($income) > 0) {
                     throw ValidationException::withMessages([
                         "details.{$index}.commission" => ['The fixed commission may not exceed income.'],
                     ]);
                 }
             }
 
-            if ($commissionCents > $incomeCents) {
+            if ($commission->compare($income) > 0) {
                 throw ValidationException::withMessages([
                     "details.{$index}.commission_percentage" => ['The calculated commission may not exceed income.'],
                 ]);
@@ -104,10 +103,11 @@ class BusinessValidator
             $calculated[] = [
                 'affiliation' => $detail['affiliation'],
                 'branch' => $detail['branch'],
-                'income' => $this->fromCents($incomeCents),
-                'commission_percentage' => $percentageProvided ? $this->fromHundredths($percentageHundredths) : null,
-                'commission' => $this->fromCents($commissionCents),
-                'return_amount' => $this->fromCents($incomeCents - $commissionCents),
+                'income' => $income->toDecimal(),
+                // Percentages share the two-decimal fixed-point format, so Money canonicalizes them too.
+                'commission_percentage' => $percentageProvided ? Money::fromDecimal($detail['commission_percentage'])->toDecimal() : null,
+                'commission' => $commission->toDecimal(),
+                'return_amount' => $income->subtract($commission)->toDecimal(),
                 'order' => $index + 1,
             ];
         }
@@ -200,29 +200,5 @@ class BusinessValidator
                 'week_end_date' => ['The period end date must not be earlier than its start date.'],
             ]);
         }
-    }
-
-    private function toCents(string $amount): int
-    {
-        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
-
-        return ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
-    }
-
-    private function toHundredths(string $percentage): int
-    {
-        [$whole, $fraction] = array_pad(explode('.', $percentage, 2), 2, '');
-
-        return ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
-    }
-
-    private function fromCents(int $amount): string
-    {
-        return intdiv($amount, 100).'.'.str_pad((string) ($amount % 100), 2, '0', STR_PAD_LEFT);
-    }
-
-    private function fromHundredths(int $percentage): string
-    {
-        return intdiv($percentage, 100).'.'.str_pad((string) ($percentage % 100), 2, '0', STR_PAD_LEFT);
     }
 }

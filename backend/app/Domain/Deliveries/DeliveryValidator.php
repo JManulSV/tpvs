@@ -3,6 +3,7 @@
 namespace App\Domain\Deliveries;
 
 use App\Domain\Documents\Exceptions\DocumentGenerationBlockedException;
+use App\Domain\Shared\Money;
 use App\Models\Record;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -29,12 +30,12 @@ class DeliveryValidator
 
     public function currentReturnCents(Record $record): int
     {
-        return $this->toCents($this->canonicalAmount($record->details()->sum('return_amount')) ?? '0.00');
+        return $this->currentReturn($record)->cents;
     }
 
     public function currentReturnAmount(Record $record): string
     {
-        return $this->fromCents($this->currentReturnCents($record));
+        return $this->currentReturn($record)->toDecimal();
     }
 
     /**
@@ -45,18 +46,18 @@ class DeliveryValidator
      */
     public function documentReturnOptions(string $officialReturnAmount): array
     {
-        $officialReturnCents = $this->amountCents($officialReturnAmount);
+        $officialReturn = $this->amount($officialReturnAmount);
 
-        if ($officialReturnCents < 0) {
+        if ($officialReturn->isNegative()) {
             throw new InvalidArgumentException('The official return amount must not be negative.');
         }
 
-        $wholePesoCents = intdiv($officialReturnCents, 100) * 100;
+        $wholePeso = $officialReturn->floorToWholePeso();
 
         return [
-            $this->fromCents($wholePesoCents),
-            $this->fromCents($wholePesoCents + 50),
-            $this->fromCents($wholePesoCents + 100),
+            $wholePeso->toDecimal(),
+            $wholePeso->add(Money::fromCents(50))->toDecimal(),
+            $wholePeso->add(Money::fromCents(100))->toDecimal(),
         ];
     }
 
@@ -80,7 +81,7 @@ class DeliveryValidator
 
     public function isStale(string $preparedReturnAmount, string $currentReturnAmount): bool
     {
-        return $this->amountCents($preparedReturnAmount) !== $this->amountCents($currentReturnAmount);
+        return $this->amount($preparedReturnAmount)->compare($this->amount($currentReturnAmount)) !== 0;
     }
 
     public function canonicalDenomination(string $value): ?string
@@ -128,7 +129,7 @@ class DeliveryValidator
 
         usort(
             $canonical,
-            fn (array $left, array $right): int => $this->toCents($right['value']) <=> $this->toCents($left['value']),
+            static fn (array $left, array $right): int => Money::fromDecimal($right['value'])->compare(Money::fromDecimal($left['value'])),
         );
 
         return $canonical;
@@ -139,13 +140,7 @@ class DeliveryValidator
      */
     public function cashTotalCents(array $denominations): int
     {
-        $total = 0;
-
-        foreach ($this->canonicalizeDenominations($denominations) as $denomination) {
-            $total += $this->toCents($denomination['value']) * $denomination['quantity'];
-        }
-
-        return $total;
+        return $this->cashTotalMoney($denominations)->cents;
     }
 
     /**
@@ -153,7 +148,7 @@ class DeliveryValidator
      */
     public function cashTotal(array $denominations): string
     {
-        return $this->fromCents($this->cashTotalCents($denominations));
+        return $this->cashTotalMoney($denominations)->toDecimal();
     }
 
     /**
@@ -162,17 +157,17 @@ class DeliveryValidator
      */
     public function cashMismatch(string $expectedAmount, array $denominations): ?array
     {
-        $expectedCents = $this->amountCents($expectedAmount);
-        $cashCents = $this->cashTotalCents($denominations);
+        $expected = $this->amount($expectedAmount);
+        $cash = $this->cashTotalMoney($denominations);
 
-        if ($expectedCents === $cashCents) {
+        if ($expected->compare($cash) === 0) {
             return null;
         }
 
         return [
-            'expected_amount' => $this->fromCents($expectedCents),
-            'cash_amount' => $this->fromCents($cashCents),
-            'difference' => $this->fromCents($cashCents - $expectedCents),
+            'expected_amount' => $expected->toDecimal(),
+            'cash_amount' => $cash->toDecimal(),
+            'difference' => $cash->subtract($expected)->toDecimal(),
         ];
     }
 
@@ -186,19 +181,19 @@ class DeliveryValidator
      */
     public function preparationCashShortfall(string $expectedAmount, array $denominations): ?array
     {
-        $expectedCents = $this->amountCents($expectedAmount);
-        $cashCents = $this->cashTotalCents($denominations);
-        $differenceCents = $cashCents - $expectedCents;
+        $expected = $this->amount($expectedAmount);
+        $cash = $this->cashTotalMoney($denominations);
+        $difference = $cash->subtract($expected);
 
-        if ($differenceCents >= -self::DOCUMENT_CASH_TOLERANCE_CENTS
-            && ! ($expectedCents > 0 && $this->canonicalizeDenominations($denominations) === [])) {
+        if ($difference->cents >= -self::DOCUMENT_CASH_TOLERANCE_CENTS
+            && ! ($expected->cents > 0 && $this->canonicalizeDenominations($denominations) === [])) {
             return null;
         }
 
         return [
-            'expected_amount' => $this->fromCents($expectedCents),
-            'cash_amount' => $this->fromCents($cashCents),
-            'difference' => $this->fromCents($differenceCents),
+            'expected_amount' => $expected->toDecimal(),
+            'cash_amount' => $cash->toDecimal(),
+            'difference' => $difference->toDecimal(),
         ];
     }
 
@@ -214,26 +209,26 @@ class DeliveryValidator
         array $denominations,
         bool $customerWillGiveChange,
     ): array {
-        $expectedCents = $this->amountCents($documentReturnAmount);
-        $cashCents = $this->cashTotalCents($denominations);
-        $differenceCents = $cashCents - $expectedCents;
+        $expected = $this->amount($documentReturnAmount);
+        $cash = $this->cashTotalMoney($denominations);
+        $difference = $cash->subtract($expected);
         $reason = null;
         $changeAmount = null;
 
-        if ($differenceCents < -self::DOCUMENT_CASH_TOLERANCE_CENTS) {
+        if ($difference->cents < -self::DOCUMENT_CASH_TOLERANCE_CENTS) {
             $reason = DocumentGenerationBlockedException::CASH_MISMATCH;
-        } elseif ($differenceCents > self::DOCUMENT_CASH_TOLERANCE_CENTS) {
+        } elseif ($difference->cents > self::DOCUMENT_CASH_TOLERANCE_CENTS) {
             if ($customerWillGiveChange) {
-                $changeAmount = $this->fromCents($differenceCents);
+                $changeAmount = $difference->toDecimal();
             } else {
                 $reason = DocumentGenerationBlockedException::CHANGE_REQUIRED;
             }
         }
 
         return [
-            'expected_amount' => $this->fromCents($expectedCents),
-            'cash_amount' => $this->fromCents($cashCents),
-            'difference' => $this->fromCents($differenceCents),
+            'expected_amount' => $expected->toDecimal(),
+            'cash_amount' => $cash->toDecimal(),
+            'difference' => $difference->toDecimal(),
             'change_amount' => $changeAmount,
             'reason' => $reason,
         ];
@@ -313,17 +308,7 @@ class DeliveryValidator
             throw new InvalidArgumentException('The amount must be a decimal with at most two decimals.');
         }
 
-        $negative = str_starts_with($value, '-');
-        $value = ltrim($value, '+-');
-        [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
-
-        $whole = ltrim($whole, '0');
-        $whole = $whole === '' ? '0' : $whole;
-        $fraction = str_pad(substr($fraction, 0, 2), 2, '0');
-
-        $canonical = $whole.'.'.$fraction;
-
-        return $negative && $canonical !== '0.00' ? '-'.$canonical : $canonical;
+        return Money::fromDecimal($value)->toDecimal();
     }
 
     public function canonicalQuantity(mixed $value): ?string
@@ -335,27 +320,27 @@ class DeliveryValidator
         return (string) (int) $value;
     }
 
-    private function amountCents(string $amount): int
+    private function currentReturn(Record $record): Money
     {
-        return $this->toCents($this->canonicalAmount($amount) ?? '0.00');
+        return $this->amount($record->details()->sum('return_amount'));
     }
 
-    private function toCents(string $amount): int
+    private function amount(mixed $amount): Money
     {
-        $negative = str_starts_with($amount, '-');
-        $amount = ltrim($amount, '+-');
-        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
-
-        $cents = ((int) $whole * 100) + (int) str_pad(substr($fraction, 0, 2), 2, '0');
-
-        return $negative ? -$cents : $cents;
+        return Money::fromDecimal($this->canonicalAmount($amount));
     }
 
-    private function fromCents(int $amount): string
+    /**
+     * @param  array<int, array{value?: mixed, quantity?: mixed}>  $denominations
+     */
+    private function cashTotalMoney(array $denominations): Money
     {
-        $sign = $amount < 0 ? '-' : '';
-        $amount = abs($amount);
+        $total = Money::zero();
 
-        return $sign.intdiv($amount, 100).'.'.str_pad((string) ($amount % 100), 2, '0', STR_PAD_LEFT);
+        foreach ($this->canonicalizeDenominations($denominations) as $denomination) {
+            $total = $total->add(Money::fromDecimal($denomination['value'])->multiply($denomination['quantity']));
+        }
+
+        return $total;
     }
 }
