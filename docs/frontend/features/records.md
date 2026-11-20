@@ -146,7 +146,7 @@ Mutation errors are handled from the backend response: `RECORD_UPDATE_BLOCKED`, 
 
 - Backend feature suite, Vitest, lint, TypeScript, production build, and changed-file Pint checks pass.
 - Browser acceptance with `EDITOR` and `VIEWER` is documented in [`../testing.md`](../testing.md).
-- Checkpoint evidence is recorded in the SPEC and in [`../testing.md`](../testing.md).
+- Checkpoint evidence is recorded in [`../verification-log.md`](../verification-log.md).
 
 ## Phase 8.10 Verification
 
@@ -155,7 +155,7 @@ Verified on 2026-10-22:
 - Backend feature suite (133 tests, 778 assertions), Vitest, lint, TypeScript, production build, and changed-file Pint checks pass.
 - Browser acceptance with `EDITOR` and `VIEWER` covers upload, processing, review, correction, confirmation, cancellation, retry, and stale-state `409` handling as documented in [`../testing.md`](../testing.md).
 - The live AI provider was Ollama `qwen2.5vl:3b`; its documented structural limitation produced an `ERROR` proposal, so the review/confirmation path used a controlled IMAGE Record in `NEEDS_REVIEW`. The same checkpoint covered the real upload, retry, and cancellation flow.
-- Checkpoint evidence is recorded in the SPEC and in [`../testing.md`](../testing.md).
+- Checkpoint evidence is recorded in [`../verification-log.md`](../verification-log.md).
 
 ## Phase 8.11 Verification
 
@@ -165,7 +165,7 @@ Verified on 2026-10-26:
 - `CONFIRMED` editing tests cover the reopen flow, the no-change `422`, and role visibility.
 - The browser checkpoint demonstrates manual and image creation, correction with diff, confirmation, reopening with preserved source/Image/AI evidence, reconfirmation, cancellation, history display and pagination, loading/error/empty states, and `VIEWER` read access. The evidence is recorded in [`../testing.md`](../testing.md).
 - Backend suite (149 tests, 922 assertions), Pint, Vitest (36 tests), ESLint, TypeScript, and production build pass.
-- Checkpoint evidence is recorded in the SPEC and in [`../testing.md`](../testing.md).
+- Checkpoint evidence is recorded in [`../verification-log.md`](../verification-log.md).
 
 ## Related Documents
 

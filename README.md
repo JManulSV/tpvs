@@ -150,17 +150,7 @@ The Laravel development script starts the Laravel server, queue listener, log vi
 composer run dev
 ```
 
-Run backend tests with:
-
-```bash
-composer run test
-```
-
-Or:
-
-```bash
-php artisan test
-```
+Run backend tests against a separate test database, never the development one. In Docker, use the command in [Health Check and Verification](#health-check-and-verification).
 
 ### Backend Environment
 
@@ -242,115 +232,9 @@ docker compose exec tpvs-frontend npm ci
 
 If the frontend container was already running before these mounts were added, recreate it once with `docker compose up --build --force-recreate tpvs-frontend`.
 
-## Database and Storage Requirements
-
-PostgreSQL is the authoritative store for application data. Do not use Excel files as an input source or as the source of official totals.
-
-The planned MVP data model includes:
-
-- `User`
-- `Company`
-- `Record`
-- `RecordDetail`
-- `Image`
-- `AIProcessing`
-- `History`
-- `Delivery`
-- `DeliveryCashDenomination`
-
-Application-managed files must remain private. Store file metadata in PostgreSQL and use authorized backend requests to view or download images. Generated Word and Excel documents are on-demand outputs and should not be treated as permanent source records.
-
-Before LAN or production-like use, configure persistent storage for:
-
-- PostgreSQL data.
-- Private uploaded images.
-- Laravel application storage.
-- Logs and failed queue jobs.
-
-## Ollama and AI Requirements
-
-The planned AI architecture is:
-
-```text
-Frontend
-  -> Laravel API
-  -> Queue
-  -> Laravel worker
-  -> Ollama over the LAN
-  -> Vision model
-```
-
-Ollama must not be exposed directly to browsers. Laravel should be the only application component calling the AI host.
-
-AI processing must follow these rules:
-
-- Preserve every processing result and technical failure.
-- Use structured JSON with all expected properties present.
-- Use `null` and confidence `0` for unreadable values rather than inventing data.
-- Preserve the visual order of multiple movements.
-- Treat low confidence and inconsistent calculations as review issues.
-- Never allow AI to confirm a record or calculate official financial truth.
-- Technical failures should be distinguishable from usable results that need human review.
-
-## MVP Workflow
-
-### Image-Based Record
-
-1. An Editor uploads one supplier image.
-2. The backend stores the image and creates the record.
-3. A queue job sends the image to the AI service.
-4. The backend validates the extracted structure and financial values.
-5. The record moves to `NEEDS_REVIEW`.
-6. An Editor corrects or accepts the data.
-7. The backend validates the final values.
-8. The Editor confirms the record.
-9. The confirmed record can be used for delivery preparation and official reports.
-
-### Manual Record
-
-1. An Editor creates a record without an image.
-2. No AI processing attempt is created.
-3. The Editor enters the movement data.
-4. The backend applies the same business validations as image-based records.
-5. The record goes through human review before confirmation.
-6. An image may be attached later if a Word delivery document is required.
-
-## Business Rules
-
-- Only `CONFIRMED` records are included in official reports and Excel outputs.
-- `PENDING`, `PROCESSING`, `NEEDS_REVIEW`, `ERROR`, and `CANCELED` records are excluded from official totals.
-- AI output is never automatically confirmed.
-- A confirmed record must move back to `NEEDS_REVIEW` before it can be modified.
-- Meaningful changes require a history entry with the user, reason, and before/after values.
-- A record period is identified by `week` and `year` together.
-- Month filtering uses the month containing `week_end_date` when a week spans two months.
-- Company names are fixed after creation in the MVP.
-- A record can contain multiple movement details.
-- A `CONFIRMED` record can have at most one editable `Delivery`.
-- Delivery cash denominations must total the current record return amount.
-- Only positive denomination quantities are stored.
-- The official denomination list includes `0.50`.
-- A Word document requires a confirmed record, valid delivery preparation, and an associated image.
-- Return-in-words conversion is deterministic and must not use AI.
-
-## Roles
-
-| Capability | `EDITOR` | `VIEWER` |
-| --- | --- | --- |
-| Consult records and reports | Yes | Yes |
-| Search and filter | Yes | Yes |
-| Create records | Yes | No |
-| Upload images | Yes | No |
-| Review, edit, confirm, or cancel | Yes | No |
-| Prepare delivery | Yes | No |
-| Generate Word documents | Yes | No |
-| Generate Excel reports | Yes | Yes |
-| Create companies | Yes | No |
-| Rename or delete companies | No | No |
-
 ## Health Check and Verification
 
-Verify the current backend foundation with:
+Check the backend is up:
 
 ```bash
 curl http://localhost:8000/api/health
@@ -365,42 +249,19 @@ Expected response:
 }
 ```
 
-For a basic local verification, run:
+Backend tests must run against the `tpvs_test` database. **Always pass the variable explicitly**: the container exports `DB_DATABASE=tpvs`, `phpunit.xml` does not override it, and the suite rebuilds the schema, so an unscoped run wipes the development database:
 
 ```bash
-cd backend
-php artisan test
-cd ../frontend
-npm run lint
-npm run build
+docker compose exec -T -e DB_DATABASE=tpvs_test tpvs-backend php artisan test
 ```
 
-The complete MVP verification must eventually include normal, failure, authorization, and regression scenarios such as invalid AI JSON, unreadable images, financial mismatches, invalid cash breakdowns, unauthorized Viewer mutations, canceled records, stale deliveries, and missing images for Word generation.
+Frontend checks, from `frontend/`:
 
-## API Direction
-
-The planned API base path is `/api`.
-
-Planned resource groups include:
-
-```text
-/api/auth
-/api/companies
-/api/records
-/api/reports
-/api/documents
+```bash
+npm test && npm run lint && npx tsc --noEmit && npm run build
 ```
 
-Planned document endpoints include:
-
-```text
-GET  /api/documents/excel
-GET  /api/records/{record}/delivery
-PUT  /api/records/{record}/delivery
-POST /api/deliveries/{delivery}/document
-```
-
-These endpoints are documented target interfaces and are not all implemented in the current repository.
+Release testing scenarios are listed in [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Office-LAN Deployment Requirements
 
@@ -412,7 +273,7 @@ The intended deployment separates application and AI responsibilities:
 - Users access the frontend from another office workstation.
 - Browser clients do not call PostgreSQL, private storage, or Ollama directly.
 - Authentication, role authorization, upload validation, and session expiration must be enabled before operational use.
-- Backups must cover PostgreSQL and private uploaded files.
+- Persist and back up PostgreSQL data and private uploaded images together (see [`docs/backend/configuration-operations.md`](docs/backend/configuration-operations.md)).
 
 ## Documentation
 

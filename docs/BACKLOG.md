@@ -11,7 +11,7 @@ Los detalles van en el SPEC, no aquí.
 
 ## Ideas / por evaluar
 
-_(vacío)_
+- [ ] **Decidir el idioma de la documentación** — `docs/` está en inglés; los SPEC recientes y `frontend/AGENTS.md`, en español. Elegir uno y aplicarlo al modificar cada documento. Prioridad: baja. (2026-11-20)
 
 ## Convertido a SPEC
 

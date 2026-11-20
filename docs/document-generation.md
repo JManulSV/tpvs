@@ -6,9 +6,11 @@ Generate operational documents on demand from the database, not from spreadsheet
 
 Document generation is a derived output. PostgreSQL remains the source of truth.
 
+This document defines what each document contains and the business rules for generating it. How the backend handles the files (temporary storage, headers, private image access) is in [`backend/files-and-documents.md`](backend/files-and-documents.md).
+
 ## 2. Excel Report
 
-The Excel file is generated on demand from the same query that feeds the reports screen. It is implemented under SPEC 13 / phase 8.14 with `phpoffice/phpspreadsheet`; the sheet and file names are in Spanish.
+The Excel file is generated on demand from the same query that feeds the reports screen. It is defined by SPEC 13 and built with `phpoffice/phpspreadsheet`; the sheet and file names are in Spanish.
 
 Endpoint:
 
@@ -24,7 +26,7 @@ Rules:
 - The export always contains the full filtered set; `page` and `per_page` do not apply.
 - `EDITOR` and `VIEWER` may export.
 - PostgreSQL is the source of truth. Totals use decimal arithmetic and are converted to numbers only when a cell is written.
-- The Excel is generated when requested, written to a temporary file, and deleted after it is sent. It is not stored permanently as a document.
+- The Excel is not stored.
 - Exporting does not write `History`.
 - An empty result still returns a workbook with the four sheets and headers; `Resumen` shows only the `TOTAL` row at `0.00`.
 
@@ -296,57 +298,8 @@ The dynamic data belongs to the system. A future editable template may replace t
 
 ## 6. Storage Rules
 
-The generated `.docx` file is not stored. Delivery preparation data is persisted in the `Delivery` entity; generated Word files are ephemeral outputs. The file is written to a temporary location, returned as an attachment named `entrega-registro-{record_id}-semana-{week}-{year}.docx` with `Cache-Control: private, no-store`, and deleted after it is sent.
-
-Flow:
-
-```text
-Record CONFIRMED
-  -> prepare or update Delivery
-  -> POST /deliveries/{delivery}/document
-  -> validations
-  -> generate Word
-  -> download
-  -> not retained
-```
-
-Not included in the MVP:
-- document versioning;
-- `.docx` history;
-- stored copies;
-- automatic synchronization.
-
-`Delivery` is a persisted preparation entity, not a stored generated document or a document-version entity.
+The generated `.docx` is not stored. It is returned as an attachment named `entrega-registro-{record_id}-semana-{week}-{year}.docx`; temporary-file handling is in [`backend/files-and-documents.md`](backend/files-and-documents.md). `Delivery` is a persisted preparation entity, not a stored document or document version. Document versioning, `.docx` history, stored copies, and automatic synchronization are out of scope for the MVP.
 
 ## 7. Regeneration Behavior
 
-The document represents the `Record` state at the moment of generation.
-
-Example:
-
-```text
-Record CONFIRMED
-  -> Delivery prepared
-  -> generate Word from current Delivery
-```
-
-If the record is later modified:
-
-```text
-Record
-  -> NEEDS_REVIEW
-  -> CONFIRMED again
-  -> existing Delivery is compared with current return
-  -> Editor updates the Delivery if stale
-  -> generate Word from current Delivery
-```
-
-The user updates the single Delivery preparation if necessary and generates the document again.
-
-Versions are not managed in the MVP.
-
-## 8. Final Principle
-
-Documents are outputs.
-
-The database remains the source of truth.
+The document reflects the `Record` and `Delivery` at the moment of generation. If the Record is edited and confirmed again, the existing Delivery is compared with the new return; the Editor updates it if it is stale and generates the document again. Versions are not kept.

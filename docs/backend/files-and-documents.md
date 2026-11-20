@@ -21,9 +21,7 @@ Record images: SPEC 05. Word delivery document: SPEC 12, 14. Excel report: SPEC 
 
 ## Generated Documents
 
-Word and Excel files are outputs, not sources of truth. They should be generated from validated database data and returned as temporary output in the MVP rather than stored as delivery versions.
-
-Word generation requires a confirmed Record, valid Delivery preparation, cash reconciliation against the selected document amount, and an associated Image. The request-time document adjustment and customer-change declaration are not persisted.
+Word and Excel files are temporary outputs generated from database data. What they contain and when they may be generated is in [`../document-generation.md`](../document-generation.md); this section covers only file handling.
 
 Word delivery documents (SPEC 12):
 
@@ -35,11 +33,8 @@ Word delivery documents (SPEC 12):
 
 Excel reports (SPEC 13):
 
-- Build the workbook with `phpoffice/phpspreadsheet` from the same `ReportQuery` that feeds `GET /api/reports`; never from AI output.
-- Include only `CONFIRMED` Records. The export always contains the full filtered set.
+- Build the workbook from the same `ReportQuery` that feeds `GET /api/reports`.
 - Write the `.xlsx` to the system temporary directory, send it with `Content-Disposition: attachment` and `Cache-Control: private, no-store`, and delete it after sending. Delete temporary files on every failure path as well.
-- Do not store, version, or index generated workbooks, and do not write `History` for exports.
-
-See [`../document-generation.md`](../document-generation.md) for the office format, workbook layout, file names, and data mapping.
+- Do not store, version, or index generated workbooks.
 
 The API contract is documented in [`api-contract.md`](api-contract.md).

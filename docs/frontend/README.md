@@ -14,7 +14,8 @@ How the TPVS Next.js 16 / React 19 frontend is built. Module status lives in [`.
 | --- | --- |
 | [`conventions.md`](conventions.md) | Architecture, structure, routing/rendering, BFF and sessions, data fetching, forms |
 | [`ui-and-accessibility.md`](ui-and-accessibility.md) | Design system, shadcn/ui, interaction states, responsiveness, accessibility |
-| [`testing.md`](testing.md) | Verification strategy and browser checkpoint evidence |
+| [`testing.md`](testing.md) | Verification strategy and manual browser checklists |
+| [`verification-log.md`](verification-log.md) | Dated results of past browser runs |
 | `features/auth.md` | Login, logout, session, protected navigation |
 | `features/dashboard.md` | Role-aware home screen |
 | `features/companies.md` | Company list, search, creation |
