@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Domain\Deliveries\DeliveryHistoryService;
 use App\Domain\Deliveries\DeliveryValidator;
+use App\Domain\Deliveries\Exceptions\DeliveryPreparationBlocked;
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Deliveries\UpsertDeliveryRequest;
@@ -38,7 +39,7 @@ class DeliveryController extends Controller
         Record $record,
         DeliveryValidator $validator,
         DeliveryHistoryService $history,
-    ): JsonResource|JsonResponse {
+    ): JsonResponse {
         Gate::authorize('prepareDelivery', $record);
 
         $validated = $request->validated();
@@ -52,18 +53,14 @@ class DeliveryController extends Controller
             $validator,
             $history,
             $userId,
-        ): Delivery|JsonResponse {
+        ): Delivery {
             $record = Record::query()
                 ->whereKey($record->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
             if ($record->status !== RecordStatus::CONFIRMED) {
-                return response()->json([
-                    'message' => 'The delivery cannot be prepared in the current record state.',
-                    'code' => 'DELIVERY_PREPARATION_BLOCKED',
-                    'details' => ['reason' => 'INVALID_RECORD_STATE'],
-                ], 409);
+                throw DeliveryPreparationBlocked::invalidRecordState();
             }
 
             $delivery = Delivery::query()
@@ -75,16 +72,11 @@ class DeliveryController extends Controller
             $mismatch = $validator->preparationCashShortfall($currentReturnAmount, $denominations);
 
             if ($mismatch !== null) {
-                return response()->json([
-                    'message' => 'The cash breakdown is more than one peso below the current return amount.',
-                    'code' => 'DELIVERY_PREPARATION_BLOCKED',
-                    'details' => [
-                        'reason' => 'CASH_MISMATCH',
-                        'expected_amount' => $mismatch['expected_amount'],
-                        'cash_amount' => $mismatch['cash_amount'],
-                        'difference' => $mismatch['difference'],
-                    ],
-                ], 409);
+                throw DeliveryPreparationBlocked::cashMismatch(
+                    $mismatch['expected_amount'],
+                    $mismatch['cash_amount'],
+                    $mismatch['difference'],
+                );
             }
 
             $attributes = [
@@ -136,10 +128,6 @@ class DeliveryController extends Controller
 
             return $delivery;
         });
-
-        if ($result instanceof JsonResponse) {
-            return $result;
-        }
 
         return (new DeliveryResource($this->decorate($result, $record, $validator)))
             ->response()

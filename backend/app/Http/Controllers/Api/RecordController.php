@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domain\Records\BusinessValidator;
+use App\Domain\Records\Exceptions\RecordCancellationBlocked;
+use App\Domain\Records\Exceptions\RecordConfirmationBlocked;
+use App\Domain\Records\Exceptions\RecordUpdateBlocked;
 use App\Domain\Records\RecordHistoryService;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
@@ -114,19 +117,15 @@ class RecordController extends Controller
         Record $record,
         BusinessValidator $businessValidator,
         RecordHistoryService $recordHistory,
-    ): RecordResource|JsonResponse {
-        $result = DB::transaction(function () use ($request, $record, $businessValidator, $recordHistory): Record|JsonResponse {
+    ): RecordResource {
+        $result = DB::transaction(function () use ($request, $record, $businessValidator, $recordHistory): Record {
             $record = Record::query()
                 ->whereKey($record->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
             if (! in_array($record->status, [RecordStatus::NEEDS_REVIEW, RecordStatus::CONFIRMED], true)) {
-                return response()->json([
-                    'message' => 'The record cannot be updated in its current state.',
-                    'code' => 'RECORD_UPDATE_BLOCKED',
-                    'details' => ['reason' => 'INVALID_STATE'],
-                ], 409);
+                throw RecordUpdateBlocked::invalidState();
             }
 
             $wasConfirmed = $record->status === RecordStatus::CONFIRMED;
@@ -140,11 +139,7 @@ class RecordController extends Controller
             $changes = $recordHistory->diff($before, $after);
 
             if ($wasConfirmed && $changes === []) {
-                return response()->json([
-                    'message' => 'The record cannot be updated without changes.',
-                    'code' => 'RECORD_UPDATE_NO_CHANGES',
-                    'details' => ['reason' => 'NO_CHANGES'],
-                ], 422);
+                throw RecordUpdateBlocked::noChanges();
             }
 
             $attributes = [
@@ -180,10 +175,6 @@ class RecordController extends Controller
 
             return $record;
         });
-
-        if ($result instanceof JsonResponse) {
-            return $result;
-        }
 
         $result->load(['company', 'details', 'image.aiProcessing']);
         $result->loadSum('details as income_total', 'income');
@@ -224,38 +215,26 @@ class RecordController extends Controller
         ConfirmRecordRequest $request,
         Record $record,
         BusinessValidator $businessValidator,
-    ): RecordResource|JsonResponse {
-        $result = DB::transaction(function () use ($request, $record, $businessValidator): Record|JsonResponse {
+    ): RecordResource {
+        $result = DB::transaction(function () use ($request, $record, $businessValidator): Record {
             $record = Record::query()
                 ->whereKey($record->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
             if ($record->status !== RecordStatus::NEEDS_REVIEW) {
-                return response()->json([
-                    'message' => 'The record cannot be confirmed in its current state.',
-                    'code' => 'RECORD_CONFIRMATION_BLOCKED',
-                    'details' => ['reason' => 'INVALID_STATE'],
-                ], 409);
+                throw RecordConfirmationBlocked::invalidState();
             }
 
             if ($record->source === RecordSource::IMAGE && ! $this->hasCompleteImageAggregate($record)) {
-                return response()->json([
-                    'message' => 'The image record cannot be confirmed until its business data is valid.',
-                    'code' => 'RECORD_CONFIRMATION_BLOCKED',
-                    'details' => ['reason' => 'BUSINESS_VALIDATION_FAILED'],
-                ], 409);
+                throw RecordConfirmationBlocked::imageBusinessValidationFailed();
             }
 
             $record->load('details');
             try {
                 $businessValidator->validatePersistedManualRecord($record);
             } catch (ValidationException) {
-                return response()->json([
-                    'message' => 'The record cannot be confirmed until its business data is valid.',
-                    'code' => 'RECORD_CONFIRMATION_BLOCKED',
-                    'details' => ['reason' => 'BUSINESS_VALIDATION_FAILED'],
-                ], 409);
+                throw RecordConfirmationBlocked::businessValidationFailed();
             }
 
             $record->status = RecordStatus::CONFIRMED;
@@ -273,10 +252,6 @@ class RecordController extends Controller
             return $record;
         });
 
-        if ($result instanceof JsonResponse) {
-            return $result;
-        }
-
         $result->load(['company', 'details', 'image.aiProcessing']);
         $result->loadSum('details as income_total', 'income');
         $result->loadSum('details as commission_total', 'commission');
@@ -288,19 +263,15 @@ class RecordController extends Controller
     public function cancel(
         CancelRecordRequest $request,
         Record $record,
-    ): RecordResource|JsonResponse {
-        $result = DB::transaction(function () use ($request, $record): Record|JsonResponse {
+    ): RecordResource {
+        $result = DB::transaction(function () use ($request, $record): Record {
             $record = Record::query()
                 ->whereKey($record->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
             if (! in_array($record->status, [RecordStatus::NEEDS_REVIEW, RecordStatus::ERROR], true)) {
-                return response()->json([
-                    'message' => 'The record cannot be canceled in its current state.',
-                    'code' => 'RECORD_CANCELLATION_BLOCKED',
-                    'details' => ['reason' => 'INVALID_STATE'],
-                ], 409);
+                throw RecordCancellationBlocked::invalidState();
             }
 
             $previousStatus = $record->status->value;
@@ -317,10 +288,6 @@ class RecordController extends Controller
 
             return $record;
         });
-
-        if ($result instanceof JsonResponse) {
-            return $result;
-        }
 
         $result->load(['company', 'details', 'image.aiProcessing']);
         $result->loadSum('details as income_total', 'income');

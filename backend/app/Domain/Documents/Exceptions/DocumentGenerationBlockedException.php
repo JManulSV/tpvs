@@ -2,9 +2,9 @@
 
 namespace App\Domain\Documents\Exceptions;
 
-use RuntimeException;
+use App\Domain\Shared\Exceptions\DomainRuleException;
 
-final class DocumentGenerationBlockedException extends RuntimeException
+final class DocumentGenerationBlockedException extends DomainRuleException
 {
     public const INVALID_RECORD_STATE = 'INVALID_RECORD_STATE';
 
@@ -21,16 +21,8 @@ final class DocumentGenerationBlockedException extends RuntimeException
     /**
      * @param  array<string, string>  $details  extra safe fields exposed next to the reason
      */
-    public function __construct(
-        public readonly string $reason,
-        public readonly array $details = [],
-    ) {
-        parent::__construct('The delivery document cannot be generated.');
-    }
-
-    /** @return array{reason: string}&array<string, string> */
-    public function responseDetails(): array
+    public function __construct(string $reason, array $details = [])
     {
-        return ['reason' => $this->reason] + $this->details;
+        parent::__construct('The delivery document cannot be generated.', 'DOCUMENT_GENERATION_BLOCKED', $reason, 409, $details);
     }
 }

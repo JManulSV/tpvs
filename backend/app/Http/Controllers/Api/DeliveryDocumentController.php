@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Domain\Deliveries\DeliveryHistoryService;
 use App\Domain\Documents\DeliveryDocumentBuilder;
 use App\Domain\Documents\DeliveryDocumentEligibility;
-use App\Domain\Documents\Exceptions\DocumentGenerationBlockedException;
+use App\Domain\Shared\Exceptions\DomainRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Deliveries\GenerateDeliveryDocumentRequest;
 use App\Models\Delivery;
@@ -54,14 +54,8 @@ class DeliveryDocumentController extends Controller
 
                 $history->writeDocumentGenerated($locked, $request->user()->getKey());
             });
-        } catch (DocumentGenerationBlockedException $blocked) {
-            return response()->json([
-                'message' => $blocked->getMessage(),
-                'code' => 'DOCUMENT_GENERATION_BLOCKED',
-                'details' => $blocked->responseDetails(),
-            ], 409);
-        } catch (ValidationException $validationException) {
-            throw $validationException;
+        } catch (DomainRuleException|ValidationException $expected) {
+            throw $expected;
         } catch (\Throwable $exception) {
             report($exception);
 

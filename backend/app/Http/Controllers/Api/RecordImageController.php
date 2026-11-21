@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domain\Images\Exceptions\RecordImageBlocked;
 use App\Domain\Images\RecordImageStorage;
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
@@ -25,12 +26,7 @@ class RecordImageController extends Controller
         RecordImageStorage $imageStorage,
     ): JsonResponse {
         if ($record->status === RecordStatus::CANCELED) {
-            return $this->imageError(
-                'The image cannot be changed for a canceled record.',
-                'IMAGE_UPLOAD_BLOCKED',
-                409,
-                'RECORD_CANCELED',
-            );
+            throw RecordImageBlocked::uploadForCanceledRecord();
         }
 
         try {
@@ -50,29 +46,19 @@ class RecordImageController extends Controller
         $wasReplacement = false;
 
         try {
-            $result = DB::transaction(function () use ($record, $stored, &$previousPath, &$wasReplacement): Image|JsonResponse {
+            $result = DB::transaction(function () use ($record, $stored, &$previousPath, &$wasReplacement): Image {
                 $lockedRecord = Record::query()
                     ->whereKey($record->getKey())
                     ->lockForUpdate()
                     ->firstOrFail();
 
                 if ($lockedRecord->status === RecordStatus::CANCELED) {
-                    return $this->imageError(
-                        'The image cannot be changed for a canceled record.',
-                        'IMAGE_UPLOAD_BLOCKED',
-                        409,
-                        'RECORD_CANCELED',
-                    );
+                    throw RecordImageBlocked::uploadForCanceledRecord();
                 }
 
                 $image = $lockedRecord->image()->lockForUpdate()->first();
                 if ($image !== null && $image->aiProcessing()->exists()) {
-                    return $this->imageError(
-                        'The image cannot be replaced after AI processing has started.',
-                        'IMAGE_REPLACEMENT_BLOCKED',
-                        409,
-                        'AI_PROCESSING_EXISTS',
-                    );
+                    throw RecordImageBlocked::replacementAfterAiProcessing();
                 }
 
                 $wasReplacement = $image !== null;
@@ -88,6 +74,10 @@ class RecordImageController extends Controller
 
                 return $image;
             });
+        } catch (RecordImageBlocked $blocked) {
+            $this->deleteStagedFile($stored['file_path']);
+
+            throw $blocked;
         } catch (\Throwable $exception) {
             $this->deleteStagedFile($stored['file_path']);
             report($exception);
@@ -95,12 +85,6 @@ class RecordImageController extends Controller
             return response()->json([
                 'message' => 'The image could not be stored.',
             ], 500);
-        }
-
-        if ($result instanceof JsonResponse) {
-            $this->deleteStagedFile($stored['file_path']);
-
-            return $result;
         }
 
         if ($previousPath !== null && $previousPath !== $stored['file_path']) {
@@ -116,17 +100,12 @@ class RecordImageController extends Controller
         ], $wasReplacement ? 200 : 201);
     }
 
-    public function show(Request $request, Record $record): Response|StreamedResponse|JsonResponse
+    public function show(Request $request, Record $record): Response|StreamedResponse
     {
         Gate::authorize('viewImage', $record);
 
         if ($record->status === RecordStatus::CANCELED) {
-            return $this->imageError(
-                'The image is unavailable for a canceled record.',
-                'IMAGE_ACCESS_BLOCKED',
-                409,
-                'RECORD_CANCELED',
-            );
+            throw RecordImageBlocked::accessForCanceledRecord();
         }
 
         $image = $record->image;
@@ -169,15 +148,6 @@ class RecordImageController extends Controller
             'file_size' => (int) $image->file_size,
             'created_at' => $image->created_at?->toISOString(),
         ];
-    }
-
-    private function imageError(string $message, string $code, int $status, string $reason): JsonResponse
-    {
-        return response()->json([
-            'message' => $message,
-            'code' => $code,
-            'details' => ['reason' => $reason],
-        ], $status);
     }
 
     private function deleteStagedFile(string $path): void

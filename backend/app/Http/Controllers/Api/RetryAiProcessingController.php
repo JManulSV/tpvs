@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domain\AI\Exceptions\AiProcessingRetryBlocked;
 use App\Enums\AiProcessingStatus;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
@@ -18,7 +19,7 @@ class RetryAiProcessingController extends Controller
 {
     public function store(Record $record): JsonResponse
     {
-        $result = DB::transaction(function () use ($record): AiProcessing|JsonResponse {
+        $result = DB::transaction(function () use ($record): AiProcessing {
             $lockedRecord = Record::query()->whereKey($record->getKey())->lockForUpdate()->firstOrFail();
             $image = $lockedRecord->image()->lockForUpdate()->first();
             $processing = $image?->aiProcessing()->lockForUpdate()->first();
@@ -28,11 +29,7 @@ class RetryAiProcessingController extends Controller
                 || $processing === null
                 || $lockedRecord->status !== RecordStatus::ERROR
                 || $processing->status !== AiProcessingStatus::ERROR) {
-                return response()->json([
-                    'message' => 'The AI processing retry is not allowed for this record state.',
-                    'code' => 'AI_PROCESSING_RETRY_BLOCKED',
-                    'details' => ['reason' => 'INVALID_STATE'],
-                ], 409);
+                throw AiProcessingRetryBlocked::invalidState();
             }
 
             $processing->forceFill([
@@ -48,10 +45,6 @@ class RetryAiProcessingController extends Controller
 
             return $processing;
         });
-
-        if ($result instanceof JsonResponse) {
-            return $result;
-        }
 
         try {
             ProcessImageJob::dispatch($result->getKey(), manualRetry: true)->afterCommit();
