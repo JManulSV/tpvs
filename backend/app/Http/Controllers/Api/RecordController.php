@@ -6,7 +6,9 @@ use App\Domain\Records\BusinessValidator;
 use App\Domain\Records\Exceptions\RecordCancellationBlocked;
 use App\Domain\Records\Exceptions\RecordConfirmationBlocked;
 use App\Domain\Records\Exceptions\RecordUpdateBlocked;
+use App\Domain\Records\RecordFilters;
 use App\Domain\Records\RecordHistoryService;
+use App\Domain\Records\RecordQuery;
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
@@ -61,55 +63,22 @@ class RecordController extends Controller
             return $record;
         });
 
-        $record->load(['company', 'details', 'image.aiProcessing']);
-        $record->loadSum('details as income_total', 'income');
-        $record->loadSum('details as commission_total', 'commission');
-        $record->loadSum('details as return_total', 'return_amount');
+        $record->loadResourceAggregates();
 
         return (new RecordResource($record))
             ->response()
             ->setStatusCode(201);
     }
 
-    public function index(IndexRecordsRequest $request)
+    public function index(IndexRecordsRequest $request, RecordQuery $records): AnonymousResourceCollection
     {
-        $filters = $request->validated();
-        $search = $filters['search'] ?? null;
+        $validated = $request->validated();
 
-        $records = Record::query()
-            ->with(['company', 'details', 'image.aiProcessing'])
-            ->withSum('details as income_total', 'income')
-            ->withSum('details as commission_total', 'commission')
-            ->withSum('details as return_total', 'return_amount')
-            ->when(isset($filters['company_id']), static fn ($query) => $query
-                ->where('company_id', $filters['company_id']))
-            ->when(isset($filters['year']), static fn ($query) => $query
-                ->where('year', $filters['year']))
-            ->when(isset($filters['month']), static fn ($query) => $query
-                ->whereMonth('week_end_date', $filters['month']))
-            ->when(isset($filters['week']), static fn ($query) => $query
-                ->where('week', $filters['week']))
-            ->when(isset($filters['status']), static fn ($query) => $query
-                ->where('status', $filters['status']))
-            ->when(isset($filters['source']), static fn ($query) => $query
-                ->where('source', $filters['source']))
-            ->when($search !== null && $search !== '', static function ($query) use ($search): void {
-                $term = '%'.mb_strtolower($search).'%';
+        $page = $records
+            ->paginate(RecordFilters::fromValidated($validated), $validated['per_page'] ?? 15)
+            ->appends($validated);
 
-                $query->where(static function ($query) use ($term): void {
-                    $query->whereHas('company', static fn ($companyQuery) => $companyQuery
-                        ->whereRaw('LOWER(name) LIKE ?', [$term]))
-                        ->orWhereHas('details', static fn ($detailsQuery) => $detailsQuery
-                            ->whereRaw('LOWER(affiliation) LIKE ?', [$term])
-                            ->orWhereRaw('LOWER(branch) LIKE ?', [$term]));
-                });
-            })
-            ->orderByDesc('updated_at')
-            ->orderByDesc('id')
-            ->paginate($filters['per_page'] ?? 15)
-            ->appends($filters);
-
-        return RecordResource::collection($records);
+        return RecordResource::collection($page);
     }
 
     public function update(
@@ -119,10 +88,7 @@ class RecordController extends Controller
         RecordHistoryService $recordHistory,
     ): RecordResource {
         $result = DB::transaction(function () use ($request, $record, $businessValidator, $recordHistory): Record {
-            $record = Record::query()
-                ->whereKey($record->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
+            $record = Record::findLockedOrFail($record->getKey());
 
             if (! in_array($record->status, [RecordStatus::NEEDS_REVIEW, RecordStatus::CONFIRMED], true)) {
                 throw RecordUpdateBlocked::invalidState();
@@ -176,12 +142,7 @@ class RecordController extends Controller
             return $record;
         });
 
-        $result->load(['company', 'details', 'image.aiProcessing']);
-        $result->loadSum('details as income_total', 'income');
-        $result->loadSum('details as commission_total', 'commission');
-        $result->loadSum('details as return_total', 'return_amount');
-
-        return new RecordResource($result);
+        return new RecordResource($result->loadResourceAggregates());
     }
 
     public function history(IndexRecordHistoryRequest $request, Record $record): AnonymousResourceCollection
@@ -203,12 +164,7 @@ class RecordController extends Controller
     {
         Gate::authorize('view', $record);
 
-        $record->load(['company', 'details', 'image.aiProcessing']);
-        $record->loadSum('details as income_total', 'income');
-        $record->loadSum('details as commission_total', 'commission');
-        $record->loadSum('details as return_total', 'return_amount');
-
-        return new RecordResource($record);
+        return new RecordResource($record->loadResourceAggregates());
     }
 
     public function confirm(
@@ -217,10 +173,7 @@ class RecordController extends Controller
         BusinessValidator $businessValidator,
     ): RecordResource {
         $result = DB::transaction(function () use ($request, $record, $businessValidator): Record {
-            $record = Record::query()
-                ->whereKey($record->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
+            $record = Record::findLockedOrFail($record->getKey());
 
             if ($record->status !== RecordStatus::NEEDS_REVIEW) {
                 throw RecordConfirmationBlocked::invalidState();
@@ -252,12 +205,7 @@ class RecordController extends Controller
             return $record;
         });
 
-        $result->load(['company', 'details', 'image.aiProcessing']);
-        $result->loadSum('details as income_total', 'income');
-        $result->loadSum('details as commission_total', 'commission');
-        $result->loadSum('details as return_total', 'return_amount');
-
-        return new RecordResource($result);
+        return new RecordResource($result->loadResourceAggregates());
     }
 
     public function cancel(
@@ -265,10 +213,7 @@ class RecordController extends Controller
         Record $record,
     ): RecordResource {
         $result = DB::transaction(function () use ($request, $record): Record {
-            $record = Record::query()
-                ->whereKey($record->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
+            $record = Record::findLockedOrFail($record->getKey());
 
             if (! in_array($record->status, [RecordStatus::NEEDS_REVIEW, RecordStatus::ERROR], true)) {
                 throw RecordCancellationBlocked::invalidState();
@@ -289,12 +234,7 @@ class RecordController extends Controller
             return $record;
         });
 
-        $result->load(['company', 'details', 'image.aiProcessing']);
-        $result->loadSum('details as income_total', 'income');
-        $result->loadSum('details as commission_total', 'commission');
-        $result->loadSum('details as return_total', 'return_amount');
-
-        return new RecordResource($result);
+        return new RecordResource($result->loadResourceAggregates());
     }
 
     private function hasCompleteImageAggregate(Record $record): bool

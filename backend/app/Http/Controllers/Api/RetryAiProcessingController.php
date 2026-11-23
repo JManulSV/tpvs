@@ -20,7 +20,7 @@ class RetryAiProcessingController extends Controller
     public function store(Record $record): JsonResponse
     {
         $result = DB::transaction(function () use ($record): AiProcessing {
-            $lockedRecord = Record::query()->whereKey($record->getKey())->lockForUpdate()->firstOrFail();
+            $lockedRecord = Record::findLockedOrFail($record->getKey());
             $image = $lockedRecord->image()->lockForUpdate()->first();
             $processing = $image?->aiProcessing()->lockForUpdate()->first();
 
@@ -52,10 +52,7 @@ class RetryAiProcessingController extends Controller
             $this->markDispatchFailure($record, $result);
         }
 
-        $record->refresh()->load(['company', 'details', 'image.aiProcessing']);
-        $record->loadSum('details as income_total', 'income');
-        $record->loadSum('details as commission_total', 'commission');
-        $record->loadSum('details as return_total', 'return_amount');
+        $record->refresh()->loadResourceAggregates();
 
         return (new RecordResource($record))->response()->setStatusCode(202);
     }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\RecordSource;
 use App\Enums\RecordStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,16 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Record extends Model
 {
     use HasFactory;
+
+    /** Relations that RecordResource renders. */
+    private const RESOURCE_RELATIONS = ['company', 'details', 'image.aiProcessing'];
+
+    /** Aggregate attribute => detail column summed by RecordResource. */
+    private const RESOURCE_SUMS = [
+        'income_total' => 'income',
+        'commission_total' => 'commission',
+        'return_total' => 'return_amount',
+    ];
 
     protected $fillable = [
         'company_id',
@@ -57,5 +68,37 @@ class Record extends Model
     public function delivery(): HasOne
     {
         return $this->hasOne(Delivery::class);
+    }
+
+    /** Lock the Record row for the rest of the current transaction. */
+    public static function findLockedOrFail(int $id): self
+    {
+        return self::query()->whereKey($id)->lockForUpdate()->firstOrFail();
+    }
+
+    /**
+     * Eager load everything RecordResource needs.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeWithResourceAggregates(Builder $query): void
+    {
+        $query->with(self::RESOURCE_RELATIONS);
+
+        foreach (self::RESOURCE_SUMS as $attribute => $column) {
+            $query->withSum("details as {$attribute}", $column);
+        }
+    }
+
+    /** Load everything RecordResource needs onto an already retrieved Record. */
+    public function loadResourceAggregates(): static
+    {
+        $this->load(self::RESOURCE_RELATIONS);
+
+        foreach (self::RESOURCE_SUMS as $attribute => $column) {
+            $this->loadSum("details as {$attribute}", $column);
+        }
+
+        return $this;
     }
 }

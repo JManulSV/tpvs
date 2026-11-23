@@ -36,7 +36,7 @@ class DeliveryDocumentController extends Controller
 
         try {
             DB::transaction(function () use ($request, $delivery, $eligibility, $builder, $history, $input, &$documentPath, &$record): void {
-                $record = Record::query()->whereKey($record->getKey())->lockForUpdate()->firstOrFail();
+                $record = Record::findLockedOrFail($record->getKey());
                 $locked = Delivery::query()->whereKey($delivery->getKey())->lockForUpdate()->firstOrFail();
 
                 $imagePath = $eligibility->check(

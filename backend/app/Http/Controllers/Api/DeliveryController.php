@@ -54,10 +54,7 @@ class DeliveryController extends Controller
             $history,
             $userId,
         ): Delivery {
-            $record = Record::query()
-                ->whereKey($record->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
+            $record = Record::findLockedOrFail($record->getKey());
 
             if ($record->status !== RecordStatus::CONFIRMED) {
                 throw DeliveryPreparationBlocked::invalidRecordState();

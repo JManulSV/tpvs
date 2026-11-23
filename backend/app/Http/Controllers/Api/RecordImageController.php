@@ -47,10 +47,7 @@ class RecordImageController extends Controller
 
         try {
             $result = DB::transaction(function () use ($record, $stored, &$previousPath, &$wasReplacement): Image {
-                $lockedRecord = Record::query()
-                    ->whereKey($record->getKey())
-                    ->lockForUpdate()
-                    ->firstOrFail();
+                $lockedRecord = Record::findLockedOrFail($record->getKey());
 
                 if ($lockedRecord->status === RecordStatus::CANCELED) {
                     throw RecordImageBlocked::uploadForCanceledRecord();
