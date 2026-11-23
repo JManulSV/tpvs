@@ -2,6 +2,8 @@
 
 namespace App\Domain\Deliveries;
 
+use App\Domain\Shared\History\CanonicalValue;
+use App\Domain\Shared\History\SnapshotDiff;
 use App\Models\Delivery;
 use App\Models\History;
 
@@ -61,25 +63,7 @@ class DeliveryHistoryService
      */
     public function diff(array $previous, array $current): array
     {
-        $fields = array_keys($previous + $current);
-        $changes = [];
-
-        foreach ($fields as $field) {
-            $previousValue = $previous[$field] ?? null;
-            $newValue = $current[$field] ?? null;
-
-            if ($previousValue === $newValue) {
-                continue;
-            }
-
-            $changes[] = [
-                'field_name' => $field,
-                'previous_value' => $previousValue,
-                'new_value' => $newValue,
-            ];
-        }
-
-        return $changes;
+        return SnapshotDiff::diff($previous, $current);
     }
 
     /**
@@ -139,9 +123,9 @@ class DeliveryHistoryService
         iterable $denominations,
     ): array {
         $snapshot = [
-            'delivery_date' => $this->validator->canonicalDate($deliveryDate),
-            'delivered_by_name' => $this->validator->canonicalName($deliveredByName),
-            'received_by_name' => $this->validator->canonicalName($receivedByName),
+            'delivery_date' => CanonicalValue::date($deliveryDate),
+            'delivered_by_name' => CanonicalValue::string($deliveredByName),
+            'received_by_name' => CanonicalValue::string($receivedByName),
             'prepared_return_amount' => $this->validator->canonicalAmount($preparedReturnAmount),
         ];
 
@@ -149,7 +133,7 @@ class DeliveryHistoryService
 
         foreach ($denominations as $denomination) {
             $value = $this->validator->canonicalAmount($denomination['value']);
-            $ordered[$value] = $this->validator->canonicalQuantity($denomination['quantity']);
+            $ordered[$value] = CanonicalValue::integer($denomination['quantity']);
         }
 
         uksort(
