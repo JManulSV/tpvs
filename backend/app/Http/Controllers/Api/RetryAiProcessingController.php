@@ -2,87 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Domain\AI\Exceptions\AiProcessingRetryBlocked;
-use App\Enums\AiProcessingStatus;
-use App\Enums\RecordSource;
-use App\Enums\RecordStatus;
+use App\Domain\AI\Actions\RetryAiProcessing;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\RecordResource;
-use App\Jobs\ProcessImageJob;
-use App\Models\AiProcessing;
 use App\Models\Record;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
-use Throwable;
 
 class RetryAiProcessingController extends Controller
 {
-    public function store(Record $record): JsonResponse
+    public function store(Record $record, RetryAiProcessing $retryAiProcessing): JsonResponse
     {
-        $result = DB::transaction(function () use ($record): AiProcessing {
-            $lockedRecord = Record::findLockedOrFail($record->getKey());
-            $image = $lockedRecord->image()->lockForUpdate()->first();
-            $processing = $image?->aiProcessing()->lockForUpdate()->first();
+        $record = $retryAiProcessing->handle($record);
 
-            if ($lockedRecord->source !== RecordSource::IMAGE
-                || $image === null
-                || $processing === null
-                || $lockedRecord->status !== RecordStatus::ERROR
-                || $processing->status !== AiProcessingStatus::ERROR) {
-                throw AiProcessingRetryBlocked::invalidState();
-            }
-
-            $processing->forceFill([
-                'status' => AiProcessingStatus::PENDING,
-                'provider' => config('ai.provider'),
-                'model' => config('ai.ollama.model'),
-                'result' => null,
-                'error_message' => null,
-                'started_at' => null,
-                'completed_at' => null,
-            ])->save();
-            $lockedRecord->forceFill(['status' => RecordStatus::PENDING])->save();
-
-            return $processing;
-        });
-
-        try {
-            ProcessImageJob::dispatch($result->getKey(), manualRetry: true)->afterCommit();
-        } catch (Throwable) {
-            $this->markDispatchFailure($record, $result);
-        }
-
-        $record->refresh()->loadResourceAggregates();
-
-        return (new RecordResource($record))->response()->setStatusCode(202);
-    }
-
-    private function markDispatchFailure(Record $record, AiProcessing $processing): void
-    {
-        DB::transaction(function () use ($record, $processing): void {
-            $lockedRecord = Record::query()->whereKey($record->getKey())->lockForUpdate()->first();
-            $lockedProcessing = AiProcessing::query()->whereKey($processing->getKey())->lockForUpdate()->first();
-            if ($lockedRecord === null || $lockedProcessing === null) {
-                return;
-            }
-
-            $lockedRecord->forceFill(['status' => RecordStatus::ERROR])->save();
-            $lockedProcessing->forceFill([
-                'status' => AiProcessingStatus::ERROR,
-                'error_message' => 'AI_JOB_DISPATCH_FAILED',
-                'completed_at' => now(),
-                'result' => [
-                    'prompt_version' => 'v5',
-                    'normalized_extraction' => null,
-                    'issues' => [[
-                        'path' => '$',
-                        'code' => 'AI_JOB_DISPATCH_FAILED',
-                        'severity' => 'error',
-                        'message' => 'The extraction job could not be queued.',
-                    ]],
-                    'unconvertible_numeric_count' => 0,
-                ],
-            ])->save();
-        });
+        return (new RecordResource($record->loadResourceAggregates()))->response()->setStatusCode(202);
     }
 }
