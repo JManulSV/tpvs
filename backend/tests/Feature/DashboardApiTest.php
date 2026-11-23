@@ -7,14 +7,14 @@ use App\Enums\UserRole;
 use App\Models\Company;
 use App\Models\Record;
 use App\Models\RecordDetail;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Tests\Support\Concerns\CreatesUsers;
 use Tests\TestCase;
 
 class DashboardApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesUsers, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -237,11 +237,6 @@ class DashboardApiTest extends TestCase
             ->assertJsonPath('data.recent_activity.0.company', null)
             ->assertJsonPath('data.recent_activity.0.week', null)
             ->assertJsonPath('data.recent_activity.0.year', null);
-    }
-
-    private function user(UserRole $role): User
-    {
-        return User::factory()->create(['role' => $role]);
     }
 
     /**

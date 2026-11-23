@@ -3,19 +3,17 @@
 namespace Tests\Feature;
 
 use App\Domain\Documents\DeliveryDocumentBuilder;
-use App\Enums\RecordStatus;
 use App\Models\Delivery;
 use App\Models\DeliveryCashDenomination;
-use App\Models\Record;
-use App\Models\RecordDetail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
+use Tests\Support\Concerns\CreatesDeliveries;
 use Tests\TestCase;
 use ZipArchive;
 
 class DeliveryDocumentBuilderTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesDeliveries, RefreshDatabase;
 
     /** @var list<string> */
     private array $cleanup = [];
@@ -208,38 +206,10 @@ class DeliveryDocumentBuilderTest extends TestCase
         string $weekStart = '2026-09-07',
         string $weekEnd = '2026-09-13',
     ): Delivery {
-        $record = Record::factory()->create([
-            'status' => RecordStatus::CONFIRMED,
-            'year' => 2026,
-            'week_start_date' => $weekStart,
-            'week_end_date' => $weekEnd,
-        ]);
-
-        RecordDetail::factory()->create([
-            'record_id' => $record->getKey(),
-            'income' => '1000.00',
-            'commission' => '80.00',
-            'return_amount' => '920.00',
-            'order' => 1,
-        ]);
-
-        $delivery = Delivery::factory()->create([
-            'record_id' => $record->getKey(),
-            'delivery_date' => '2026-07-08',
-            'delivered_by_name' => $deliveredBy,
-            'received_by_name' => $receivedBy,
-            'prepared_return_amount' => '920.00',
-        ]);
-
-        foreach ([['500.00', 1], ['200.00', 2], ['10.00', 2]] as [$value, $quantity]) {
-            DeliveryCashDenomination::factory()->create([
-                'delivery_id' => $delivery->getKey(),
-                'value' => $value,
-                'quantity' => $quantity,
-            ]);
-        }
-
-        return $delivery;
+        return $this->createDelivery(
+            ['year' => 2026, 'week_start_date' => $weekStart, 'week_end_date' => $weekEnd],
+            ['delivery_date' => '2026-07-08', 'delivered_by_name' => $deliveredBy, 'received_by_name' => $receivedBy],
+        );
     }
 
     private function builder(): DeliveryDocumentBuilder

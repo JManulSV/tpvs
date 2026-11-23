@@ -19,12 +19,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\Concerns\UploadsImages;
 use Tests\Support\EnforceCsrfToken;
 use Tests\TestCase;
 
 class RecordFromImageTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, UploadsImages;
 
     protected function setUp(): void
     {
@@ -258,16 +259,5 @@ class RecordFromImageTest extends TestCase
                 DB::rollBack();
             }
         }
-    }
-
-    private function pngUpload(): UploadedFile
-    {
-        $contents = base64_decode(
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j9s8AAAAASUVORK5CYII=',
-            true,
-        );
-        $this->assertIsString($contents);
-
-        return UploadedFile::fake()->createWithContent('image.png', $contents);
     }
 }

@@ -8,17 +8,16 @@ use App\Enums\RecordStatus;
 use App\Models\Delivery;
 use App\Models\DeliveryCashDenomination;
 use App\Models\Image;
-use App\Models\Record;
-use App\Models\RecordDetail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\Concerns\CreatesDeliveries;
 use Tests\TestCase;
 
 class DeliveryDocumentEligibilityTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesDeliveries, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -189,35 +188,14 @@ class DeliveryDocumentEligibilityTest extends TestCase
         string $prepared = '920.00',
         ?array $denominations = null,
     ): Delivery {
-        $record = Record::factory()->create(['status' => $status]);
-
-        RecordDetail::factory()->create([
-            'record_id' => $record->getKey(),
-            'income' => '1000.00',
-            'commission' => '80.00',
-            'return_amount' => '920.00',
-            'order' => 1,
-        ]);
+        $delivery = $this->createDelivery(['status' => $status], ['prepared_return_amount' => $prepared], $denominations);
 
         if ($withImage) {
-            Image::factory()->create(['record_id' => $record->getKey(), 'file_path' => 'sample.jpg']);
+            Image::factory()->create(['record_id' => $delivery->record_id, 'file_path' => 'sample.jpg']);
 
             if ($createFile) {
                 Storage::disk('record_images')->put('sample.jpg', 'image-bytes');
             }
-        }
-
-        $delivery = Delivery::factory()->create([
-            'record_id' => $record->getKey(),
-            'prepared_return_amount' => $prepared,
-        ]);
-
-        foreach ($denominations ?? [['500.00', 1], ['200.00', 2], ['10.00', 2]] as [$value, $quantity]) {
-            DeliveryCashDenomination::factory()->create([
-                'delivery_id' => $delivery->getKey(),
-                'value' => $value,
-                'quantity' => $quantity,
-            ]);
         }
 
         return $delivery;
