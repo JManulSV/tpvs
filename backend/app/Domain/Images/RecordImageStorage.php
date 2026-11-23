@@ -98,6 +98,22 @@ class RecordImageStorage
         ];
     }
 
+    /**
+     * Delete a stored image without throwing: a failure is reported and swallowed,
+     * so cleanup never hides the error that caused it.
+     */
+    public function deleteQuietly(string $path): void
+    {
+        try {
+            $disk = Storage::disk(self::DISK);
+            if ($disk->exists($path) && ! $disk->delete($path)) {
+                throw new \RuntimeException('Failed to delete private Record image storage key: '.$path);
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+    }
+
     private function sanitizeOriginalFileName(string $fileName): string
     {
         $baseName = basename(str_replace('\\', '/', $fileName));

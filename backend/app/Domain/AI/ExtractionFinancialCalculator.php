@@ -3,11 +3,15 @@
 namespace App\Domain\AI;
 
 use App\Domain\AI\DTO\ExtractedDetailFinancialValues;
+use App\Domain\AI\DTO\ExtractionIssue;
 use App\Domain\Records\BusinessValidator;
+use App\Domain\Shared\Money;
 
 class ExtractionFinancialCalculator
 {
     private const MAX_MONEY_CENTS = 999_999_999_999;
+
+    private const MAX_PERCENTAGE_HUNDREDTHS = 10_000;
 
     public function __construct(private readonly BusinessValidator $businessValidator = new BusinessValidator) {}
 
@@ -28,11 +32,11 @@ class ExtractionFinancialCalculator
         $commission = $calculated['commission'];
         $returnAmount = $calculated['return_amount'];
         foreach ($calculated['issues'] as $calculationIssue) {
-            $issues[] = $this->issue("details.{$index}.commission", $calculationIssue['code'], $calculationIssue['message']);
+            $issues[] = ExtractionIssue::review("details.{$index}.commission", $calculationIssue['code'], $calculationIssue['message'])->toArray();
         }
 
         if ($commission !== null && $sourceCommission !== null && $commission !== $sourceCommission) {
-            $issues[] = $this->issue("details.{$index}.source_commission", 'SOURCE_COMMISSION_MISMATCH', 'The printed commission differs from the backend-calculated commission.', $sourceCommission);
+            $issues[] = ExtractionIssue::review("details.{$index}.source_commission", 'SOURCE_COMMISSION_MISMATCH', 'The printed commission differs from the backend-calculated commission.')->withValue($sourceCommission)->toArray();
         }
 
         return new ExtractedDetailFinancialValues($income, $percentage, $commission, $returnAmount, $issues);
@@ -44,8 +48,8 @@ class ExtractionFinancialCalculator
             return null;
         }
 
-        if (! is_string($value) || preg_match('/^(?:0|[1-9]\d{0,9})\.\d{2}$/D', $value) !== 1 || $this->toCents($value) > self::MAX_MONEY_CENTS) {
-            $issues[] = $this->issue($path, 'MONEY_OUT_OF_RANGE', 'The monetary value is outside the supported database range.', $value);
+        if (! is_string($value) || preg_match('/^(?:0|[1-9]\d{0,9})\.\d{2}$/D', $value) !== 1 || Money::fromDecimal($value)->cents > self::MAX_MONEY_CENTS) {
+            $issues[] = ExtractionIssue::review($path, 'MONEY_OUT_OF_RANGE', 'The monetary value is outside the supported database range.')->withValue($value)->toArray();
 
             return null;
         }
@@ -59,8 +63,8 @@ class ExtractionFinancialCalculator
             return null;
         }
 
-        if (! is_string($value) || preg_match('/^(?:0|[1-9]\d{0,2})\.\d{2}$/D', $value) !== 1 || $this->toCents($value) > 10000) {
-            $issues[] = $this->issue($path, 'PERCENTAGE_OUT_OF_RANGE', 'The commission percentage must be between 0 and 100.', $value);
+        if (! is_string($value) || preg_match('/^(?:0|[1-9]\d{0,2})\.\d{2}$/D', $value) !== 1 || Money::fromDecimal($value)->cents > self::MAX_PERCENTAGE_HUNDREDTHS) {
+            $issues[] = ExtractionIssue::review($path, 'PERCENTAGE_OUT_OF_RANGE', 'The commission percentage must be between 0 and 100.')->withValue($value)->toArray();
 
             return null;
         }
@@ -74,23 +78,5 @@ class ExtractionFinancialCalculator
         $fieldValue = $detail[$field] ?? null;
 
         return is_array($fieldValue) ? ($fieldValue['value'] ?? null) : null;
-    }
-
-    private function toCents(string $amount): int
-    {
-        [$whole, $fraction] = explode('.', $amount, 2);
-
-        return ((int) $whole * 100) + (int) $fraction;
-    }
-
-    /** @return array{path: string, code: string, severity: string, message: string, value?: mixed} */
-    private function issue(string $path, string $code, string $message, mixed $value = null): array
-    {
-        $issue = ['path' => $path, 'code' => $code, 'severity' => 'review', 'message' => $message];
-        if (func_num_args() >= 4) {
-            $issue['value'] = $value;
-        }
-
-        return $issue;
     }
 }

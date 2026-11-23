@@ -12,11 +12,12 @@ use App\Models\Record;
 use App\Models\RecordDetail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\Concerns\CreatesConfirmedRecords;
 use Tests\TestCase;
 
 class ReportQueryTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesConfirmedRecords, RefreshDatabase;
 
     public function test_only_confirmed_records_are_included_in_every_output(): void
     {
@@ -269,34 +270,6 @@ class ReportQueryTest extends TestCase
         $this->assertLessThanOrEqual(5, $queries);
         $this->assertSame([1, 2], $records->first()->details->pluck('order')->all());
         $this->assertCount(2, $records->first()->delivery->cashDenominations);
-    }
-
-    /**
-     * @param  array<string, mixed>  $attributes
-     * @param  list<array{0: string, 1: string}>  $movements  [income, commission]
-     */
-    private function record(Company $company, array $attributes, array $movements): Record
-    {
-        $record = Record::factory()->create(array_merge([
-            'company_id' => $company->getKey(),
-            'status' => RecordStatus::CONFIRMED,
-            'year' => 2026,
-            'week' => 38,
-            'week_start_date' => '2026-09-07',
-            'week_end_date' => '2026-09-13',
-        ], $attributes));
-
-        foreach ($movements as $index => [$income, $commission]) {
-            RecordDetail::factory()->create([
-                'record_id' => $record->getKey(),
-                'income' => $income,
-                'commission' => $commission,
-                'return_amount' => number_format((float) $income - (float) $commission, 2, '.', ''),
-                'order' => $index + 1,
-            ]);
-        }
-
-        return $record;
     }
 
     private function query(): ReportQuery

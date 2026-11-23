@@ -2,7 +2,9 @@
 
 namespace App\Domain\Documents;
 
-use App\Domain\Deliveries\DeliveryValidator;
+use App\Domain\Deliveries\CashBreakdown;
+use App\Domain\Deliveries\DeliveryInputNormalizer;
+use App\Domain\Shared\Money;
 use App\Models\Delivery;
 use PhpOffice\PhpWord\Element\Section;
 use PhpOffice\PhpWord\IOFactory;
@@ -24,7 +26,8 @@ class DeliveryDocumentBuilder
     private const IMAGE_MAX_HEIGHT = 230;
 
     public function __construct(
-        private readonly DeliveryValidator $validator,
+        private readonly DeliveryInputNormalizer $normalizer,
+        private readonly CashBreakdown $cash,
         private readonly MoneyToWordsService $moneyToWords,
         private readonly SpanishDateFormatter $dates,
     ) {}
@@ -47,7 +50,7 @@ class DeliveryDocumentBuilder
         try {
             [$imagePath, $temporaryImage] = $this->imageForDocument($imagePath);
 
-            $documentPath = $this->temporaryPath('tpvs-delivery-');
+            $documentPath = TemporaryFile::create('tpvs-delivery-');
             $phpWord = $this->compose($delivery, $imagePath, $documentReturnAmount, $customerWillGiveChange);
 
             IOFactory::createWriter($phpWord, 'Word2007')->save($documentPath);
@@ -77,12 +80,12 @@ class DeliveryDocumentBuilder
         $record = $delivery->record;
         $denominations = $delivery->cashDenominations
             ->mapWithKeys(fn ($row): array => [
-                (string) $this->validator->canonicalDenomination((string) $row->value) => (int) $row->quantity,
+                (string) $this->normalizer->canonicalDenomination((string) $row->value) => (int) $row->quantity,
             ]);
-        $cashTotal = $this->validator->cashTotal(
+        $cashTotal = $this->cash->cashTotal(
             $denominations->map(fn (int $quantity, string $value): array => compact('value', 'quantity'))->values()->all(),
         );
-        $reconciliation = $this->validator->documentCashReconciliation(
+        $reconciliation = $this->cash->documentCashReconciliation(
             $documentReturnAmount,
             $denominations->map(fn (int $quantity, string $value): array => compact('value', 'quantity'))->values()->all(),
             $customerWillGiveChange,
@@ -176,14 +179,14 @@ class DeliveryDocumentBuilder
         $table->addCell(2000)->addText('CANTIDAD', $header, ['alignment' => Jc::CENTER]);
         $table->addCell(2800)->addText('TOTAL', $header, ['alignment' => Jc::CENTER]);
 
-        foreach (DeliveryValidator::DENOMINATIONS as $value) {
+        foreach (CashBreakdown::DENOMINATIONS as $value) {
             $quantity = $quantities[$value] ?? 0;
 
             $table->addRow();
             $table->addCell(2800)->addText($this->denominationLabel($value), [], ['alignment' => Jc::END]);
             $table->addCell(2000)->addText((string) $quantity, [], ['alignment' => Jc::CENTER]);
             $table->addCell(2800)->addText(
-                $this->money($this->validator->cashTotal([['value' => $value, 'quantity' => $quantity]])),
+                $this->money($this->cash->cashTotal([['value' => $value, 'quantity' => $quantity]])),
                 [],
                 ['alignment' => Jc::END],
             );
@@ -247,7 +250,7 @@ class DeliveryDocumentBuilder
             throw new RuntimeException('The WebP image could not be converted for the document.');
         }
 
-        $target = $this->temporaryPath('tpvs-image-');
+        $target = TemporaryFile::create('tpvs-image-');
 
         try {
             imagepalettetotruecolor($source);
@@ -278,17 +281,6 @@ class DeliveryDocumentBuilder
         return [max(1, (int) round($width * $scale)), max(1, (int) round($height * $scale))];
     }
 
-    private function temporaryPath(string $prefix): string
-    {
-        $path = tempnam(sys_get_temp_dir(), $prefix);
-
-        if ($path === false) {
-            throw new RuntimeException('A temporary file could not be created.');
-        }
-
-        return $path;
-    }
-
     /** "1000.00" => "1000", "0.50" => "0.5" */
     private function denominationLabel(string $value): string
     {
@@ -298,7 +290,7 @@ class DeliveryDocumentBuilder
     /** "9800.50" => "$9,800.50" */
     private function money(string $amount): string
     {
-        [$whole, $fraction] = explode('.', $amount);
+        [$whole, $fraction] = explode('.', Money::fromDecimal($amount)->toDecimal());
 
         return '$'.number_format((int) $whole).'.'.$fraction;
     }

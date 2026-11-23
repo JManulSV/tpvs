@@ -8,15 +8,16 @@ use App\Models\Company;
 use App\Models\Delivery;
 use App\Models\History;
 use App\Models\Record;
-use App\Models\RecordDetail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\Concerns\CreatesConfirmedRecords;
+use Tests\Support\Concerns\CreatesUsers;
 use Tests\TestCase;
 
 class ReportApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesConfirmedRecords, CreatesUsers, RefreshDatabase;
 
     public function test_report_requires_authentication(): void
     {
@@ -246,38 +247,5 @@ class ReportApiTest extends TestCase
 
         $this->assertSame($histories, History::query()->count());
         $this->assertEquals($updatedAt, Record::query()->first()->updated_at);
-    }
-
-    private function user(UserRole $role = UserRole::VIEWER): User
-    {
-        return User::factory()->create(['role' => $role]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $attributes
-     * @param  list<array{0: string, 1: string}>  $movements  [income, commission]
-     */
-    private function record(Company $company, array $attributes, array $movements): Record
-    {
-        $record = Record::factory()->create(array_merge([
-            'company_id' => $company->getKey(),
-            'status' => RecordStatus::CONFIRMED,
-            'year' => 2026,
-            'week' => 38,
-            'week_start_date' => '2026-09-07',
-            'week_end_date' => '2026-09-13',
-        ], $attributes));
-
-        foreach ($movements as $index => [$income, $commission]) {
-            RecordDetail::factory()->create([
-                'record_id' => $record->getKey(),
-                'income' => $income,
-                'commission' => $commission,
-                'return_amount' => number_format((float) $income - (float) $commission, 2, '.', ''),
-                'order' => $index + 1,
-            ]);
-        }
-
-        return $record;
     }
 }

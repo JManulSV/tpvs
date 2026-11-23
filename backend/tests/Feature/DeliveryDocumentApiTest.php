@@ -11,19 +11,19 @@ use App\Models\History;
 use App\Models\Image;
 use App\Models\Record;
 use App\Models\RecordDetail;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use RuntimeException;
+use Tests\Support\Concerns\CreatesUsers;
 use Tests\Support\EnforceCsrfToken;
 use Tests\TestCase;
 use ZipArchive;
 
 class DeliveryDocumentApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesUsers, RefreshDatabase;
 
     private const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
@@ -406,11 +406,6 @@ class DeliveryDocumentApiTest extends TestCase
         $this->assertSame($temporary, $this->temporaryDocuments());
 
         return $response;
-    }
-
-    private function user(UserRole $role): User
-    {
-        return User::factory()->create(['role' => $role]);
     }
 
     /** @param array<string, mixed> $overrides */

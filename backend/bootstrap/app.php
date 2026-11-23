@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Shared\Exceptions\DomainRuleException;
 use App\Http\Middleware\EnsureUserIsEditor;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,5 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Business-rule refusals are expected outcomes, not failures to log.
+        $exceptions->dontReport(DomainRuleException::class);
+        $exceptions->render(
+            static fn (DomainRuleException $exception) => response()->json($exception->toResponseBody(), $exception->status),
+        );
     })->create();

@@ -2,6 +2,8 @@
 
 namespace App\Domain\AI;
 
+use App\Domain\AI\DTO\ExtractionIssue;
+use App\Domain\Shared\Money;
 use App\Enums\RecordSource;
 use App\Models\Company;
 use App\Models\Record;
@@ -35,7 +37,7 @@ class RecordExtractionService
         $weekStartDate = $this->fieldValue($recordData, 'week_start_date');
         $weekEndDate = $this->fieldValue($recordData, 'week_end_date');
         if ($weekStartDate !== null && $weekEndDate !== null && $weekStartDate > $weekEndDate) {
-            $issues[] = $this->issue('record.week_end_date', 'INVERTED_WEEK_DATE_RANGE', 'The period end date is earlier than its start date; both dates require review.', $weekEndDate);
+            $issues[] = ExtractionIssue::review('record.week_end_date', 'INVERTED_WEEK_DATE_RANGE', 'The period end date is earlier than its start date; both dates require review.')->withValue($weekEndDate)->toArray();
             $weekStartDate = null;
             $weekEndDate = null;
         }
@@ -80,7 +82,7 @@ class RecordExtractionService
     private function safeText(mixed $value, string $path, array &$issues): ?string
     {
         if ($value !== null && mb_strlen($value, 'UTF-8') > 255) {
-            $issues[] = $this->issue($path, 'TEXT_VALUE_TOO_LONG', 'The extracted text exceeds the database field limit.', $value);
+            $issues[] = ExtractionIssue::review($path, 'TEXT_VALUE_TOO_LONG', 'The extracted text exceeds the database field limit.')->withValue($value)->toArray();
 
             return null;
         }
@@ -102,7 +104,7 @@ class RecordExtractionService
     private function resolveCompany(mixed $companyName): array
     {
         if (! is_string($companyName) || trim($companyName) === '') {
-            return [null, $this->issue('record.company_name', 'COMPANY_NAME_MISSING', 'A company name is missing and requires review.')];
+            return [null, ExtractionIssue::review('record.company_name', 'COMPANY_NAME_MISSING', 'A company name is missing and requires review.')->toArray()];
         }
 
         $normalizedName = mb_strtolower(trim($companyName), 'UTF-8');
@@ -115,14 +117,11 @@ class RecordExtractionService
             return [$matches->first()->id, null];
         }
 
-        return [null, $this->issue(
-            'record.company_name',
-            $matches->isEmpty() ? 'COMPANY_NOT_FOUND' : 'COMPANY_AMBIGUOUS',
-            $matches->isEmpty()
-                ? 'No company matches the extracted name exactly; manual review is required.'
-                : 'More than one company matches the extracted name; manual review is required.',
-            $companyName,
-        )];
+        $issue = $matches->isEmpty()
+            ? ExtractionIssue::review('record.company_name', 'COMPANY_NOT_FOUND', 'No company matches the extracted name exactly; manual review is required.')
+            : ExtractionIssue::review('record.company_name', 'COMPANY_AMBIGUOUS', 'More than one company matches the extracted name; manual review is required.');
+
+        return [null, $issue->withValue($companyName)->toArray()];
     }
 
     /**
@@ -145,7 +144,7 @@ class RecordExtractionService
 
                     continue;
                 }
-                $totals[$field] = $this->addMoney($totals[$field], $detail->{$field});
+                $totals[$field] = Money::fromDecimal($totals[$field])->add(Money::fromDecimal($detail->{$field}))->toDecimal();
             }
         }
 
@@ -156,30 +155,10 @@ class RecordExtractionService
         foreach ($totals as $field => $calculatedTotal) {
             $sourceTotal = $this->fieldValue($extraction['source_totals'], $field);
             if ($sourceTotal !== null && $sourceTotal !== $calculatedTotal) {
-                $issues[] = $this->issue("source_totals.{$field}", 'SOURCE_TOTAL_MISMATCH', 'The printed source total differs from the total calculated from proposed movements.', $sourceTotal);
+                $issues[] = ExtractionIssue::review("source_totals.{$field}", 'SOURCE_TOTAL_MISMATCH', 'The printed source total differs from the total calculated from proposed movements.')->withValue($sourceTotal)->toArray();
             }
         }
 
         return $issues;
-    }
-
-    private function addMoney(string $left, string $right): string
-    {
-        [$leftWhole, $leftFraction] = explode('.', $left, 2);
-        [$rightWhole, $rightFraction] = explode('.', $right, 2);
-        $cents = ((int) $leftWhole * 100) + (int) $leftFraction + ((int) $rightWhole * 100) + (int) $rightFraction;
-
-        return intdiv($cents, 100).'.'.str_pad((string) ($cents % 100), 2, '0', STR_PAD_LEFT);
-    }
-
-    /** @return array{path: string, code: string, severity: string, message: string, value?: mixed} */
-    private function issue(string $path, string $code, string $message, mixed $value = null): array
-    {
-        $issue = ['path' => $path, 'code' => $code, 'severity' => 'review', 'message' => $message];
-        if (func_num_args() >= 4) {
-            $issue['value'] = $value;
-        }
-
-        return $issue;
     }
 }

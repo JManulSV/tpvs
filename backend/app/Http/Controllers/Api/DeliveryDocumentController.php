@@ -2,16 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Domain\Deliveries\DeliveryHistoryService;
-use App\Domain\Documents\DeliveryDocumentBuilder;
-use App\Domain\Documents\DeliveryDocumentEligibility;
-use App\Domain\Documents\Exceptions\DocumentGenerationBlockedException;
+use App\Domain\Documents\Actions\GenerateDeliveryDocument;
+use App\Domain\Shared\Exceptions\DomainRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Deliveries\GenerateDeliveryDocumentRequest;
 use App\Models\Delivery;
 use App\Models\Record;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -23,51 +20,26 @@ class DeliveryDocumentController extends Controller
     public function store(
         GenerateDeliveryDocumentRequest $request,
         Delivery $delivery,
-        DeliveryDocumentEligibility $eligibility,
-        DeliveryDocumentBuilder $builder,
-        DeliveryHistoryService $history,
+        GenerateDeliveryDocument $generateDocument,
     ): BinaryFileResponse|JsonResponse {
         $record = Record::query()->findOrFail($delivery->record_id);
 
         Gate::authorize('generateDeliveryDocument', $record);
 
         $input = $request->validated();
-        $documentPath = null;
 
         try {
-            DB::transaction(function () use ($request, $delivery, $eligibility, $builder, $history, $input, &$documentPath, &$record): void {
-                $record = Record::query()->whereKey($record->getKey())->lockForUpdate()->firstOrFail();
-                $locked = Delivery::query()->whereKey($delivery->getKey())->lockForUpdate()->firstOrFail();
-
-                $imagePath = $eligibility->check(
-                    $locked,
-                    $record,
-                    $input['document_return_amount'],
-                    filter_var($input['customer_will_give_change'], FILTER_VALIDATE_BOOL),
-                );
-                $documentPath = $builder->build(
-                    $locked,
-                    $imagePath,
-                    $input['document_return_amount'],
-                    filter_var($input['customer_will_give_change'], FILTER_VALIDATE_BOOL),
-                );
-
-                $history->writeDocumentGenerated($locked, $request->user()->getKey());
-            });
-        } catch (DocumentGenerationBlockedException $blocked) {
-            return response()->json([
-                'message' => $blocked->getMessage(),
-                'code' => 'DOCUMENT_GENERATION_BLOCKED',
-                'details' => $blocked->responseDetails(),
-            ], 409);
-        } catch (ValidationException $validationException) {
-            throw $validationException;
+            ['path' => $documentPath, 'record' => $record] = $generateDocument->handle(
+                $delivery,
+                $record,
+                $input['document_return_amount'],
+                filter_var($input['customer_will_give_change'], FILTER_VALIDATE_BOOL),
+                $request->user()->getKey(),
+            );
+        } catch (DomainRuleException|ValidationException $expected) {
+            throw $expected;
         } catch (\Throwable $exception) {
             report($exception);
-
-            if ($documentPath !== null) {
-                @unlink($documentPath);
-            }
 
             return response()->json(['message' => 'The delivery document could not be generated.'], 500);
         }

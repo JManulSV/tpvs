@@ -196,7 +196,7 @@ Use isolated QA data: a confirmed Record with an Image and a Delivery. Remove on
 7. Attempt direct document requests with an unsupported document amount, missing/invalid change flag, shortfall over `$1.00`, excess without declaration, and excess with declaration. Verify `422` for malformed/unsupported input, `409 CASH_MISMATCH` for excess shortfall, `409 CHANGE_REQUIRED` for excess without declaration, and successful `.docx` generation when declared.
 8. Verify successful generation writes one `document_generated` event only; the selected amount and change declaration do not persist. Verify a Viewer cannot generate (`403`) and blocked generations write no event.
 
-Automated coverage is in `DeliveryApiTest`, `DeliveryValidatorTest`, `DeliveryDocumentApiTest`, `DeliveryDocumentEligibilityTest`, `DeliveryDocumentBuilderTest`, and `tests/delivery-document.test.ts`.
+Automated coverage is in `tests/Feature/Deliveries/` (`ReadDeliveryTest`, `PrepareDeliveryTest`, `UpdateDeliveryTest`), the unit tests in `tests/Unit/Deliveries/` (`DeliveryInputNormalizerTest`, `CashBreakdownTest`, `DeliveryReturnPolicyTest`), `DeliveryDocumentApiTest`, `DeliveryDocumentEligibilityTest`, `DeliveryDocumentBuilderTest`, and `tests/delivery-document.test.ts`.
 
 ## Integration and End-to-End Checks
 

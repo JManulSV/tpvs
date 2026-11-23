@@ -4,13 +4,14 @@ namespace App\Domain\AI;
 
 use App\Domain\AI\DTO\AiExtractionResult;
 use App\Domain\AI\DTO\AiExtractionValidationResult;
-use DateTimeImmutable;
+use App\Domain\AI\DTO\ExtractionIssue;
+use App\Domain\AI\Normalization\ExtractedValueParser;
 
 class ExtractionValidator
 {
-    private const CONFIDENCE_THRESHOLD = 0.70;
+    public function __construct(private readonly ExtractedValueParser $parser = new ExtractedValueParser) {}
 
-    private const NUMERIC_CANDIDATE_PATTERN = '/^[\d.,\s$€£¥₹%+\-]+$/uD';
+    private const CONFIDENCE_THRESHOLD = 0.70;
 
     /** @var array<string, list<string>> */
     private const RECORD_FIELDS = [
@@ -40,8 +41,6 @@ class ExtractionValidator
     /**
      * Validate and normalize a provider result. Structural failures are returned as a
      * non-usable outcome so callers can persist raw evidence and diagnostics safely.
-     *
-     * @param  array<string, mixed>|list<mixed>|null  $decoded
      */
     public function validate(AiExtractionResult $result): AiExtractionValidationResult
     {
@@ -65,11 +64,11 @@ class ExtractionValidator
         $this->checkKeys($decoded['record'], array_keys(self::RECORD_FIELDS), 'record', $structureIssues);
         $this->checkKeys($decoded['source_totals'], array_keys(self::TOTAL_FIELDS), 'source_totals', $structureIssues);
         if ($decoded['details'] === []) {
-            $structureIssues[] = $this->issue('details', 'EMPTY_DETAILS', 'error', 'At least one movement is required.');
+            $structureIssues[] = ExtractionIssue::error('details', 'EMPTY_DETAILS', 'At least one movement is required.')->toArray();
         }
         foreach ($decoded['details'] as $index => $detail) {
             if (! is_array($detail) || array_is_list($detail)) {
-                $structureIssues[] = $this->issue("details.{$index}", 'INVALID_DETAIL', 'error', 'Each movement must be an object.');
+                $structureIssues[] = ExtractionIssue::error("details.{$index}", 'INVALID_DETAIL', 'Each movement must be an object.')->toArray();
 
                 continue;
             }
@@ -106,9 +105,9 @@ class ExtractionValidator
             $path = "record.{$field}";
             $value = $this->readField($decoded['record'][$field], $path, $types, $issues);
             if ($field === 'year' || $field === 'week') {
-                $value = $this->normalizeInteger($value, $field, $path, $issues, $unconvertibleCount);
+                $value = $this->parser->normalizeInteger($value, $field, $path, $issues);
             } elseif ($field === 'week_start_date' || $field === 'week_end_date') {
-                $value = $this->normalizeDate($value, $path, $issues);
+                $value = $this->parser->normalizeDate($value, $path, $issues);
             }
             $normalized['record'][$field] = $this->field($value, $decoded['record'][$field]['confidence']);
         }
@@ -119,7 +118,7 @@ class ExtractionValidator
                 $path = "details.{$index}.{$field}";
                 $value = $this->readField($detail[$field], $path, $types, $issues);
                 if (in_array($field, ['income', 'commission_percentage', 'source_commission'], true)) {
-                    $value = $this->normalizeNumber($value, $field === 'commission_percentage', $path, $issues, $unconvertibleCount);
+                    $value = $this->parser->normalizeNumber($value, $field === 'commission_percentage', $path, $issues, $unconvertibleCount);
                 }
                 $normalizedDetail[$field] = $this->field($value, $detail[$field]['confidence']);
             }
@@ -129,12 +128,12 @@ class ExtractionValidator
         foreach (self::TOTAL_FIELDS as $field => $types) {
             $path = "source_totals.{$field}";
             $value = $this->readField($decoded['source_totals'][$field], $path, $types, $issues);
-            $value = $this->normalizeNumber($value, false, $path, $issues, $unconvertibleCount);
+            $value = $this->parser->normalizeNumber($value, false, $path, $issues, $unconvertibleCount);
             $normalized['source_totals'][$field] = $this->field($value, $decoded['source_totals'][$field]['confidence']);
         }
 
         foreach ($issues as $issue) {
-            if ($issue['severity'] === 'error') {
+            if ($issue['severity'] === ExtractionIssue::ERROR) {
                 return new AiExtractionValidationResult(false, null, $issues, 0);
             }
         }
@@ -151,51 +150,29 @@ class ExtractionValidator
     {
         foreach ($requiredKeys as $key) {
             if (! array_key_exists($key, $object)) {
-                $issues[] = $this->issue($prefix === '' ? $key : "{$prefix}.{$key}", 'MISSING_PROPERTY', 'error', 'A required property is missing.');
+                $issues[] = ExtractionIssue::error($prefix === '' ? $key : "{$prefix}.{$key}", 'MISSING_PROPERTY', 'A required property is missing.')->toArray();
             }
         }
 
         foreach (array_diff(array_keys($object), $requiredKeys) as $key) {
-            $issues[] = $this->issue($prefix === '' ? (string) $key : "{$prefix}.{$key}", 'UNEXPECTED_PROPERTY', 'error', 'An unexpected property was returned.');
+            $issues[] = ExtractionIssue::error($prefix === '' ? (string) $key : "{$prefix}.{$key}", 'UNEXPECTED_PROPERTY', 'An unexpected property was returned.')->toArray();
         }
     }
 
-    /** @param list<string> $expectedTypes */
-    private function readField(mixed $field, string $path, array $expectedTypes, array &$issues): mixed
+    /**
+     * Read a field whose wrapper and confidence checkFieldStructure() already accepted.
+     *
+     * @param  list<string>  $expectedTypes
+     */
+    private function readField(array $field, string $path, array $expectedTypes, array &$issues): mixed
     {
-        if (! is_array($field) || array_is_list($field)) {
-            $issues[] = $this->issue($path, 'INVALID_WRAPPER', 'error', 'The field wrapper must contain value and confidence.');
-
-            return null;
-        }
-
-        $wrapperKeys = array_keys($field);
-        sort($wrapperKeys);
-        if ($wrapperKeys !== ['confidence', 'value']) {
-            $issues[] = $this->issue($path, 'INVALID_WRAPPER', 'error', 'The field wrapper must contain exactly value and confidence.');
-
-            return null;
-        }
-
-        if (! is_int($field['confidence']) && ! is_float($field['confidence'])) {
-            $issues[] = $this->issue("{$path}.confidence", 'INVALID_CONFIDENCE', 'error', 'Confidence must be a number from 0 to 1.');
-
-            return null;
-        }
-
         $confidence = (float) $field['confidence'];
-        if (! is_finite($confidence) || $confidence < 0 || $confidence > 1 || ($field['value'] === null && $confidence !== 0.0)) {
-            $issues[] = $this->issue("{$path}.confidence", 'INVALID_CONFIDENCE', 'error', 'Confidence must be between 0 and 1, and null values require confidence 0.');
-
-            return null;
-        }
-
         if ($confidence < self::CONFIDENCE_THRESHOLD && $field['value'] !== null) {
-            $issues[] = $this->issue($path, 'LOW_CONFIDENCE', 'review', 'The extracted value has low confidence.', $field['value']);
+            $issues[] = ExtractionIssue::review($path, 'LOW_CONFIDENCE', 'The extracted value has low confidence.')->withValue($field['value'])->toArray();
         }
 
         if ($field['value'] === null) {
-            $issues[] = $this->issue($path, 'MISSING_VALUE', 'review', 'The value was not visible or could not be read.');
+            $issues[] = ExtractionIssue::review($path, 'MISSING_VALUE', 'The value was not visible or could not be read.')->toArray();
 
             return null;
         }
@@ -209,7 +186,7 @@ class ExtractionValidator
         };
 
         if (! in_array($actualType, $expectedTypes, true)) {
-            $issues[] = $this->issue($path, 'INVALID_VALUE_TYPE', 'review', 'The value has an unexpected type.', $field['value']);
+            $issues[] = ExtractionIssue::review($path, 'INVALID_VALUE_TYPE', 'The value has an unexpected type.')->withValue($field['value'])->toArray();
 
             return null;
         }
@@ -222,140 +199,34 @@ class ExtractionValidator
      */
     private function checkFieldStructure(mixed $field, string $path, array &$issues): void
     {
-        if (! is_array($field) || array_is_list($field)) {
-            $issues[] = $this->issue($path, 'INVALID_WRAPPER', 'error', 'The field wrapper must contain value and confidence.');
-
-            return;
-        }
-
-        $wrapperKeys = array_keys($field);
-        sort($wrapperKeys);
-        if ($wrapperKeys !== ['confidence', 'value']) {
-            $issues[] = $this->issue($path, 'INVALID_WRAPPER', 'error', 'The field wrapper must contain exactly value and confidence.');
-
+        if (! $this->hasValidWrapper($field, $path, $issues)) {
             return;
         }
 
         $confidence = $field['confidence'];
         if ((! is_int($confidence) && ! is_float($confidence)) || ! is_finite((float) $confidence)
             || $confidence < 0 || $confidence > 1 || ($field['value'] === null && (float) $confidence !== 0.0)) {
-            $issues[] = $this->issue("{$path}.confidence", 'INVALID_CONFIDENCE', 'error', 'Confidence must be between 0 and 1, and null values require confidence 0.');
+            $issues[] = ExtractionIssue::error("{$path}.confidence", 'INVALID_CONFIDENCE', 'Confidence must be between 0 and 1, and null values require confidence 0.')->toArray();
         }
     }
 
-    private function normalizeInteger(mixed $value, string $field, string $path, array &$issues, int &$count): ?int
+    /** Whether the field is an object with exactly `value` and `confidence`; adds an INVALID_WRAPPER issue if not. */
+    private function hasValidWrapper(mixed $field, string $path, array &$issues): bool
     {
-        if ($value === null) {
-            return null;
+        $keys = is_array($field) && ! array_is_list($field) ? array_keys($field) : null;
+        if ($keys !== null) {
+            sort($keys);
         }
 
-        $valid = $field === 'year' ? $value >= 1 && $value <= 9999 : $value >= 1 && $value <= 53;
-        if (! $valid) {
-            $issues[] = $this->issue($path, $field === 'year' ? 'INVALID_YEAR' : 'INVALID_WEEK', 'review', 'The numeric value is outside the supported range.', $value);
-
-            return null;
+        if ($keys === ['confidence', 'value']) {
+            return true;
         }
 
-        return $value;
-    }
+        $issues[] = ExtractionIssue::error($path, 'INVALID_WRAPPER', $keys === null
+            ? 'The field wrapper must contain value and confidence.'
+            : 'The field wrapper must contain exactly value and confidence.')->toArray();
 
-    private function normalizeDate(mixed $value, string $path, array &$issues): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/D', $value) !== 1) {
-            $issues[] = $this->issue($path, 'INVALID_DATE_FORMAT', 'review', 'Dates must use ISO YYYY-MM-DD format.', $value);
-
-            return null;
-        }
-
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-        $dateErrors = DateTimeImmutable::getLastErrors();
-        if ($date === false || ($dateErrors !== false && ($dateErrors['warning_count'] > 0 || $dateErrors['error_count'] > 0)) || $date->format('Y-m-d') !== $value) {
-            $issues[] = $this->issue($path, 'INVALID_DATE', 'review', 'The date is not a real calendar date.', $value);
-
-            return null;
-        }
-
-        return $value;
-    }
-
-    private function normalizeNumber(mixed $value, bool $percentage, string $path, array &$issues, int &$count): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $normalized = $this->parseNumber($value, $percentage);
-        if ($normalized !== null) {
-            return $normalized;
-        }
-
-        if (! $this->isNumericCandidate($value)) {
-            $issues[] = $this->issue($path, 'INVALID_VALUE_FORMAT', 'review', 'The value does not match the expected numeric format.', $value);
-
-            return null;
-        }
-
-        $count++;
-        $issues[] = $this->issue($path, 'UNCONVERTIBLE_NUMERIC', 'review', 'The numeric value is ambiguous or malformed and was not normalized.', $value);
-
-        return null;
-    }
-
-    private function parseNumber(string $input, bool $percentage): ?string
-    {
-        $value = trim($input);
-        $hasPercent = str_ends_with($value, '%');
-        if (! $percentage && $hasPercent) {
-            return null;
-        }
-        if ($hasPercent) {
-            $value = trim(substr($value, 0, -1));
-        }
-
-        if (! $percentage && preg_match('/^[\$€£¥₹]\s*/u', $value, $currency) === 1) {
-            $value = substr($value, strlen($currency[0]));
-        }
-
-        if ($value === '' || str_contains($value, '$') || preg_match('/^[0-9.,]+$/D', $value) !== 1) {
-            return null;
-        }
-
-        if (preg_match('/^\d+$/D', $value) === 1) {
-            $whole = $value;
-            $fraction = '';
-        } elseif (preg_match('/^\d+\.\d{1,2}$/D', $value) === 1) {
-            [$whole, $fraction] = explode('.', $value, 2);
-        } elseif (preg_match('/^\d{1,3}(?:,\d{3})+\.\d{1,2}$/D', $value) === 1) {
-            $withoutGroups = str_replace(',', '', $value);
-            [$whole, $fraction] = explode('.', $withoutGroups, 2);
-        } elseif (preg_match('/^\d{1,3}(?:\.\d{3})+,\d{1,2}$/D', $value) === 1) {
-            $withoutGroups = str_replace('.', '', $value);
-            [$whole, $fraction] = explode(',', $withoutGroups, 2);
-        } else {
-            return null;
-        }
-
-        return $this->formatDecimal($whole, $fraction);
-    }
-
-    /**
-     * @param  list<array{path: string, code: string, severity: string, message: string, value?: mixed}>  $issues
-     */
-    private function isNumericCandidate(string $input): bool
-    {
-        return preg_match(self::NUMERIC_CANDIDATE_PATTERN, trim($input)) === 1;
-    }
-
-    private function formatDecimal(string $whole, string $fraction): string
-    {
-        $whole = ltrim($whole, '0');
-        $whole = $whole === '' ? '0' : $whole;
-
-        return $whole.'.'.str_pad($fraction, 2, '0');
+        return false;
     }
 
     /** @return array{value: mixed, confidence: int|float} */
@@ -364,27 +235,13 @@ class ExtractionValidator
         return ['value' => $value, 'confidence' => $value === null ? 0 : $confidence];
     }
 
-    /**
-     * @param  list<array{path: string, code: string, severity: string, message: string, value?: mixed}>  $issues
-     */
     private function structuralFailure(string $message): AiExtractionValidationResult
     {
         return new AiExtractionValidationResult(
             structurallyValid: false,
             normalizedExtraction: null,
-            issues: [$this->issue('$', 'INVALID_EXTRACTION_STRUCTURE', 'error', $message)],
+            issues: [ExtractionIssue::error('$', 'INVALID_EXTRACTION_STRUCTURE', $message)->toArray()],
             unconvertibleNumericCount: 0,
         );
-    }
-
-    /** @return array{path: string, code: string, severity: string, message: string, value?: mixed} */
-    private function issue(string $path, string $code, string $severity, string $message, mixed $value = null): array
-    {
-        $issue = compact('path', 'code', 'severity', 'message');
-        if (func_num_args() >= 5) {
-            $issue['value'] = $value;
-        }
-
-        return $issue;
     }
 }

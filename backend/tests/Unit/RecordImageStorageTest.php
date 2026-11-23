@@ -6,10 +6,13 @@ use App\Domain\Images\RecordImageStorage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\Concerns\UploadsImages;
 use Tests\TestCase;
 
 class RecordImageStorageTest extends TestCase
 {
+    use UploadsImages;
+
     public function test_it_stores_a_content_detected_png_under_a_generated_private_key(): void
     {
         Storage::fake('record_images');
@@ -70,17 +73,5 @@ class RecordImageStorageTest extends TestCase
         }
 
         Storage::disk('record_images')->assertDirectoryEmpty('');
-    }
-
-    private function pngUpload(string $name): UploadedFile
-    {
-        $contents = base64_decode(
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j9s8AAAAASUVORK5CYII=',
-            true,
-        );
-
-        $this->assertIsString($contents);
-
-        return UploadedFile::fake()->createWithContent($name, $contents);
     }
 }

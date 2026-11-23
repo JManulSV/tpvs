@@ -2,11 +2,11 @@
 
 namespace App\Domain\Records;
 
+use App\Domain\Shared\History\CanonicalValue;
+use App\Domain\Shared\History\SnapshotDiff;
 use App\Enums\RecordStatus;
 use App\Models\History;
 use App\Models\Record;
-use Carbon\CarbonImmutable;
-use Carbon\CarbonInterface;
 
 class RecordHistoryService
 {
@@ -69,25 +69,7 @@ class RecordHistoryService
      */
     public function diff(array $previous, array $current): array
     {
-        $fields = array_keys($previous + $current);
-        $changes = [];
-
-        foreach ($fields as $field) {
-            $previousValue = $previous[$field] ?? null;
-            $newValue = $current[$field] ?? null;
-
-            if ($previousValue === $newValue) {
-                continue;
-            }
-
-            $changes[] = [
-                'field_name' => $field,
-                'previous_value' => $previousValue,
-                'new_value' => $newValue,
-            ];
-        }
-
-        return $changes;
+        return SnapshotDiff::diff($previous, $current);
     }
 
     /**
@@ -174,77 +156,26 @@ class RecordHistoryService
         iterable $details,
     ): array {
         $snapshot = [
-            'company' => $this->canonicalString($companyName),
-            'year' => $this->canonicalInteger($year),
-            'week' => $this->canonicalInteger($week),
-            'week_start_date' => $this->canonicalDate($weekStartDate),
-            'week_end_date' => $this->canonicalDate($weekEndDate),
+            'company' => CanonicalValue::string($companyName),
+            'year' => CanonicalValue::integer($year),
+            'week' => CanonicalValue::integer($week),
+            'week_start_date' => CanonicalValue::date($weekStartDate),
+            'week_end_date' => CanonicalValue::date($weekEndDate),
         ];
 
         foreach ($details as $detail) {
             $order = (int) $detail['order'];
-            $snapshot["details[{$order}].order"] = $this->canonicalInteger($detail['order']);
+            $snapshot["details[{$order}].order"] = CanonicalValue::integer($detail['order']);
 
             foreach (self::DETAIL_TEXT_FIELDS as $field) {
-                $snapshot["details[{$order}].{$field}"] = $this->canonicalString($detail[$field] ?? null);
+                $snapshot["details[{$order}].{$field}"] = CanonicalValue::string($detail[$field] ?? null);
             }
 
             foreach (self::DETAIL_DECIMAL_FIELDS as $field) {
-                $snapshot["details[{$order}].{$field}"] = $this->canonicalDecimal($detail[$field] ?? null);
+                $snapshot["details[{$order}].{$field}"] = CanonicalValue::decimal($detail[$field] ?? null);
             }
         }
 
         return $snapshot;
-    }
-
-    private function canonicalString(mixed $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $value = trim((string) $value);
-
-        return $value === '' ? null : $value;
-    }
-
-    private function canonicalInteger(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return (string) (int) $value;
-    }
-
-    private function canonicalDate(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        if ($value instanceof CarbonInterface) {
-            return $value->toDateString();
-        }
-
-        return CarbonImmutable::parse((string) $value)->toDateString();
-    }
-
-    private function canonicalDecimal(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        $value = trim((string) $value);
-        $negative = str_starts_with($value, '-');
-        $value = ltrim($value, '+-');
-
-        [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
-        $whole = ltrim($whole, '0');
-        $whole = $whole === '' ? '0' : $whole;
-        $fraction = str_pad(substr($fraction, 0, 2), 2, '0');
-
-        return ($negative ? '-' : '').$whole.'.'.$fraction;
     }
 }

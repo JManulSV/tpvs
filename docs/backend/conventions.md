@@ -7,14 +7,22 @@ Laravel structure, coding conventions, persistence, queues, security, and rules 
 ```text
 backend/app/
 ├── Console/Commands/
-├── Domain/            # Business code by domain: AI, Dashboard, Deliveries, Documents, Images, Records, Reports
+├── Domain/            # Business code by domain
+│   ├── AI/            # Actions/, AiJobDispatcher, AiProcessingRunner, DTO/, Normalization/, validators
+│   ├── Dashboard/
+│   ├── Deliveries/    # Actions/, DeliveryInputNormalizer, CashBreakdown, DeliveryReturnPolicy, Exceptions/
+│   ├── Documents/     # Actions/, Word and Excel builders, eligibility, TemporaryFile, Exceptions/
+│   ├── Images/        # Actions/, RecordImageStorage, Exceptions/
+│   ├── Records/       # Actions/, RecordQuery, RecordFilters, BusinessValidator, history, Exceptions/
+│   ├── Reports/
+│   └── Shared/        # Money, Exceptions/DomainRuleException, History/ (SnapshotDiff, CanonicalValue)
 ├── Enums/             # RecordStatus, RecordSource, AiProcessingStatus, UserRole
 ├── Http/
 │   ├── Controllers/
 │   ├── Middleware/
 │   ├── Requests/
 │   └── Resources/
-├── Jobs/              # ProcessImageJob
+├── Jobs/              # ProcessImageJob (queue settings only; delegates to AiProcessingRunner)
 ├── Models/
 ├── Policies/
 └── Providers/
@@ -26,14 +34,40 @@ backend/app/
 | `app/Http/Controllers/` | HTTP coordination |
 | `app/Http/Requests/` | Payload validation and request-level authorization |
 | `app/Http/Resources/` | Stable JSON response representations |
-| `app/Domain/<Domain>/` | Multi-step use cases and domain services |
+| `app/Domain/<Domain>/Actions/` | One class per use case with a `handle()` method |
+| `app/Domain/<Domain>/` | Domain services, queries, and policies used by the actions |
+| `app/Domain/<Domain>/Exceptions/` | `DomainRuleException` subclasses with named constructors |
+| `app/Domain/Shared/` | Code shared by several domains, only where there was real duplication |
 | `app/Models/` | Eloquent persistence, casts, relationships, simple scopes |
 | `app/Policies/` | Resource authorization |
 | `app/Jobs/` | Asynchronous or retryable work |
 | `database/migrations/` | All schema changes |
 | `tests/Feature/`, `tests/Unit/` | HTTP/workflow behavior and isolated logic |
+| `tests/Support/Concerns/` | Test helper traits (`CreatesUsers`, `UploadsImages`, `CreatesDeliveries`, …) |
 
 Use domain ownership for business code. Do not create a generic service directory that collects unrelated workflows, and create new folders only when a real feature needs them.
+
+### Actions
+
+A use case lives in `Domain/<Domain>/Actions/` as one class with a `handle()` method, for example `Records/Actions/ConfirmRecord` or `Deliveries/Actions/PrepareDelivery`. The action opens its own transaction, takes the locks the use case needs (`Record::findLockedOrFail()`, `lockForUpdate()`), writes History, and returns the model. Controllers resolve actions by method injection.
+
+A controller only authorizes, calls `handle()`, and wraps the result in a Resource. It does not open transactions or lock rows. HTTP-only concerns stay in the controller: the response status, download headers, and the safe `500` message when an unexpected error happens after a file was stored.
+
+### Domain errors
+
+**Controllers never build business errors by hand.** An action throws a `DomainRuleException` subclass, and `bootstrap/app.php` renders it as:
+
+```json
+{ "message": "...", "code": "...", "details": { "reason": "...", "...": "..." } }
+```
+
+with the status the subclass declares. These exceptions are not reported to the log. Each domain keeps its subclasses in `Exceptions/` with named constructors (`RecordConfirmationBlocked::invalidState()`, `DeliveryPreparationBlocked::cashMismatch(...)`). Error codes that the AI job persists in `AIProcessing` are data, not HTTP responses, and do not use this hierarchy.
+
+### Domain/Shared
+
+- **`Money`**: an immutable amount in integer cents. Parsing truncates to two decimals and never rounds; `applyPercentage()` rounds half up to the cent; `floorToWholePeso()` floors. No code converts money through floats or keeps its own cents helpers. Display formatting (`$1,234.50`, Excel cells) belongs to `Domain/Documents`.
+- **`Exceptions/DomainRuleException`**: the base class for business-rule errors described above.
+- **`History/SnapshotDiff`** and **`History/CanonicalValue`**: the snapshot diff and value canonicalization used by `RecordHistoryService` and `DeliveryHistoryService`.
 
 ## 2. Laravel Conventions
 
@@ -74,7 +108,8 @@ ProcessImageJob -> AI provider interface -> Ollama provider
 ```
 
 - One logical `AIProcessing` row per Image stores provider, model, latest raw result (backend-private), normalized result, status, timestamps, and safe failure information. A manual retry replaces the current result/error on the same row.
-- The job is dispatched after the Record/Image/AIProcessing transaction commits. A dispatch failure after commit is recorded as `Record.ERROR` and `AIProcessing.ERROR`.
+- `ProcessImageJob` keeps only its queue settings (`$tries`, `$timeout`) and `failed()`; `Domain/AI/AiProcessingRunner` runs the attempt. Issues are built with `Domain/AI/DTO/ExtractionIssue`, and raw values are normalized by `Domain/AI/Normalization/ExtractedValueParser`.
+- `Domain/AI/AiJobDispatcher` dispatches the job after the Record/Image/AIProcessing transaction commits. A dispatch failure is recorded as `Record.ERROR` and `AIProcessing.ERROR` with the `AI_JOB_DISPATCH_FAILED` issue, and the endpoint still answers `202`.
 - The job locks its aggregate before provider work; duplicate or stale jobs must not call Ollama.
 - The initial cycle allows up to three provider calls, retrying only connection errors, timeouts, and HTTP 5xx. Structural failures and HTTP 4xx are terminal.
 - A manual retry (only from `ERROR`) makes exactly one provider call.

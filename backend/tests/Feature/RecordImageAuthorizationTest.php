@@ -10,16 +10,16 @@ use App\Models\Image;
 use App\Models\Record;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
 use RuntimeException;
+use Tests\Support\Concerns\UploadsImages;
 use Tests\TestCase;
 
 class RecordImageAuthorizationTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, UploadsImages;
 
     public function test_image_routes_require_authentication(): void
     {
@@ -225,17 +225,5 @@ class RecordImageAuthorizationTest extends TestCase
             ->assertConflict()
             ->assertJsonPath('code', 'IMAGE_ACCESS_BLOCKED')
             ->assertJsonPath('details.reason', 'RECORD_CANCELED');
-    }
-
-    private function pngUpload(): UploadedFile
-    {
-        $contents = base64_decode(
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j9s8AAAAASUVORK5CYII=',
-            true,
-        );
-
-        $this->assertIsString($contents);
-
-        return UploadedFile::fake()->createWithContent('image.png', $contents);
     }
 }
