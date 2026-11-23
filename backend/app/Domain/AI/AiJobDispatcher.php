@@ -2,6 +2,7 @@
 
 namespace App\Domain\AI;
 
+use App\Domain\AI\DTO\ExtractionIssue;
 use App\Enums\AiProcessingStatus;
 use App\Enums\RecordStatus;
 use App\Jobs\ProcessImageJob;
@@ -47,12 +48,7 @@ class AiJobDispatcher
                 'result' => [
                     'prompt_version' => 'v5',
                     'normalized_extraction' => null,
-                    'issues' => [[
-                        'path' => '$',
-                        'code' => self::DISPATCH_FAILED,
-                        'severity' => 'error',
-                        'message' => 'The extraction job could not be queued.',
-                    ]],
+                    'issues' => [ExtractionIssue::error('$', self::DISPATCH_FAILED, 'The extraction job could not be queued.')->toArray()],
                     'unconvertible_numeric_count' => 0,
                 ],
             ])->save();
