@@ -2,7 +2,9 @@
 
 namespace App\Domain\Documents;
 
-use App\Domain\Deliveries\DeliveryValidator;
+use App\Domain\Deliveries\CashBreakdown;
+use App\Domain\Deliveries\DeliveryInputNormalizer;
+use App\Domain\Deliveries\DeliveryReturnPolicy;
 use App\Domain\Documents\Exceptions\DocumentGenerationBlockedException as Blocked;
 use App\Enums\RecordStatus;
 use App\Models\Delivery;
@@ -14,7 +16,11 @@ class DeliveryDocumentEligibility
 {
     private const IMAGE_DISK = 'record_images';
 
-    public function __construct(private readonly DeliveryValidator $validator) {}
+    public function __construct(
+        private readonly DeliveryInputNormalizer $normalizer,
+        private readonly DeliveryReturnPolicy $returnPolicy,
+        private readonly CashBreakdown $cash,
+    ) {}
 
     /**
      * Check that the Delivery can produce a Word document and return the
@@ -39,12 +45,12 @@ class DeliveryDocumentEligibility
             throw new Blocked(Blocked::MISSING_IMAGE);
         }
 
-        $currentAmount = $this->validator->currentReturnAmount($record);
+        $currentAmount = $this->returnPolicy->currentReturnAmount($record);
         $preparedAmount = (string) $delivery->prepared_return_amount;
 
-        if ($this->validator->isStale($preparedAmount, $currentAmount)) {
+        if ($this->returnPolicy->isStale($preparedAmount, $currentAmount)) {
             throw new Blocked(Blocked::STALE_DELIVERY, [
-                'prepared_amount' => $this->validator->canonicalAmount($preparedAmount) ?? '0.00',
+                'prepared_amount' => $this->normalizer->canonicalAmount($preparedAmount) ?? '0.00',
                 'current_amount' => $currentAmount,
             ]);
         }
@@ -54,7 +60,7 @@ class DeliveryDocumentEligibility
             ->map(fn ($row): array => ['value' => (string) $row->value, 'quantity' => (int) $row->quantity])
             ->all();
 
-        $this->validator->validateDocumentCashReconciliation(
+        $this->cash->validateDocumentCashReconciliation(
             $currentAmount,
             $documentReturnAmount,
             $denominations,

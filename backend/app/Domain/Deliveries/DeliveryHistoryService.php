@@ -9,7 +9,7 @@ use App\Models\History;
 
 class DeliveryHistoryService
 {
-    public function __construct(private readonly DeliveryValidator $validator) {}
+    public function __construct(private readonly DeliveryInputNormalizer $normalizer) {}
 
     /**
      * Build a canonical snapshot of the delivery and its cash denominations.
@@ -126,13 +126,13 @@ class DeliveryHistoryService
             'delivery_date' => CanonicalValue::date($deliveryDate),
             'delivered_by_name' => CanonicalValue::string($deliveredByName),
             'received_by_name' => CanonicalValue::string($receivedByName),
-            'prepared_return_amount' => $this->validator->canonicalAmount($preparedReturnAmount),
+            'prepared_return_amount' => $this->normalizer->canonicalAmount($preparedReturnAmount),
         ];
 
         $ordered = [];
 
         foreach ($denominations as $denomination) {
-            $value = $this->validator->canonicalAmount($denomination['value']);
+            $value = $this->normalizer->canonicalAmount($denomination['value']);
             $ordered[$value] = CanonicalValue::integer($denomination['quantity']);
         }
 

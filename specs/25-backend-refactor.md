@@ -110,7 +110,6 @@ Subclases y constructores con nombre (`final`, cada una en el `Exceptions/` de s
 | `Deliveries\Exceptions\DeliveryPreparationBlocked` | `invalidRecordState()`, `cashMismatch(expected, cash, difference)` | `DELIVERY_PREPARATION_BLOCKED` | 409 |
 | `Documents\Exceptions\DocumentGenerationBlockedException` | se conserva la clase y sus constantes; pasa a extender la base | `DOCUMENT_GENERATION_BLOCKED` | el actual |
 | `AI\Exceptions\AiProcessingRetryBlocked` | según los motivos actuales de `RetryAiProcessingController` | `AI_PROCESSING_RETRY_BLOCKED` | el actual |
-| `AI\Exceptions\AiJobDispatchFailed` | `afterCommit()` | `AI_JOB_DISPATCH_FAILED` | el actual |
 | `Images\Exceptions\RecordImageBlocked` | uno por cada llamada actual a `imageError()` | los actuales | los actuales |
 
 Los textos de `message` y los valores de `details` se copian literalmente del código actual. Los códigos de error que el job persiste en `AiProcessing` no son respuestas HTTP y no usan esta jerarquía.
@@ -136,7 +135,7 @@ Cada acción abre su propia transacción, bloquea lo que bloquea hoy y lanza `Do
 - `Record::findLockedOrFail(int $id): self` reemplaza `Record::query()->whereKey(...)->lockForUpdate()->firstOrFail()`.
 - `Record::scopeWithResourceAggregates()` y `Record::loadResourceAggregates(): static` cargan `company`, `details` e `image.aiProcessing`, más `income_total`, `commission_total` y `return_total`.
 - `Domain/Records/RecordFilters` y `Domain/Records/RecordQuery` contienen los filtros y la búsqueda de `RecordController::index`.
-- `Domain/AI/AiJobDispatcher` despacha `ProcessImageJob` después del commit. Si el despacho falla, marca `Record.ERROR` y `AIProcessing.ERROR` y lanza `AiJobDispatchFailed`. Lo usan `CreateRecordFromImage` y `RetryAiProcessing`.
+- `Domain/AI/AiJobDispatcher` despacha `ProcessImageJob` después del commit. Si el despacho falla, marca `Record.ERROR` y `AIProcessing.ERROR` (con el issue persistido `AI_JOB_DISPATCH_FAILED`) y retorna sin lanzar: la respuesta sigue siendo 202 con el registro en `ERROR`, como hoy. Lo usan `CreateRecordFromImage` y `RetryAiProcessing`.
 - `RecordImageStorage::deleteQuietly(string $path)` reemplaza los dos `deleteStagedFile` duplicados.
 - `Domain/Documents/TemporaryFile` reemplaza los dos `temporaryPath` duplicados.
 - `DeliveryValidator` se elimina y sus métodos se reparten así:
@@ -211,6 +210,7 @@ Ninguna fase modifica tests de Feature salvo para importar clases renombradas. S
 - **Sí:** compartir solo los helpers de historial (`SnapshotDiff`, `CanonicalValue`). **No:** una clase base abstracta de historial, porque acoplaría dos snapshots distintos.
 - **Sí:** el pipeline de IA va al final, cuando `Money`, `ExtractionIssue` y los errores ya existen.
 - **Sí:** la reorganización de los tests es una fase propia, después del código. Así los tests de Feature validan las fases 1–8 sin haberse movido.
+- **No:** una excepción `AiJobDispatchFailed`. Hoy un despacho fallido responde 202 con el registro en `ERROR` y el issue `AI_JOB_DISPATCH_FAILED`; lanzar cambiaría el contrato HTTP. Lo decidió el usuario durante la fase 2.
 - **No:** un `Domain/Services` genérico, por la regla de `conventions.md`. Lo compartido va en `Domain/Shared` y solo existe donde ya había duplicación.
 
 ## Risks
@@ -218,7 +218,7 @@ Ninguna fase modifica tests de Feature salvo para importar clases renombradas. S
 | Riesgo | Mitigación |
 | --- | --- |
 | `Money` cambia la semántica de parseo (truncado frente a redondeo, signos, `null`) | Tests unitarios que fijan el comportamiento actual antes de migrar. Las suites de `BusinessValidator`, `DeliveryValidator` y `ExtractionFinancialCalculator` pasan sin cambios. |
-| Un `throw` dentro de `DB::transaction` hace rollback donde antes había commit | Verificar en cada `throw` que no haya escrituras previas en la transacción. Si las hay, el `throw` va después del commit, igual que el caso de `AI_JOB_DISPATCH_FAILED`. |
+| Un `throw` dentro de `DB::transaction` hace rollback donde antes había commit | Verificar en cada `throw` que no haya escrituras previas en la transacción. Si las hay, el `throw` va después del commit. |
 | El render de `DomainRuleException` cambia la forma del JSON o el estado | Test unitario del render, más los tests de Feature existentes que comprueban `code`, `details` y el estado. |
 | Las rutas de descarga (Word, Excel) reciben JSON donde antes no | El render aplica solo a `DomainRuleException`. Hoy esas rutas ya devuelven JSON en los errores de negocio, y sus tests de Feature lo cubren. |
 | Mover `ProcessImageJob` altera el orden de locks, `$tries` o la detección de jobs duplicados u obsoletos | El job conserva sus propiedades de cola. `AiProcessingRunner` mueve el código sin reordenarlo. Las tres suites de IA pasan sin cambios. |

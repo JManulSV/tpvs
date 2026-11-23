@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Deliveries;
 
-use App\Domain\Deliveries\DeliveryValidator;
+use App\Domain\Deliveries\DeliveryInputNormalizer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -66,7 +66,7 @@ class UpsertDeliveryRequest extends FormRequest
                     return;
                 }
 
-                $validatorService = app(DeliveryValidator::class);
+                $normalizer = app(DeliveryInputNormalizer::class);
                 $seen = [];
 
                 foreach ($denominations as $index => $denomination) {
@@ -76,7 +76,7 @@ class UpsertDeliveryRequest extends FormRequest
                         continue;
                     }
 
-                    $value = $validatorService->canonicalDenomination((string) ($denomination['value'] ?? ''));
+                    $value = $normalizer->canonicalDenomination((string) ($denomination['value'] ?? ''));
 
                     if ($value === null) {
                         $validator->errors()->add(

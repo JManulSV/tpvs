@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Domain\Deliveries\DeliveryValidator;
+use App\Domain\Deliveries\DeliveryReturnPolicy;
 use App\Models\Delivery;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -15,13 +15,13 @@ class DeliveryResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $validator = app(DeliveryValidator::class);
+        $returnPolicy = app(DeliveryReturnPolicy::class);
         $currentReturnAmount = $this->current_return_amount !== null
             ? (string) $this->current_return_amount
-            : $validator->currentReturnAmount($this->record);
+            : $returnPolicy->currentReturnAmount($this->record);
         $isStale = $this->is_stale !== null
             ? (bool) $this->is_stale
-            : $validator->isStale($this->prepared_return_amount, $currentReturnAmount);
+            : $returnPolicy->isStale($this->prepared_return_amount, $currentReturnAmount);
 
         return [
             'id' => $this->getKey(),

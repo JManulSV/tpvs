@@ -2,7 +2,8 @@
 
 namespace App\Domain\Documents;
 
-use App\Domain\Deliveries\DeliveryValidator;
+use App\Domain\Deliveries\CashBreakdown;
+use App\Domain\Deliveries\DeliveryReturnPolicy;
 use App\Domain\Reports\ReportFilters;
 use App\Domain\Reports\ReportQuery;
 use App\Domain\Shared\Money;
@@ -14,7 +15,6 @@ use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use RuntimeException;
 use Throwable;
 
 class ReportWorkbookBuilder
@@ -29,7 +29,8 @@ class ReportWorkbookBuilder
 
     public function __construct(
         private readonly ReportQuery $reports,
-        private readonly DeliveryValidator $validator,
+        private readonly CashBreakdown $cash,
+        private readonly DeliveryReturnPolicy $returnPolicy,
     ) {}
 
     /**
@@ -38,7 +39,7 @@ class ReportWorkbookBuilder
      */
     public function build(ReportFilters $filters): string
     {
-        $path = $this->temporaryPath('tpvs-report-');
+        $path = TemporaryFile::create('tpvs-report-');
         $spreadsheet = null;
 
         try {
@@ -198,7 +199,7 @@ class ReportWorkbookBuilder
                 self::money($delivery->prepared_return_amount),
             ];
 
-            foreach (DeliveryValidator::DENOMINATIONS as $denomination) {
+            foreach (CashBreakdown::DENOMINATIONS as $denomination) {
                 $row[] = self::integer($quantities[$denomination] ?? 0);
             }
 
@@ -209,9 +210,9 @@ class ReportWorkbookBuilder
                 ])
                 ->all();
 
-            $row[] = self::money($this->validator->cashTotal($cash));
+            $row[] = self::money($this->cash->cashTotal($cash));
             $row[] = self::text(
-                $this->validator->isStale((string) $delivery->prepared_return_amount, (string) ($record->return_total ?? '0.00'))
+                $this->returnPolicy->isStale((string) $delivery->prepared_return_amount, (string) ($record->return_total ?? '0.00'))
                     ? 'Sí'
                     : 'No',
             );
@@ -221,7 +222,7 @@ class ReportWorkbookBuilder
 
         $this->table($sheet, [
             'ID registro', 'Empresa', 'Semana', 'Fecha de entrega', 'Entrega', 'Recibe', 'Importe preparado',
-            ...array_map(static fn (string $value): string => str_ends_with($value, '.00') ? substr($value, 0, -3) : $value, DeliveryValidator::DENOMINATIONS),
+            ...array_map(static fn (string $value): string => str_ends_with($value, '.00') ? substr($value, 0, -3) : $value, CashBreakdown::DENOMINATIONS),
             'Total efectivo', 'Desactualizada',
         ], $rows);
     }
@@ -325,16 +326,5 @@ class ReportWorkbookBuilder
     private static function date(mixed $value): array
     {
         return ['date', $value];
-    }
-
-    private function temporaryPath(string $prefix): string
-    {
-        $path = tempnam(sys_get_temp_dir(), $prefix);
-
-        if ($path === false) {
-            throw new RuntimeException('A temporary file could not be created.');
-        }
-
-        return $path;
     }
 }
