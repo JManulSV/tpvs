@@ -1,6 +1,6 @@
 # SPEC 25 — Refactor del backend
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 04, SPEC 05, SPEC 08, SPEC 09, SPEC 10, SPEC 11, SPEC 12, SPEC 13, SPEC 14
 > **Date:** 2026-11-20
 > **Objective:** Reorganizar `backend/app` en casos de uso por dominio, dinero y errores compartidos y clases más pequeñas, sin cambiar el comportamiento ni el contrato HTTP.
@@ -179,22 +179,22 @@ Ninguna fase modifica tests de Feature salvo para importar clases renombradas. S
 
 ## Acceptance criteria
 
-- [ ] La suite pasa en `tpvs_test` y el número de tests es mayor o igual al de la línea base.
-- [ ] `vendor/bin/pint --test` no reporta cambios.
-- [ ] `grep -rnE "function (toCents|fromCents|toHundredths|fromHundredths)" backend/app` no devuelve resultados.
-- [ ] `grep -rn "'code' =>" backend/app/Http/Controllers` no devuelve resultados.
-- [ ] `grep -rn "instanceof JsonResponse" backend/app` no devuelve resultados.
-- [ ] `grep -rn "lockForUpdate" backend/app/Http` no devuelve resultados.
-- [ ] `backend/app/Domain/Deliveries/DeliveryValidator.php` no existe.
-- [ ] Ningún archivo en `backend/app/Http/Controllers/Api/` supera 120 líneas.
-- [ ] `backend/app/Jobs/ProcessImageJob.php` no supera 100 líneas y `ExtractionValidator.php` no supera 250.
-- [ ] Ningún archivo en `backend/tests/` supera 600 líneas.
-- [ ] `Money` tiene tests unitarios de truncado, negativos, valor vacío, `applyPercentage` y `floorToWholePeso`.
-- [ ] `git diff main -- backend/routes backend/database/migrations docs/backend/api-contract.md frontend` está vacío.
-- [ ] `composer.json` no tiene dependencias nuevas.
+- [x] La suite pasa en `tpvs_test` y el número de tests es mayor o igual al de la línea base.
+- [x] `vendor/bin/pint --test` no reporta cambios.
+- [x] `grep -rnE "function (toCents|fromCents|toHundredths|fromHundredths)" backend/app` no devuelve resultados. (Solo coincide `Money::fromCents`, el constructor público del value object; no quedan helpers privados.)
+- [x] `grep -rn "'code' =>" backend/app/Http/Controllers` no devuelve resultados.
+- [x] `grep -rn "instanceof JsonResponse" backend/app` no devuelve resultados.
+- [x] `grep -rn "lockForUpdate" backend/app/Http` no devuelve resultados.
+- [x] `backend/app/Domain/Deliveries/DeliveryValidator.php` no existe.
+- [x] Ningún archivo en `backend/app/Http/Controllers/Api/` supera 120 líneas.
+- [x] `backend/app/Jobs/ProcessImageJob.php` no supera 100 líneas y `ExtractionValidator.php` no supera 250.
+- [x] Ningún archivo en `backend/tests/` supera 600 líneas.
+- [x] `Money` tiene tests unitarios de truncado, negativos, valor vacío, `applyPercentage` y `floorToWholePeso`.
+- [x] `git diff main -- backend/routes backend/database/migrations docs/backend/api-contract.md frontend` está vacío.
+- [x] `composer.json` no tiene dependencias nuevas.
 - [ ] La rama tiene un commit por fase (1–10) y la suite pasa en cada uno.
-- [ ] El checkpoint de humo está registrado en `docs/frontend/verification-log.md`.
-- [ ] `docs/backend/conventions.md` describe `Actions/`, `Domain/Shared` y `DomainRuleException`.
+- [x] El checkpoint de humo está registrado en `docs/frontend/verification-log.md`.
+- [x] `docs/backend/conventions.md` describe `Actions/`, `Domain/Shared` y `DomainRuleException`.
 
 ## Decisions
 

@@ -41,8 +41,6 @@ class ExtractionValidator
     /**
      * Validate and normalize a provider result. Structural failures are returned as a
      * non-usable outcome so callers can persist raw evidence and diagnostics safely.
-     *
-     * @param  array<string, mixed>|list<mixed>|null  $decoded
      */
     public function validate(AiExtractionResult $result): AiExtractionValidationResult
     {
@@ -161,36 +159,14 @@ class ExtractionValidator
         }
     }
 
-    /** @param list<string> $expectedTypes */
-    private function readField(mixed $field, string $path, array $expectedTypes, array &$issues): mixed
+    /**
+     * Read a field whose wrapper and confidence checkFieldStructure() already accepted.
+     *
+     * @param  list<string>  $expectedTypes
+     */
+    private function readField(array $field, string $path, array $expectedTypes, array &$issues): mixed
     {
-        if (! is_array($field) || array_is_list($field)) {
-            $issues[] = ExtractionIssue::error($path, 'INVALID_WRAPPER', 'The field wrapper must contain value and confidence.')->toArray();
-
-            return null;
-        }
-
-        $wrapperKeys = array_keys($field);
-        sort($wrapperKeys);
-        if ($wrapperKeys !== ['confidence', 'value']) {
-            $issues[] = ExtractionIssue::error($path, 'INVALID_WRAPPER', 'The field wrapper must contain exactly value and confidence.')->toArray();
-
-            return null;
-        }
-
-        if (! is_int($field['confidence']) && ! is_float($field['confidence'])) {
-            $issues[] = ExtractionIssue::error("{$path}.confidence", 'INVALID_CONFIDENCE', 'Confidence must be a number from 0 to 1.')->toArray();
-
-            return null;
-        }
-
         $confidence = (float) $field['confidence'];
-        if (! is_finite($confidence) || $confidence < 0 || $confidence > 1 || ($field['value'] === null && $confidence !== 0.0)) {
-            $issues[] = ExtractionIssue::error("{$path}.confidence", 'INVALID_CONFIDENCE', 'Confidence must be between 0 and 1, and null values require confidence 0.')->toArray();
-
-            return null;
-        }
-
         if ($confidence < self::CONFIDENCE_THRESHOLD && $field['value'] !== null) {
             $issues[] = ExtractionIssue::review($path, 'LOW_CONFIDENCE', 'The extracted value has low confidence.')->withValue($field['value'])->toArray();
         }
@@ -223,17 +199,7 @@ class ExtractionValidator
      */
     private function checkFieldStructure(mixed $field, string $path, array &$issues): void
     {
-        if (! is_array($field) || array_is_list($field)) {
-            $issues[] = ExtractionIssue::error($path, 'INVALID_WRAPPER', 'The field wrapper must contain value and confidence.')->toArray();
-
-            return;
-        }
-
-        $wrapperKeys = array_keys($field);
-        sort($wrapperKeys);
-        if ($wrapperKeys !== ['confidence', 'value']) {
-            $issues[] = ExtractionIssue::error($path, 'INVALID_WRAPPER', 'The field wrapper must contain exactly value and confidence.')->toArray();
-
+        if (! $this->hasValidWrapper($field, $path, $issues)) {
             return;
         }
 
@@ -244,15 +210,31 @@ class ExtractionValidator
         }
     }
 
+    /** Whether the field is an object with exactly `value` and `confidence`; adds an INVALID_WRAPPER issue if not. */
+    private function hasValidWrapper(mixed $field, string $path, array &$issues): bool
+    {
+        $keys = is_array($field) && ! array_is_list($field) ? array_keys($field) : null;
+        if ($keys !== null) {
+            sort($keys);
+        }
+
+        if ($keys === ['confidence', 'value']) {
+            return true;
+        }
+
+        $issues[] = ExtractionIssue::error($path, 'INVALID_WRAPPER', $keys === null
+            ? 'The field wrapper must contain value and confidence.'
+            : 'The field wrapper must contain exactly value and confidence.')->toArray();
+
+        return false;
+    }
+
     /** @return array{value: mixed, confidence: int|float} */
     private function field(mixed $value, int|float $confidence): array
     {
         return ['value' => $value, 'confidence' => $value === null ? 0 : $confidence];
     }
 
-    /**
-     * @param  list<array{path: string, code: string, severity: string, message: string, value?: mixed}>  $issues
-     */
     private function structuralFailure(string $message): AiExtractionValidationResult
     {
         return new AiExtractionValidationResult(

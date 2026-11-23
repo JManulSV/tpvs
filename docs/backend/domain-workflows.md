@@ -26,6 +26,8 @@ Tests
 
 **Entry points:** `POST /api/records`, `PUT /api/records/{id}`, and `POST /api/records/{id}/confirm`.
 
+**Code:** `Domain/Records/Actions/CreateManualRecord`, `UpdateRecord`, and `ConfirmRecord`; the listing uses `Domain/Records/RecordQuery` with `RecordFilters`.
+
 **Preconditions:** The user is authenticated. Mutations require `EDITOR`. Creation and replacement reference an existing Company and supply required record fields and at least one valid detail.
 
 **Workflow:**
@@ -43,6 +45,8 @@ Tests
 **Tests:** Verify Editor/Viewer authorization, business week values without ISO interpretation, custom valid date ranges, financial rounding and fixed commission, invalid input, no Image/AIProcessing/job, atomic creation/history and replacement/history, and disallowed transitions.
 
 ## Image Record
+
+**Code:** `Domain/Images/Actions/ReplaceRecordImage` attaches or replaces the image; `Domain/AI/Actions/CreateRecordFromImage` creates an IMAGE Record; `Domain/AI/Actions/RetryAiProcessing` retries; `Domain/AI/AiJobDispatcher` queues `ProcessImageJob`, which delegates to `Domain/AI/AiProcessingRunner`.
 
 **Storage and association (SPEC 05):**
 
@@ -67,6 +71,8 @@ Tests
 **Purpose:** Let an authorized Editor resolve the output of image extraction or a failed processing attempt without bypassing backend validation or the human-confirmation rule.
 
 **Entry points:** `GET /api/records/{id}`, `GET /api/records/{record}/image`, `PUT /api/records/{record}`, `POST /api/records/{record}/confirm`, `POST /api/records/{record}/cancel`, and the existing `POST /api/records/{record}/ai-processing/retry`.
+
+**Code:** `Domain/Records/Actions/UpdateRecord`, `ConfirmRecord`, and `CancelRecord`, and `Domain/AI/Actions/RetryAiProcessing`.
 
 **Preconditions:** The user is authenticated. Mutations require `EDITOR`, CSRF where applicable, and a Record in the state accepted by the operation. The Editor can see the authorized image and the safe `ai_processing` diagnostics.
 
@@ -143,6 +149,8 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 
 **Entry points:** `GET /api/records/{record}/delivery` and `PUT /api/records/{record}/delivery`.
 
+**Code:** `Domain/Deliveries/Actions/PrepareDelivery`, with `DeliveryInputNormalizer`, `CashBreakdown`, and `DeliveryReturnPolicy`.
+
 **Preconditions:** The user is authenticated. Reads require `EDITOR` or `VIEWER`; mutations require `EDITOR`, CSRF where applicable, and a Record in `CONFIRMED`.
 
 **Workflow:**
@@ -178,6 +186,8 @@ SPEC 14 verification also covers save-time tolerance boundaries, allowed excess 
 **Purpose:** Generate the Word delivery receipt on demand from the persisted Delivery, its Record, the Record Image, and the cash denominations, without storing the file.
 
 **Entry point:** `POST /api/deliveries/{delivery}/document`.
+
+**Code:** `Domain/Documents/Actions/GenerateDeliveryDocument`, which runs `DeliveryDocumentEligibility` and `DeliveryDocumentBuilder` under the Record and Delivery locks.
 
 **Preconditions:** The user is authenticated as `EDITOR` with valid CSRF. The Delivery exists.
 
