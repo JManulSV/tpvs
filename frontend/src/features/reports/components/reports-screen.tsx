@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
+import { LoadError } from "@/components/load-error";
 import { Button } from "@/components/ui/button";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
 import { useDownloadReportExcel, useReport } from "../hooks/use-reports";
@@ -30,7 +31,7 @@ export function ReportsScreen() {
   const report = query.data?.data;
   const meta = query.data?.meta;
   const error = query.error instanceof ReportsApiError ? query.error : null;
-  // El primer mensaje de validación ya se muestra como error principal; no lo repetimos en la lista.
+  // The first validation message is already the main error; do not repeat it in the list.
   const fieldErrors = Object.values(error?.validationErrors ?? {}).flat().filter((message) => message !== error?.message);
 
   function navigate(nextFilters: ReportFilters, nextPage = 1) {
@@ -59,15 +60,15 @@ export function ReportsScreen() {
       {query.isPending && <p aria-live="polite" className="py-8 text-center text-sm text-muted-foreground">Cargando reporte…</p>}
 
       {query.isError && (
-        <div className="space-y-3 rounded-md border p-5 text-center" role="alert">
-          <p>{error?.message ?? "No se pudo cargar el reporte."}</p>
+        <LoadError message={error?.message ?? "No se pudo cargar el reporte."} onRetry={() => void query.refetch()}>
           {fieldErrors.length > 0 && (
             <ul className="text-sm text-muted-foreground">
-              {fieldErrors.map((message) => <li key={message}>{message}</li>)}
+              {fieldErrors.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
             </ul>
           )}
-          <Button onClick={() => void query.refetch()} type="button" variant="outline">Reintentar</Button>
-        </div>
+        </LoadError>
       )}
 
       {report && meta && !query.isError && (
