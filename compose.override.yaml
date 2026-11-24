@@ -2,6 +2,11 @@
 # Source code is bind-mounted from the host, and ports are published for local tools.
 
 services:
+  tpvs-migrate:
+    volumes:
+      - ./backend:/var/www/html
+      - tpvs-backend-vendor:/var/www/html/vendor
+
   tpvs-postgres:
     ports:
       - "127.0.0.1:5432:5432"
@@ -25,9 +30,6 @@ services:
       - ./backend:/var/www/html
       - tpvs-backend-vendor:/var/www/html/vendor
     command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--timeout=330"]
-    depends_on:
-      tpvs-backend:
-        condition: service_healthy
 
   tpvs-frontend:
     environment:

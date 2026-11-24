@@ -56,32 +56,42 @@ services:
       retries: 10
     networks: [data]
 
-  tpvs-backend:
+  # One-shot: applies migrations and exits. Backend and worker start only after it succeeds.
+  tpvs-migrate:
     build:
       context: ./backend
-    environment:
-      <<: *laravel-env
-      RUN_MIGRATIONS: "true"
+    environment: *laravel-env
     volumes:
       - tpvs-backend-storage:/var/www/html/storage
+    command: ["php", "artisan", "migrate", "--force"]
+    restart: "no"
     depends_on:
       tpvs-postgres:
         condition: service_healthy
+    networks: [data]
+
+  tpvs-backend:
+    build:
+      context: ./backend
+    environment: *laravel-env
+    volumes:
+      - tpvs-backend-storage:/var/www/html/storage
+    depends_on:
+      tpvs-migrate:
+        condition: service_completed_successfully
     networks: [edge, data]
 
   tpvs-queue-worker:
     build:
       context: ./backend
-    environment:
-      <<: *laravel-env
-      RUN_MIGRATIONS: "false"
+    environment: *laravel-env
     volumes:
       - tpvs-backend-storage:/var/www/html/storage
     # Lets an AI job in progress (--timeout=330) finish before Docker kills the worker.
     stop_grace_period: 340s
     depends_on:
-      tpvs-postgres:
-        condition: service_healthy
+      tpvs-migrate:
+        condition: service_completed_successfully
     networks: [data]
 
   tpvs-frontend:

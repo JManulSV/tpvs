@@ -16,8 +16,4 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
-if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
-    php artisan migrate --force
-fi
-
 exec "$@"
