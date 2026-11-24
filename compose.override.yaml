@@ -1,8 +1,19 @@
 # Development overrides. `docker compose` loads this file automatically on top of compose.yaml.
 # Source code is bind-mounted from the host, and ports are published for local tools.
 
+# Development image of the backend, built as the host user (UID/GID from the root .env).
+x-backend-dev-build: &backend-dev-build
+  context: ./backend
+  target: dev
+  args:
+    UID: ${UID:-1000}
+    GID: ${GID:-1000}
+
 services:
   tpvs-migrate:
+    build: *backend-dev-build
+    # Starts as root only to fix volume ownership; the entrypoint then drops to www-data.
+    user: root
     volumes:
       - ./backend:/var/www/html
       - tpvs-backend-vendor:/var/www/html/vendor
@@ -12,6 +23,9 @@ services:
       - "127.0.0.1:5432:5432"
 
   tpvs-backend:
+    build: *backend-dev-build
+    environment:
+      PHP_CLI_SERVER_WORKERS: 4
     volumes:
       - ./backend:/var/www/html
       - tpvs-backend-vendor:/var/www/html/vendor
@@ -26,6 +40,7 @@ services:
       start_period: 30s
 
   tpvs-queue-worker:
+    build: *backend-dev-build
     volumes:
       - ./backend:/var/www/html
       - tpvs-backend-vendor:/var/www/html/vendor
