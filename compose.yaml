@@ -1,0 +1,168 @@
+# Shared base for every environment.
+#   Development: `docker compose ...` also loads compose.override.yaml automatically.
+#   Production:  `docker compose -f compose.yaml -f compose.prod.yaml ...`
+# Configuration comes only from the root .env file.
+
+name: tpvs
+
+# Every variable Laravel reads at runtime. Defined once here and reused by the
+# backend and the queue worker, so backend/.env contributes nothing under Docker.
+x-laravel-env: &laravel-env
+  APP_NAME: ${APP_NAME:-TPVS}
+  APP_ENV: ${APP_ENV:-local}
+  APP_DEBUG: ${APP_DEBUG:-true}
+  APP_URL: ${APP_URL:-http://localhost:8000}
+  APP_KEY: ${APP_KEY:?APP_KEY is required}
+  LOG_CHANNEL: ${LOG_CHANNEL:-stack}
+  LOG_STACK: ${LOG_STACK:-single}
+  LOG_LEVEL: ${LOG_LEVEL:-debug}
+  SESSION_DRIVER: ${SESSION_DRIVER:-database}
+  SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+  SESSION_EXPIRE_ON_CLOSE: ${SESSION_EXPIRE_ON_CLOSE:-true}
+  SESSION_COOKIE: ${SESSION_COOKIE:-tpvs_session}
+  SESSION_HTTP_ONLY: ${SESSION_HTTP_ONLY:-true}
+  SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
+  SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,127.0.0.1:3000,::1:3000}
+  DB_CONNECTION: pgsql
+  DB_HOST: tpvs-postgres
+  DB_PORT: 5432
+  DB_DATABASE: ${DB_DATABASE:-tpvs}
+  DB_USERNAME: ${DB_USERNAME:-tpvs}
+  DB_PASSWORD: ${DB_PASSWORD:-tpvs}
+  QUEUE_CONNECTION: database
+  DB_QUEUE_RETRY_AFTER: ${DB_QUEUE_RETRY_AFTER:-360}
+  CACHE_STORE: ${CACHE_STORE:-file}
+  FILESYSTEM_DISK: ${FILESYSTEM_DISK:-local}
+  TPVS_BUSINESS_TIMEZONE: ${TPVS_BUSINESS_TIMEZONE:-America/Mexico_City}
+  AI_PROVIDER: ${AI_PROVIDER:-ollama}
+  AI_OLLAMA_URL: ${AI_OLLAMA_URL:-}
+  AI_OLLAMA_MODEL: ${AI_OLLAMA_MODEL:-qwen2.5vl:3b}
+  AI_OLLAMA_TIMEOUT: ${AI_OLLAMA_TIMEOUT:-300}
+
+services:
+  tpvs-postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-tpvs}
+      POSTGRES_USER: ${DB_USERNAME:-tpvs}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tpvs}
+    volumes:
+      - tpvs-postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-tpvs} -d ${DB_DATABASE:-tpvs}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [data]
+
+  # One-shot: applies migrations and exits. Backend and worker start only after it succeeds.
+  tpvs-migrate:
+    build:
+      context: ./backend
+    environment: *laravel-env
+    volumes:
+      - tpvs-backend-storage:/var/www/html/storage
+    command: ["php", "artisan", "migrate", "--force"]
+    restart: "no"
+    depends_on:
+      tpvs-postgres:
+        condition: service_healthy
+    networks: [data]
+
+  tpvs-backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment: *laravel-env
+    volumes:
+      - tpvs-backend-storage:/var/www/html/storage
+    depends_on:
+      tpvs-migrate:
+        condition: service_completed_successfully
+    networks: [edge, data, ai]
+
+  tpvs-queue-worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment: *laravel-env
+    volumes:
+      - tpvs-backend-storage:/var/www/html/storage
+    # Lets an AI job in progress (--timeout=330) finish before Docker kills the worker.
+    stop_grace_period: 340s
+    depends_on:
+      tpvs-migrate:
+        condition: service_completed_successfully
+      # Only with the ai profile: wait until the model is downloaded.
+      tpvs-ollama-pull:
+        condition: service_completed_successfully
+        required: false
+    networks: [data, ai]
+
+  tpvs-frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    environment:
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000,http://127.0.0.1:3000}
+      NEXT_ALLOWED_DEV_ORIGINS: ${NEXT_ALLOWED_DEV_ORIGINS:-}
+    depends_on:
+      - tpvs-backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks: [edge]
+
+  # Optional local AI provider: `docker compose --profile ai up -d` (or `make up-ai`).
+  tpvs-ollama:
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.40.17}
+    profiles: ["ai"]
+    restart: unless-stopped
+    environment:
+      OLLAMA_NUM_PARALLEL: 1
+      OLLAMA_MAX_LOADED_MODELS: 1
+      OLLAMA_KEEP_ALIVE: 30m
+    volumes:
+      - tpvs-ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks: [ai]
+
+  # One-shot: downloads AI_OLLAMA_MODEL once Ollama is healthy. Instant if it is already there.
+  tpvs-ollama-pull:
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.40.17}
+    profiles: ["ai"]
+    environment:
+      OLLAMA_HOST: tpvs-ollama:11434
+    command: ["pull", "${AI_OLLAMA_MODEL:-qwen2.5vl:3b}"]
+    restart: "no"
+    depends_on:
+      tpvs-ollama:
+        condition: service_healthy
+    networks: [ai]
+
+# edge: browser-facing traffic (frontend -> backend).
+# data: database traffic (backend and worker -> PostgreSQL).
+# ai:   AI traffic (backend and worker -> Ollama). The frontend is never on it.
+networks:
+  edge:
+  data:
+  ai:
+
+# Keys are unchanged so the real volume names (tpvs_<key>) and their data are reused.
+volumes:
+  tpvs-postgres-data:
+  tpvs-backend-vendor:
+  tpvs-backend-storage:
+  tpvs-frontend-node-modules:
+  tpvs-frontend-next:
+  tpvs-ollama-data:

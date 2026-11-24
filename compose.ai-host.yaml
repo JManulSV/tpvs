@@ -1,0 +1,44 @@
+# AI PC: runs only Ollama on CPU, reached by the application server over the LAN.
+# Standalone file, it does not use compose.yaml:
+#   docker compose -f compose.ai-host.yaml up -d
+# On the application server set AI_OLLAMA_URL=http://<this-pc-ip>:11434.
+#
+# Ollama has no authentication. Allow port 11434 only from the application
+# server's IP in this PC's firewall (see docs/backend/configuration-operations.md),
+# and set OLLAMA_BIND to the LAN interface IP to avoid publishing on every interface.
+
+# Own project name, so it never collides with the tpvs stack on the same machine.
+name: tpvs-ai
+
+services:
+  tpvs-ollama:
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.40.17}
+    restart: unless-stopped
+    environment:
+      OLLAMA_NUM_PARALLEL: 1
+      OLLAMA_MAX_LOADED_MODELS: 1
+      OLLAMA_KEEP_ALIVE: 30m
+    ports:
+      - "${OLLAMA_BIND:-0.0.0.0}:11434:11434"
+    volumes:
+      - tpvs-ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # One-shot: downloads AI_OLLAMA_MODEL once Ollama is healthy. Instant if it is already there.
+  tpvs-ollama-pull:
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.40.17}
+    environment:
+      OLLAMA_HOST: tpvs-ollama:11434
+    command: ["pull", "${AI_OLLAMA_MODEL:-qwen2.5vl:3b}"]
+    restart: "no"
+    depends_on:
+      tpvs-ollama:
+        condition: service_healthy
+
+volumes:
+  tpvs-ollama-data:

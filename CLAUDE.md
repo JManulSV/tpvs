@@ -4,9 +4,9 @@ Internal platform that turns supplier images into validated financial records, d
 
 ## Rules that must not be broken
 
-- **Backend tests run only against `tpvs_test`:**
+- **Backend tests run only against `tpvs_test`:** `make test`, or the explicit command
   `docker compose exec -T -e DB_DATABASE=tpvs_test tpvs-backend php artisan test`
-  Never run `php artisan test` (or `composer run test`) in the container without that `-e`. The container exports `DB_DATABASE=tpvs`, and `phpunit.xml`'s `force="true"` does not override it, so the suite rebuilds the schema of the development database. It happened on 2026-10-29 and 2026-11-09.
+  Never run `php artisan test` (or `composer run test`) in the container without that `-e`. The container exports `DB_DATABASE=tpvs`, and `phpunit.xml`'s `force="true"` does not override it, so the suite rebuilds the schema of the development database. It happened on 2026-10-29 and 2026-11-09. Since SPEC 26, `tests/TestCase.php` aborts such a run before touching the database, but keep using the explicit command.
 - AI never confirms a record. Only a human (`EDITOR`) confirms, and only `CONFIRMED` records enter reports.
 - Laravel is the authority for business rules, totals, states, and authorization. The frontend does not recalculate or decide.
 - Before changing Next.js code, read `frontend/AGENTS.md`.
@@ -32,5 +32,5 @@ When docs and code disagree, the code wins for implemented behavior.
 
 ## Checks
 
-- Backend: the test command above, plus `vendor/bin/pint` on changed files.
+- Backend: the test command above, plus `vendor/bin/pint` on changed files (`make pint ARGS="<files>"`).
 - Frontend (in `frontend/`): `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.

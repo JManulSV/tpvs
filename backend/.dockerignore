@@ -10,3 +10,9 @@ storage/framework/cache/data
 storage/framework/sessions
 storage/framework/views
 npm-debug.log*
+bootstrap/cache/*.php
+storage/app/private/*
+tests
+phpunit.xml
+.phpunit.cache
+.phpunit.result.cache
