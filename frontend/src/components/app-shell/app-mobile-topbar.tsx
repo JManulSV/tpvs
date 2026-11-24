@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import type { ReactNode } from "react"
-import { useState } from "react"
-import { Bell, Search } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
+import type { ReactNode } from "react";
+import { useState } from "react";
+import { Bell, Search } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet"
-import { getInitials, getRoleLabel } from "./user-display"
+} from "@/components/ui/sheet";
+import { getInitials, getRoleLabel } from "./user-display";
 
 type AppMobileTopbarProps = {
   user: {
@@ -23,11 +23,11 @@ type AppMobileTopbarProps = {
 }
 
 const topbarButtonClass =
-  "grid size-11 shrink-0 place-items-center rounded-full text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+  "grid size-11 shrink-0 place-items-center rounded-full text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent";
 
 export function AppMobileTopbar({ user, sheetLogout }: AppMobileTopbarProps) {
-  const [accountOpen, setAccountOpen] = useState(false)
-  const initials = getInitials(user.name)
+  const [accountOpen, setAccountOpen] = useState(false);
+  const initials = getInitials(user.name);
 
   return (
     <header className="sticky top-0 z-30 flex items-center gap-1 border-b border-sidebar-border bg-sidebar py-2 pl-5 pr-3 pt-[max(0.5rem,env(safe-area-inset-top))] text-sidebar-foreground md:hidden">
@@ -97,5 +97,5 @@ export function AppMobileTopbar({ user, sheetLogout }: AppMobileTopbarProps) {
         </SheetContent>
       </Sheet>
     </header>
-  )
+  );
 }

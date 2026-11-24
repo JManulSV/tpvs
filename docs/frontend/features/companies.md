@@ -23,8 +23,8 @@ Feature files (`frontend/src/features/companies/`):
 
 - `components/companies-screen.tsx`: state, role split, and container selection. Receives `role`, not `canCreate`.
 - `components/companies-header.tsx`, `companies-table.tsx`, `companies-card-list.tsx`, `company-created-notice.tsx`, `company-mark.tsx`, `companies-skeleton.tsx`, `companies-empty-state.tsx`, `companies-pagination.tsx`.
-- `components/create-company-form.tsx`: the form without its container. The `Dialog` or `Sheet` wraps it in `companies-screen.tsx`, depending on `useIsMobile()`.
-- `company-list-utils.ts`: pure text and link helpers, with tests in `frontend/tests/companies.test.ts`.
+- `components/create-company-form.tsx`: the form without its container. `components/create-company-container.tsx` wraps it in a `Dialog` or `Sheet`, depending on `useIsMobile()`, and blocks dismissal while the request is pending.
+- `utils.ts`: pure text and link helpers, with tests in `frontend/tests/companies.test.ts`.
 - `hooks/use-companies.ts`: `useCompanies` keeps the previous data while a new page or search loads (`keepPreviousData`).
 
 Removed: `components/create-company-dialog.tsx`, the hand-made modal with its own focus trap.

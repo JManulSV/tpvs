@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
-import { RecordDetailScreen } from "@/features/records/components/record-detail-screen";
+import { RecordDetailScreen } from "@/features/records/components/detail/record-detail-screen";
 
 export const instant = false;
 

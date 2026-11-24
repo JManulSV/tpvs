@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { getCompanyRecordsHref, getCompanyRowLabel } from "../company-list-utils";
+import { getCompanyRecordsHref, getCompanyRowLabel } from "../utils";
 import type { Company } from "../types";
 import { CompanyMark, NewCompanyBadge } from "./company-mark";
 

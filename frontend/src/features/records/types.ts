@@ -255,11 +255,11 @@ export function toRecordsApiError(error: unknown): RecordsApiError {
   }
 }
 
-// Estado de la carga de imagen (solo cliente).
+// Client-only state of an image upload.
 export type ImageCaptureState =
   | { kind: "empty" }
   | { kind: "selected"; file: File }
-  | { kind: "uploading"; file: File; progress: number | null } // 0-100; null hasta el primer evento
+  | { kind: "uploading"; file: File; progress: number | null } // 0-100; null until the first progress event
   | { kind: "error"; stage: "validation" | "upload"; message: string; file: File | null };
 
 export type FieldChip = "HIGH_CONFIDENCE" | "REVIEW" | "MISSING" | "INCONSISTENT";

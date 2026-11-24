@@ -1,6 +1,7 @@
 import { FileText } from "lucide-react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { aboveBottomNav } from "@/lib/styles";
 import { cn } from "@/lib/utils";
 import type { DeliveryReadiness } from "../utils";
 
@@ -27,7 +28,8 @@ export function DeliveryActionBar({
     <div
       aria-label="Acciones de la entrega"
       className={cn(
-        "fixed inset-x-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-40",
+        "fixed inset-x-4 z-40",
+        aboveBottomNav,
         "flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-lg border bg-card px-4 py-3 shadow-popover",
         "md:sticky md:inset-x-auto md:bottom-4 md:px-5 md:py-3.5",
       )}

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/features/auth/server/auth-session";
-import { NewRecordScreen } from "@/features/records/components/new-record-screen";
+import { NewRecordScreen } from "@/features/records/components/capture/new-record-screen";
 
 export const instant = false;
 

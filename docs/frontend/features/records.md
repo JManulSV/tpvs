@@ -29,7 +29,7 @@ The list supports case-insensitive substring search by company, affiliation, and
 - A year outside the last eight years is added to the year select so the value is visible.
 - Other parameters (`week`, `company_id`, `source`, `search`) are not read from the URL.
 - Changing filters on the screen afterwards does not update the URL. Navigating back or refreshing returns to the URL's filters.
-- Parsing lives in `frontend/src/features/records/record-filters.ts` and is covered by `frontend/tests/records.test.ts`.
+- Parsing lives in `frontend/src/features/records/utils/filters.ts` (select options in `utils/filter-options.ts`) and is covered by `frontend/tests/records.test.ts`.
 
 ## List layout (SPEC 19)
 
@@ -44,11 +44,11 @@ The list supports case-insensitive substring search by company, affiliation, and
 - **Role difference:** the `EDITOR` sees «Revisar» on `NEEDS_REVIEW` rows and «Ver error» on `ERROR` rows; the `VIEWER` sees only the chevron. «Nuevo registro» is the topbar button on desktop and the shell's floating button on mobile, for the `EDITOR` only. The UI is a convenience; the backend still enforces permissions.
 - **States:** loading shows five skeleton rows or cards and an `sr-only` «Cargando registros…», never «0 registros». An error shows a `role="alert"` card with «Reintentar». With no records and no filters it shows «Todavía no hay registros.»; with filters and no results it shows «No hay registros con estos filtros» and a «Limpiar filtros» button.
 - **Footer:** the table card ends with a footer showing the total (`meta.total`) and «Página X de Y» with «Anterior»/«Siguiente»; on mobile the same pagination sits under the cards without repeating the count. No return total is shown, since the list is paginated and official totals are not computed in the browser.
-- **Code:** presentation lives in `frontend/src/features/records/components/` (`records-screen`, `records-filter-bar`, `records-table`, `records-card-list`, `records-skeleton`, `records-pagination`). Pure helpers are in `frontend/src/features/records/record-list-utils.ts`, covered by `frontend/tests/record-list-utils.test.ts`.
+- **Code:** presentation lives in `frontend/src/features/records/components/list/` (`records-screen`, `records-filter-bar`, `records-table`, `records-card-list`, `records-skeleton`, `records-pagination`). Pure helpers are in `frontend/src/features/records/utils/list.ts`, covered by `frontend/tests/record-list-utils.test.ts`.
 
 ## Detail layout (SPEC 20)
 
-`/records/{id}` renders inside the shared app shell with the content of `RecordDetailEditor{,Mobile}.dc.html`. Its components live in `frontend/src/features/records/components/` (`record-detail-screen`, `record-detail-header`, `record-detail-banner`, `record-detail-hero`, `record-period-card`, `record-movements-card`, `record-image-card`, `record-delivery-card`, `record-history-panel`, `record-detail-skeleton`). Pure helpers are in `frontend/src/features/records/record-detail-utils.ts`, covered by `frontend/tests/record-detail-utils.test.ts`.
+`/records/{id}` renders inside the shared app shell with the content of `RecordDetailEditor{,Mobile}.dc.html`. Its components live in `frontend/src/features/records/components/detail/` (`record-detail-screen`, `record-detail-header`, `record-detail-banner`, `record-detail-hero`, `record-period-card`, `record-movements-card`, `record-image-card`, `record-delivery-card`, `record-history-panel`, `record-cancel-panel`, `record-detail-skeleton`). Pure helpers are in `frontend/src/features/records/utils/detail.ts` (history labels in `utils/history.ts`), covered by `frontend/tests/record-detail-utils.test.ts`.
 
 - **Header:** a «Registros» link, the only `<h1>` (the company name or «Registro sin empresa»), the status badge, the source badge, and the period line. Actions depend on the role and the status: «Reintentar procesamiento», «Cancelar registro», «Confirmar registro», and «Editar registro» or «Reabrir para corregir». «Cancelar registro» opens an inline panel with a required reason (SPEC 21); «Confirmar registro» uses `RecordActionDialog`. The `VIEWER` sees no action.
 - **Banner and hero:** the banner follows `getRecordBanner`, and a `CONFIRMED` record shows none. The hero shows «Retorno oficial», Ingreso, and Comisión from the backend totals. The client never adds amounts.

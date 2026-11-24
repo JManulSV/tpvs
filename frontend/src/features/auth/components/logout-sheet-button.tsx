@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { LogOut } from "lucide-react"
-import { useLogout } from "../hooks/use-logout"
+import { LogOut } from "lucide-react";
+import { useLogout } from "../hooks/use-logout";
 
 export function LogoutSheetButton() {
-  const { logout, isLoggingOut, errorMessage } = useLogout()
+  const { logout, isLoggingOut, errorMessage } = useLogout();
 
   return (
     <>
@@ -23,5 +23,5 @@ export function LogoutSheetButton() {
         </p>
       )}
     </>
-  )
+  );
 }

@@ -1,10 +1,10 @@
 import type { RecordListItem } from "@/features/records/types";
 import { formatDate, formatMoney } from "@/lib/format";
+import { cardSurface } from "@/lib/styles";
 import type { Delivery } from "../types";
 import { centsToAmount, denominationsTotalCents, toCents } from "../utils";
 import { DeliveryImageCard } from "./delivery-image-card";
-
-const cardClass = "rounded-lg border bg-card shadow-card";
+import { DeliverySectionHeader } from "./delivery-section-header";
 
 export function DeliveryReadOnly({
   record,
@@ -41,8 +41,8 @@ export function DeliveryReadOnly({
             </dl>
           </section>
 
-          <section aria-labelledby="delivery-data-heading" className={cardClass}>
-            <CardHeader id="delivery-data-heading" subtitle="Quién entrega el efectivo y quién lo recibe." title="Datos de la entrega" />
+          <section aria-labelledby="delivery-data-heading" className={cardSurface}>
+            <DeliverySectionHeader id="delivery-data-heading" subtitle="Quién entrega el efectivo y quién lo recibe." title="Datos de la entrega" />
             <dl className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-x-5 gap-y-4 p-4 md:px-6 md:pb-6">
               <DataItem label="Fecha de entrega" value={formatDate(delivery.delivery_date)} />
               <DataItem label="Entrega" value={delivery.delivered_by_name} />
@@ -50,8 +50,8 @@ export function DeliveryReadOnly({
             </dl>
           </section>
 
-          <section aria-labelledby="delivery-cash-heading" className={cardClass}>
-            <CardHeader
+          <section aria-labelledby="delivery-cash-heading" className={cardSurface}>
+            <DeliverySectionHeader
               id="delivery-cash-heading"
               subtitle="Efectivo bruto. Solo se guardan las denominaciones con cantidad mayor a cero."
               title="Desglose de efectivo"
@@ -103,15 +103,6 @@ export function DeliveryReadOnly({
         </div>
       </div>
     </div>
-  );
-}
-
-function CardHeader({ id, title, subtitle }: { id: string; title: string; subtitle: string }) {
-  return (
-    <header className="px-4 pt-4 md:px-6 md:pt-[18px]">
-      <h2 className="text-base/6 font-semibold" id={id}>{title}</h2>
-      <p className="mt-0.5 text-xs/4 font-medium text-muted-foreground">{subtitle}</p>
-    </header>
   );
 }
 

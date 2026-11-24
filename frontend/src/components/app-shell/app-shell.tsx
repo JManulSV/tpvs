@@ -1,9 +1,9 @@
-import type { ReactNode } from "react"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { AppBottomNav } from "./app-bottom-nav"
-import { AppMobileTopbar } from "./app-mobile-topbar"
-import { AppSidebar } from "./app-sidebar"
-import { AppTopbar } from "./app-topbar"
+import type { ReactNode } from "react";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AppBottomNav } from "./app-bottom-nav";
+import { AppMobileTopbar } from "./app-mobile-topbar";
+import { AppSidebar } from "./app-sidebar";
+import { AppTopbar } from "./app-topbar";
 
 type AppShellUser = {
   name: string
@@ -58,5 +58,5 @@ export function AppShell({
         </SidebarInset>
       </SidebarProvider>
     </div>
-  )
+  );
 }

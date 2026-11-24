@@ -9,7 +9,7 @@ import {
   getSaveBarState,
   getUploadProgressLabel,
   validateImageFile,
-} from "@/features/records/record-capture-utils";
+} from "@/features/records/utils/capture";
 
 const MiB = 1024 * 1024;
 

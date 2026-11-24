@@ -29,6 +29,8 @@ Screen designs and flows are in [`../ui-ux.md`](../ui-ux.md); templates are mapp
 
 - Treat [`../ui-ux.md`](../ui-ux.md) as the source for MVP navigation, screen content, and role-specific experience.
 - Use existing primitives in `src/components/ui/` and add shadcn components only when a feature needs them.
+- Shared class strings live in `src/lib/styles.ts` (`focusRing`, `cardSurface`, `fieldControl`, `textareaControl`, `aboveBottomNav`, `floatingActionButton`). Use them instead of repeating the literal classes.
+- Form fields use `FormField` and `fieldErrorProps` (`src/components/form-field.tsx`) so the label, `aria-invalid` and `aria-describedby` stay consistent. Recoverable load failures use `LoadError` (`src/components/load-error.tsx`).
 - Keep domain-specific compositions inside their feature; promote a component to shared UI only after more than one feature needs a consistent primitive.
 - Prefer semantic HTML and native controls where suitable.
 - Choose between a table and a card list with a container query (`@container` and `@[60rem]:`), not the window width, so the result is correct whether the sidebar is expanded, collapsed, or a drawer. Render both and hide one with `display: none` so it leaves the accessibility tree and the Tab order.
@@ -106,7 +108,6 @@ Use the authenticated user's role to improve the experience by showing relevant 
 
 ## Related Documents
 
-- `conventions.md`
 - `conventions.md`
 - `testing.md`
 - [`../ui-ux.md`](../ui-ux.md)

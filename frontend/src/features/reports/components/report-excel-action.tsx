@@ -19,7 +19,7 @@ export function ReportExcelAction({
 }) {
   const blockedReason = excelBlockedReason({ isSuccess, recordsCount });
   const error = mutation.error instanceof ReportsApiError ? mutation.error : null;
-  // El nombre lo define el servidor (SPEC 13); la pantalla solo lo muestra.
+  // The server names the file; the screen only shows it.
   const downloadedFileName = mutation.data?.fileName;
 
   function handleGenerate() {

@@ -10,7 +10,7 @@ vi.mock("@/lib/api-client", () => ({
 }));
 
 import { apiClient } from "@/lib/api-client";
-import { fieldLabel } from "@/features/records/components/record-history-panel";
+import { historyFieldLabel } from "@/features/records/utils/history";
 import { deliveriesService } from "@/features/deliveries/services/deliveries.service";
 import { documentBlockedMessages } from "@/features/deliveries/types";
 import {
@@ -161,11 +161,11 @@ describe("denominationBreakdownKey", () => {
 
 describe("history labels", () => {
   it("labels the document generation event", () => {
-    expect(fieldLabel("document_generated")).toBe("Documento Word generado");
+    expect(historyFieldLabel("document_generated")).toBe("Documento Word generado");
   });
 
   it("keeps labelling delivery fields and denominations", () => {
-    expect(fieldLabel("delivered_by_name")).toBe("Entrega realizada por");
-    expect(fieldLabel("denominations[1000.00]")).toContain("Denominación");
+    expect(historyFieldLabel("delivered_by_name")).toBe("Entrega realizada por");
+    expect(historyFieldLabel("denominations[1000.00]")).toContain("Denominación");
   });
 });

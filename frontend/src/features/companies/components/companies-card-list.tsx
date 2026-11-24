@@ -4,7 +4,7 @@ import {
   getCompanyMetaLine,
   getCompanyRecordsHref,
   getCompanyRowLabel,
-} from "../company-list-utils";
+} from "../utils";
 import type { Company } from "../types";
 import { CompanyMark, NewCompanyBadge } from "./company-mark";
 

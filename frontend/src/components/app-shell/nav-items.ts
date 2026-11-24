@@ -4,7 +4,7 @@ import {
   FileText,
   LayoutDashboard,
   type LucideIcon,
-} from "lucide-react"
+} from "lucide-react";
 
 export type AppNavItem = {
   id: "dashboard" | "records" | "companies" | "reports"
@@ -38,10 +38,10 @@ export const appNavItems: readonly AppNavItem[] = [
     href: "/reports",
     icon: ChartColumn,
   },
-]
+];
 
 export function isNavItemActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`)
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /** The mobile "Nuevo registro" FAB is shown to editors on the Dashboard and the records list only. */
@@ -49,5 +49,5 @@ export function shouldShowNewRecordFab(
   pathname: string,
   role: "EDITOR" | "VIEWER",
 ): boolean {
-  return role === "EDITOR" && (pathname === "/dashboard" || pathname === "/records")
+  return role === "EDITOR" && (pathname === "/dashboard" || pathname === "/records");
 }

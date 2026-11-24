@@ -26,18 +26,21 @@ frontend/src/
 │   ├── layout.tsx
 │   └── globals.css
 ├── features/<feature>/         # auth, dashboard, companies, records, deliveries, reports
-│   ├── components/  hooks/  services/  schemas/
-│   ├── *-utils.ts              # Pure helpers, unit-tested in frontend/tests/
+│   ├── components/             # Grouped in subfolders when large (records: list/, detail/, capture/)
+│   ├── hooks/  services/  schemas/
+│   ├── utils.ts | utils/       # Pure helpers, unit-tested in frontend/tests/ (a folder once there are several)
 │   └── types.ts
-├── components/                 # Only genuinely shared UI: app-shell/, providers/, ui/ (shadcn)
+├── components/                 # Only genuinely shared UI: app-shell/, providers/, ui/ (shadcn), form-field, load-error
 ├── hooks/                      # Shared hooks (e.g. use-reset-on-hide)
-└── lib/                        # api-client, formatting, status, server/ (server-only helpers)
+└── lib/                        # api-client, formatting, status, styles, file-download, server/ (server-only helpers)
 ```
 
 - `app/` holds routes, layouts, and page composition — no business workflows.
 - Feature code stays in its feature. Promote to `components/` or `lib/` only when several features share it; shared code never imports feature code.
 - Dependency direction: route → feature screen → feature hook → feature service → shared API client → BFF.
 - Use domain names (`RecordReviewForm`, `useRecords`, `recordsService`). Model the data the UI needs; do not mirror Laravel models mechanically.
+- Keep components small: one exported component per file, pure logic (payload mapping, message building, option lists) in `utils`, and split a file once it mixes several sections or passes roughly 250 lines.
+- Comments are written in English and explain *why*, not what the code already says. Do not reference SPEC numbers in code; the SPEC history lives in `specs/`.
 - Secrets and backend configuration never go in `NEXT_PUBLIC_*` variables or client bundles.
 
 ## 3. Routing and Rendering

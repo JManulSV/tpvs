@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { useLogout } from "../hooks/use-logout"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useLogout } from "../hooks/use-logout";
 
 export function LogoutMenuItem() {
-  const { logout, isLoggingOut, errorMessage } = useLogout()
+  const { logout, isLoggingOut, errorMessage } = useLogout();
 
   return (
     <>
@@ -13,8 +13,8 @@ export function LogoutMenuItem() {
         disabled={isLoggingOut}
         onClick={(event) => {
           // Keep the menu open on failure so its alert remains visible.
-          event.preventDefault()
-          void logout()
+          event.preventDefault();
+          void logout();
         }}
         variant="destructive"
       >
@@ -26,5 +26,5 @@ export function LogoutMenuItem() {
         </p>
       )}
     </>
-  )
+  );
 }

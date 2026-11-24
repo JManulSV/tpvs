@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { getCompanyNameErrorMessage } from "../company-list-utils";
+import { getCompanyNameErrorMessage } from "../utils";
 import { useCreateCompany } from "../hooks/use-companies";
 import { companyFormSchema, type CompanyFormValues } from "../schemas/company.schema";
 import { CompaniesApiError, type CompanyDetail } from "../types";

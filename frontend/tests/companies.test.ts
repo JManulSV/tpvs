@@ -17,7 +17,7 @@ import {
   getCompanyRecordsHref,
   getCompanyRowLabel,
   getConfirmedCountLabel,
-} from "@/features/companies/company-list-utils";
+} from "@/features/companies/utils";
 import { companyFormSchema } from "@/features/companies/schemas/company.schema";
 import { companiesService } from "@/features/companies/services/companies.service";
 

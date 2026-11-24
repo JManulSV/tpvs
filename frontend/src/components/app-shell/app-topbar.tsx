@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import type { ReactNode } from "react"
-import Link from "next/link"
-import { Bell, Plus, Search } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { Bell, Plus, Search } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +11,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
-import { getInitials, getRoleLabel } from "./user-display"
+} from "@/components/ui/dropdown-menu";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { getInitials, getRoleLabel } from "./user-display";
 
 type AppTopbarProps = {
   user: {
@@ -25,7 +25,7 @@ type AppTopbarProps = {
 }
 
 export function AppTopbar({ user, userMenuLogout }: AppTopbarProps) {
-  const { isMobile, open } = useSidebar()
+  const { isMobile, open } = useSidebar();
 
   return (
     <header className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 shadow-card sm:px-4">
@@ -106,5 +106,5 @@ export function AppTopbar({ user, userMenuLogout }: AppTopbarProps) {
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }

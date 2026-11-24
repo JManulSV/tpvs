@@ -1,15 +1,16 @@
-"use client"
+"use client";
 
-import type { ReactNode } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Plus } from "lucide-react"
-import { cn } from "@/lib/utils"
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Plus } from "lucide-react";
+import { floatingActionButton } from "@/lib/styles";
+import { cn } from "@/lib/utils";
 import {
   appNavItems,
   isNavItemActive,
   shouldShowNewRecordFab,
-} from "./nav-items"
+} from "./nav-items";
 
 type AppBottomNavProps = {
   role: "EDITOR" | "VIEWER"
@@ -17,14 +18,14 @@ type AppBottomNavProps = {
 }
 
 export function AppBottomNav({ role, recordsBadge }: AppBottomNavProps) {
-  const pathname = usePathname()
-  const showNewRecord = shouldShowNewRecordFab(pathname, role)
+  const pathname = usePathname();
+  const showNewRecord = shouldShowNewRecordFab(pathname, role);
 
   return (
     <>
       {showNewRecord && (
         <Link
-          className="fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-30 inline-flex h-12 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-popover transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:hidden"
+          className={floatingActionButton}
           href="/records/new"
         >
           <Plus aria-hidden="true" className="size-5" />
@@ -37,8 +38,8 @@ export function AppBottomNav({ role, recordsBadge }: AppBottomNavProps) {
         className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 gap-1 border-t border-border bg-card p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden"
       >
         {appNavItems.map((item) => {
-          const isActive = isNavItemActive(pathname, item.href)
-          const Icon = item.icon
+          const isActive = isNavItemActive(pathname, item.href);
+          const Icon = item.icon;
 
           return (
             <Link
@@ -61,9 +62,9 @@ export function AppBottomNav({ role, recordsBadge }: AppBottomNavProps) {
               {item.label}
               {item.id === "records" ? recordsBadge : null}
             </Link>
-          )
+          );
         })}
       </nav>
     </>
-  )
+  );
 }
