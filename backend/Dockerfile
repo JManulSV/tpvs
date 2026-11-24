@@ -36,6 +36,7 @@ RUN apt-get update \
     && groupmod --non-unique --gid "${GID}" www-data \
     && usermod --non-unique --uid "${UID}" --gid "${GID}" www-data \
     && mkdir -p /var/www/html/vendor /var/www/html/storage \
+    && chown www-data:www-data /var/www \
     && chown -R www-data:www-data /var/www/html
 
 ENV COMPOSER_HOME=/tmp/composer
@@ -43,6 +44,10 @@ ENV COMPOSER_HOME=/tmp/composer
 COPY docker/entrypoint-dev.sh /usr/local/bin/tpvs-entrypoint
 
 USER www-data
+
+# php:8.3-fpm sets STOPSIGNAL SIGQUIT for php-fpm. artisan serve and the queue
+# worker shut down gracefully on SIGTERM, so dev restores the usual signal.
+STOPSIGNAL SIGTERM
 
 ENTRYPOINT ["tpvs-entrypoint"]
 

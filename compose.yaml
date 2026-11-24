@@ -42,6 +42,7 @@ x-laravel-env: &laravel-env
 services:
   tpvs-postgres:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_DATABASE:-tpvs}
       POSTGRES_USER: ${DB_USERNAME:-tpvs}
@@ -73,6 +74,7 @@ services:
   tpvs-backend:
     build:
       context: ./backend
+    restart: unless-stopped
     environment: *laravel-env
     volumes:
       - tpvs-backend-storage:/var/www/html/storage
@@ -84,6 +86,7 @@ services:
   tpvs-queue-worker:
     build:
       context: ./backend
+    restart: unless-stopped
     environment: *laravel-env
     volumes:
       - tpvs-backend-storage:/var/www/html/storage
@@ -97,6 +100,7 @@ services:
   tpvs-frontend:
     build:
       context: ./frontend
+    restart: unless-stopped
     environment:
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000,http://127.0.0.1:3000}
       NEXT_ALLOWED_DEV_ORIGINS: ${NEXT_ALLOWED_DEV_ORIGINS:-}

@@ -76,6 +76,7 @@ compose.ai-host.yaml                 # PC de IA, independiente (-f compose.ai-ho
 Makefile
 backend/Dockerfile                   # targets: base, dev, prod, web
 backend/docker/entrypoint-dev.sh     # reemplaza a docker-entrypoint.sh
+backend/docker/queue-listen.sh       # envoltorio de queue:listen con parada ordenada (desarrollo)
 backend/docker/entrypoint-prod.sh
 backend/docker/php/uploads.ini       # existe, sin cambios
 backend/docker/php/opcache-prod.ini
@@ -238,6 +239,7 @@ Cada paso es **un commit** en la rama `spec-26-docker-environment`. Al cerrar ca
 - **Sí:** php-fpm más nginx en producción. **No:** FrankenPHP u Octane, por ser más nuevos y por el riesgo de fugas de estado. **No:** `artisan serve` en producción.
 - **Sí:** `tpvs-web` (nginx) como única entrada en producción, con :80 hacia Next.js y :8080 interno hacia php-fpm. Así HTTPS solo tocará nginx cuando llegue.
 - **Sí:** `queue:listen` en desarrollo y `queue:work` en producción. **No:** `queue:work` con reinicio manual en desarrollo.
+- **Sí:** en desarrollo `queue:listen` corre dentro de `backend/docker/queue-listen.sh`. Laravel no instala manejadores de señales en `queue:listen` ni en su hijo `queue:work --once`, así que sin el envoltorio `docker compose stop` esperaba siempre los 340 s. El envoltorio congela el listener y espera al job en curso. El target `dev` fija `STOPSIGNAL SIGTERM`, porque `php:8.3-fpm` trae `SIGQUIT`. Lo decidió el usuario durante el paso 8.
 - **No:** healthcheck para el worker, porque no hay una señal fiable. Lo cubre `restart: unless-stopped`.
 - **Sí:** 8000 y 5432 solo en `127.0.0.1` en desarrollo. **No:** dejarlos sin publicar, porque se siguen usando curl y clientes de base de datos desde el host.
 - **Sí:** el `.env` raíz como única fuente bajo Docker. `backend/.env.example` queda solo para correr Laravel fuera de Docker. **No:** borrar el `backend/.env` del usuario. Solo se avisa.

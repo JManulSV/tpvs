@@ -44,7 +44,9 @@ services:
     volumes:
       - ./backend:/var/www/html
       - tpvs-backend-vendor:/var/www/html/vendor
-    command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--timeout=330"]
+    # queue:listen boots a fresh PHP process per job, so code changes apply to the next job.
+    # The wrapper adds graceful SIGTERM handling (see backend/docker/queue-listen.sh).
+    command: ["sh", "docker/queue-listen.sh", "database", "--sleep=3", "--timeout=330"]
 
   tpvs-frontend:
     build:
