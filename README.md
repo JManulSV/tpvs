@@ -23,7 +23,13 @@ The database is the source of truth. AI proposes data, the backend validates it,
 ├── backend/       Laravel API and database migrations
 ├── frontend/      Next.js application
 ├── docs/          Product, business, architecture, AI, UX, and roadmap documentation
-└── docker-compose.yml
+├── docker/        PostgreSQL init script (creates tpvs_test)
+├── specs/         SPECs that define each module
+├── compose.yaml            Shared Docker Compose base
+├── compose.override.yaml   Development (loaded automatically)
+├── compose.prod.yaml       Application server
+├── compose.ai-host.yaml    AI PC (Ollama only)
+└── Makefile                Shortcuts: make help
 ```
 
 ## Current Status
@@ -45,7 +51,7 @@ TPVS uses a modular monolith for the MVP:
 | File storage | Private local filesystem | Original supplier images and application-managed files |
 | AI host | Ollama with a vision model | Local image interpretation over the office LAN |
 
-The current `docker-compose.yml` starts the frontend, backend, PostgreSQL, and the database queue worker used by the asynchronous AI pipeline. Ollama is not included in the normal Compose stack; Laravel and its worker connect to the separately configured AI host.
+Docker Compose starts the frontend, backend, PostgreSQL, a one-shot migration service, and the database queue worker used by the asynchronous AI pipeline. Ollama runs only with the optional `ai` profile in development; in production it runs on the AI PC (`compose.ai-host.yaml`). Files, networks, and production use are described in [`docs/backend/configuration-operations.md`](docs/backend/configuration-operations.md#docker-setup-spec-26).
 
 ## Prerequisites
 
@@ -53,8 +59,9 @@ The current `docker-compose.yml` starts the frontend, backend, PostgreSQL, and t
 
 For the current containerized setup, install:
 
-- Docker Engine or Docker Desktop with Compose support.
+- Docker Engine or Docker Desktop with Compose 2.24.4 or newer.
 - Git.
+- `make` (optional; every target is a plain `docker compose` command, shown with `make -n <target>`).
 
 ### Local Development Setup
 
@@ -82,20 +89,14 @@ From the repository root:
 
 ```bash
 cp .env.example .env
-docker compose up --build
+sed -i "s|^APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|" .env   # unique key
+make up              # or: docker compose up -d --build
+make up-ai           # optional: also start Ollama and download the model
 ```
 
-Docker Compose starts PostgreSQL, Laravel, a Laravel database-queue worker, and Next.js. Laravel waits for PostgreSQL, creates its runtime storage directories, and runs migrations automatically before serving requests. PostgreSQL data is kept in the `tpvs-postgres-data` volume across container recreation and `docker compose down`.
+The root `.env` is the only configuration source under Docker; `APP_KEY` is required. Set `UID`/`GID` to your host user (`id -u`, `id -g`) so files written by the containers belong to you. `tpvs-migrate` applies migrations, then Laravel and the worker start. Dependencies are reinstalled automatically when `composer.lock` or `package-lock.json` changes. PostgreSQL data is kept in the `tpvs-postgres-data` volume across container recreation and `make down`; `docker compose down --volumes` deletes it.
 
-For the local environment, `.env` can override `APP_ENV`, `APP_DEBUG`, `APP_URL`, `APP_KEY`, and the database name/user/password. The committed `.env.example` key and credentials are only for local development; use unique secrets before any deployment. To generate a different local Laravel key, run `docker compose exec tpvs-backend php artisan key:generate` after startup.
-
-To remove containers while retaining PostgreSQL data:
-
-```bash
-docker compose down
-```
-
-To also delete the persisted database, explicitly remove the Compose volumes with `docker compose down --volumes`.
+PostgreSQL (`5432`) and Laravel (`8000`) listen on `127.0.0.1` only; Next.js (`3000`) is reachable from the LAN. `make help` lists every shortcut.
 
 Open the frontend at:
 
@@ -111,17 +112,12 @@ http://localhost:8000/api/health
 
 Laravel's framework health check is available at `http://localhost:8000/up`; the frontend-to-backend BFF health check is `http://localhost:3000/api/health`.
 
-The Compose services are named:
-
-- `tpvs-frontend`
-- `tpvs-backend`
-- `tpvs-queue-worker`
-- `tpvs-postgres`
+The Compose services are named `tpvs-frontend`, `tpvs-backend`, `tpvs-queue-worker`, `tpvs-postgres`, and the one-shot `tpvs-migrate`; with the `ai` profile, also `tpvs-ollama` and `tpvs-ollama-pull`. Containers appear as `tpvs-tpvs-<service>-1`.
 
 Stop the services with:
 
 ```bash
-docker compose down
+make down
 ```
 
 ## Backend Local Setup
@@ -158,7 +154,7 @@ Copy `backend/.env.example` to `backend/.env` and review the values before start
 
 For host-based development, `DB_HOST` should point to the PostgreSQL host, commonly `127.0.0.1` or `localhost`.
 
-For Docker-based development, the database hostname inside the backend container must be the Compose service name:
+Under Docker, Compose sets every Laravel variable from the root `.env`, so `backend/.env` is not used. Inside the containers the database hostname is the Compose service name:
 
 ```dotenv
 DB_HOST=tpvs-postgres
@@ -168,7 +164,7 @@ DB_USERNAME=tpvs
 DB_PASSWORD=tpvs
 ```
 
-For host-based development, use `DB_HOST=127.0.0.1` or `DB_HOST=localhost`; Compose exposes PostgreSQL on port `5432`.
+For host-based development, use `DB_HOST=127.0.0.1` or `DB_HOST=localhost`; Compose exposes PostgreSQL on `127.0.0.1:5432`.
 
 The repository's `backend/.env.example` uses the Compose hostname `tpvs-postgres`. For host-based development, replace it with `127.0.0.1` or `localhost` as appropriate.
 
@@ -223,14 +219,7 @@ npm run start
 
 For VS Code Remote SSH diagnostics, install frontend packages on the server from `frontend/` with `npm ci`; Docker's `node_modules` volume is separate from the host filesystem.
 
-The frontend Docker image currently runs the Next.js development server and exposes port `3000`.
-Docker Compose mounts `frontend/` into the container for hot reload and stores `node_modules` and `.next` in separate named volumes so the source mount does not hide installed dependencies or Next.js cache. After changing `package.json` or `package-lock.json`, refresh dependencies with:
-
-```bash
-docker compose exec tpvs-frontend npm ci
-```
-
-If the frontend container was already running before these mounts were added, recreate it once with `docker compose up --build --force-recreate tpvs-frontend`.
+In development the frontend container runs the Next.js development server on port `3000`. Docker Compose mounts `frontend/` into the container for hot reload and stores `node_modules` and `.next` in separate named volumes. The entrypoint runs `npm ci` automatically when `package-lock.json` changes; restart the service with `docker compose restart tpvs-frontend`. The production image (`prod` target) runs the `standalone` output with `node server.js`.
 
 ## Health Check and Verification
 
@@ -249,9 +238,11 @@ Expected response:
 }
 ```
 
-Backend tests must run against the `tpvs_test` database. **Always pass the variable explicitly**: the container exports `DB_DATABASE=tpvs`, `phpunit.xml` does not override it, and the suite rebuilds the schema, so an unscoped run wipes the development database:
+Backend tests must run against the `tpvs_test` database. Use `make test`, which creates `tpvs_test` if missing and always passes the variable. Without `make`, **pass it explicitly**: the container exports `DB_DATABASE=tpvs` and the suite rebuilds the schema. `tests/TestCase.php` aborts any run whose database is not `tpvs_test`, before anything is touched.
 
 ```bash
+make test
+# equivalent:
 docker compose exec -T -e DB_DATABASE=tpvs_test tpvs-backend php artisan test
 ```
 

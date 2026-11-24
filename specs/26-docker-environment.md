@@ -1,6 +1,6 @@
 # SPEC 26 — Entorno Docker profesional e integración de Ollama
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 06, SPEC 08
 > **Date:** 2026-11-24
 > **Objective:** Reorganizar los archivos Docker en una base compartida con overrides de desarrollo y producción, endurecer la seguridad del entorno local y conectar Ollama a Laravel mediante un perfil opcional.
@@ -200,32 +200,32 @@ Cada paso es **un commit** en la rama `spec-26-docker-environment`. Al cerrar ca
 
 ## Acceptance criteria
 
-- [ ] `docker compose exec -T tpvs-backend php -m` lista `pcntl`, `intl` y `bcmath`.
-- [ ] `docker compose exec -T tpvs-backend php artisan test` (sin `-e`) termina con error antes de migrar, y la base `tpvs` conserva sus filas.
-- [ ] `make test` pasa, y el número de tests es igual al de la línea base más la prueba de la guardia, si se agrega una.
-- [ ] Con un volumen de PostgreSQL nuevo, `tpvs_test` existe después del primer arranque.
-- [ ] `docker-compose.yml` y `backend/docker-entrypoint.sh` no existen.
-- [ ] `docker compose config` sin `.env` falla con el mensaje `APP_KEY is required`.
-- [ ] `grep -n "192.168" compose*.yaml` no devuelve resultados.
-- [ ] `ss -ltn` en el host muestra 5432 y 8000 solo en `127.0.0.1`, y 3000 en `0.0.0.0`.
-- [ ] `docker compose ps` muestra los contenedores como `tpvs-tpvs-*`, y los volúmenes `tpvs_tpvs-postgres-data` y `tpvs_tpvs-ollama-data` existentes se reutilizan sin pérdida de datos.
-- [ ] `docker compose exec tpvs-backend id -u` y `docker compose exec tpvs-frontend id -u` devuelven el `UID` del `.env`, no `0`.
-- [ ] Los archivos nuevos de `backend/storage/logs` en el host pertenecen al usuario del host.
-- [ ] Al cambiar `composer.lock` o `package-lock.json` y reiniciar el servicio, las dependencias se reinstalan sin `--build`.
-- [ ] Un cambio en `backend/app` se aplica en el siguiente job del worker sin reiniciarlo.
-- [ ] `docker compose stop tpvs-queue-worker` con un job de IA en curso espera a que termine, hasta 340 s.
-- [ ] `docker compose up -d` sin perfil arranca todo sin `tpvs-ollama`.
-- [ ] `docker compose --profile ai up -d` deja `tpvs-ollama` `healthy`, y `tpvs-ollama-pull` termina con código 0 y el modelo listado.
-- [ ] Con el perfil `ai`, una imagen subida desde la UI produce un registro en `NEEDS_REVIEW`.
-- [ ] `tpvs-frontend` no puede resolver `tpvs-ollama` ni `tpvs-postgres`.
-- [ ] La imagen de `tpvs-ollama` usa un tag fijo, no `latest`.
-- [ ] `docker compose -f compose.yaml -f compose.prod.yaml config` no tiene bind mounts y solo publica el puerto 80.
-- [ ] El stack de producción arranca en local, `http://localhost/` muestra el login y `/up` responde 200 a través de `tpvs-web:8080` desde la red interna.
-- [ ] `docker compose -f compose.ai-host.yaml up -d` arranca Ollama y `/api/tags` responde desde otra máquina de la LAN.
-- [ ] Las comprobaciones del frontend pasan: `npm test`, `npm run lint`, `npx tsc --noEmit` y `npm run build`.
-- [ ] `vendor/bin/pint --test` no reporta cambios en `tests/TestCase.php`.
-- [ ] `docs/backend/configuration-operations.md` ya no menciona `ai-spike` ni `docker-compose.yml`.
-- [ ] El checkpoint de humo está registrado en `docs/frontend/verification-log.md`.
+- [x] `docker compose exec -T tpvs-backend php -m` lista `pcntl`, `intl` y `bcmath`.
+- [x] `docker compose exec -T tpvs-backend php artisan test` (sin `-e`) termina con error antes de migrar, y la base `tpvs` conserva sus filas.
+- [x] `make test` pasa, y el número de tests es igual al de la línea base más la prueba de la guardia, si se agrega una. _Verificado con los comandos que ejecuta `make test` (416 tests; `make` no está instalado en el host). No se agregó prueba de la guardia._
+- [x] Con un volumen de PostgreSQL nuevo, `tpvs_test` existe después del primer arranque.
+- [x] `docker-compose.yml` y `backend/docker-entrypoint.sh` no existen.
+- [x] `docker compose config` sin `.env` falla con el mensaje `APP_KEY is required`.
+- [x] `grep -n "192.168" compose*.yaml` no devuelve resultados.
+- [x] `ss -ltn` en el host muestra 5432 y 8000 solo en `127.0.0.1`, y 3000 en `0.0.0.0`.
+- [x] `docker compose ps` muestra los contenedores como `tpvs-tpvs-*`, y los volúmenes `tpvs_tpvs-postgres-data` y `tpvs_tpvs-ollama-data` existentes se reutilizan sin pérdida de datos. _Volumen de PostgreSQL reutilizado. `tpvs_tpvs-ollama-data` no existía antes (nunca se levantó `ai-spike`), así que se creó nuevo._
+- [x] `docker compose exec tpvs-backend id -u` y `docker compose exec tpvs-frontend id -u` devuelven el `UID` del `.env`, no `0`.
+- [x] Los archivos nuevos de `backend/storage/logs` en el host pertenecen al usuario del host. _Matiz: en desarrollo `storage` es el volumen `tpvs-backend-storage`, no la carpeta del host. Los logs nuevos dentro del volumen son del UID 1000._
+- [x] Al cambiar `composer.lock` o `package-lock.json` y reiniciar el servicio, las dependencias se reinstalan sin `--build`.
+- [x] Un cambio en `backend/app` se aplica en el siguiente job del worker sin reiniciarlo.
+- [x] `docker compose stop tpvs-queue-worker` con un job de IA en curso espera a que termine, hasta 340 s.
+- [x] `docker compose up -d` sin perfil arranca todo sin `tpvs-ollama`.
+- [x] `docker compose --profile ai up -d` deja `tpvs-ollama` `healthy`, y `tpvs-ollama-pull` termina con código 0 y el modelo listado.
+- [x] Con el perfil `ai`, una imagen subida desde la UI produce un registro en `NEEDS_REVIEW`.
+- [x] `tpvs-frontend` no puede resolver `tpvs-ollama` ni `tpvs-postgres`.
+- [x] La imagen de `tpvs-ollama` usa un tag fijo, no `latest`.
+- [x] `docker compose -f compose.yaml -f compose.prod.yaml config` no tiene bind mounts y solo publica el puerto 80.
+- [x] El stack de producción arranca en local, `http://localhost/` muestra el login y `/up` responde 200 a través de `tpvs-web:8080` desde la red interna.
+- [ ] `docker compose -f compose.ai-host.yaml up -d` arranca Ollama y `/api/tags` responde desde otra máquina de la LAN. **Pendiente:** se probó por la IP de LAN desde la misma máquina; falta la prueba desde otro equipo.
+- [x] Las comprobaciones del frontend pasan: `npm test`, `npm run lint`, `npx tsc --noEmit` y `npm run build`.
+- [x] `vendor/bin/pint --test` no reporta cambios en `tests/TestCase.php`.
+- [x] `docs/backend/configuration-operations.md` ya no menciona `ai-spike` ni `docker-compose.yml`. _Ya no menciona el perfil ni el archivo; solo queda la ruta real del script `tools/ai-spike/run_ollama_spike.py`._
+- [x] El checkpoint de humo está registrado en `docs/frontend/verification-log.md`.
 
 ## Decisions
 
@@ -250,6 +250,26 @@ Cada paso es **un commit** en la rama `spec-26-docker-environment`. Al cerrar ca
 - **Sí:** volúmenes con las mismas claves, para no perder la base ni los modelos ya descargados.
 - **Sí:** la rama `spec-26-docker-environment` se creó junto con el SPEC, a pedido del usuario.
 
+## Implementation notes
+
+Cambios respecto al plan, aplicados durante la implementación (2026-11-24):
+
+- **Base `php:8.3-fpm` para todos los targets del backend.** La imagen fpm también trae el CLI, así que `dev` corre `artisan serve` y `prod` corre php-fpm sobre la misma base. El remapeo de `www-data` a `UID`/`GID` y la extensión `opcache` viven en `base`.
+- **`STOPSIGNAL SIGTERM` en el target `dev`.** `php:8.3-fpm` define `SIGQUIT`, y sin este ajuste `docker compose stop` del worker esperaba siempre los 340 s.
+- **`backend/docker/queue-listen.sh`.** Ver la decisión sobre el worker de desarrollo.
+- **`tpvs-migrate` arranca como root en desarrollo** para corregir el dueño de los volúmenes heredados de las imágenes root y luego baja a `www-data`. El frontend no corrige permisos: si sus volúmenes de caché son de root, el entrypoint explica cómo recrearlos.
+- **`APP_ENV=production` y `APP_DEBUG=false` van fijos en `compose.prod.yaml`**, no con `:?`, porque `:?` solo exige que la variable exista. `AI_OLLAMA_URL` sí usa `:?`.
+- **Nombres propios para las imágenes de producción** (`tpvs-backend:prod`, `tpvs-frontend:prod`, `tpvs-web:prod`). Sin ellos, el build de producción sobrescribía las imágenes de desarrollo (`tpvs-tpvs-<servicio>`).
+- **`compose.prod.yaml` quita el montaje del script de init de PostgreSQL** con `!override`, para no tener bind mounts en producción.
+- **`compose.ai-host.yaml` usa el proyecto `tpvs-ai`**, para no chocar con el stack `tpvs` en la misma máquina.
+- **`OLLAMA_IMAGE_TAG=0.40.17`.** La 0.40.18 había salido el mismo día; se eligió la anterior.
+- **`--chmod` fuera del `COPY` del frontend.** El host no tiene `buildx`, y el constructor clásico de `docker build` no lo soporta.
+- **Fuera del repositorio:** se borró el Ollama independiente que el backend usaba por la red `tpvs_default` (`/data/docker/ollama`, `/data/ollama`), a pedido del usuario.
+
+**Pendiente:** el criterio de `compose.ai-host.yaml` desde otra máquina de la LAN.
+
+**Al backlog:** nombres estándar de servicios (`backend` en vez de `tpvs-backend`), a pedido del usuario.
+
 ## Risks
 
 | Riesgo | Mitigación |
@@ -258,7 +278,7 @@ Cada paso es **un commit** en la rama `spec-26-docker-environment`. Al cerrar ca
 | El remapeo de `UID` deja `storage` o `vendor` con permisos que el usuario nuevo no puede escribir | El entrypoint corrige los permisos de los volúmenes nombrados al arrancar. Verificar con un upload y un log nuevo. |
 | El script de init solo corre con un volumen nuevo, y la base actual no tiene `tpvs_test` | `make test` crea `tpvs_test` si falta antes de correr la suite. |
 | `queue:listen` en desarrollo se comporta distinto que `queue:work` en producción | Los dos usan el mismo `--timeout` y la misma conexión. La fase D prueba `queue:work` en el stack de producción local. |
-| `required: false` en `depends_on` necesita Compose 2.20 o posterior | El host tiene 2.40.3. Documentar la versión mínima en `configuration-operations.md`. |
+| `required: false` en `depends_on` necesita Compose 2.20 o posterior, y `!override` (usado en `compose.prod.yaml`) 2.24.4 | El host tiene 2.40.3. La versión mínima documentada en `configuration-operations.md` es 2.24.4. |
 | Ollama en CPU tarda más de 300 s con imágenes grandes | Se conserva `AI_OLLAMA_TIMEOUT=300` y `OLLAMA_KEEP_ALIVE=30m` evita recargar el modelo. Si se excede, el job falla con un error transitorio y se reintenta, como hoy. |
 | `output: "standalone"` cambia algo del comportamiento de `next dev` | Correr las cuatro comprobaciones del frontend y el checkpoint de humo en desarrollo. |
 | Publicar 11434 en el PC de IA expone Ollama sin autenticación | La documentación exige un firewall que solo permita la IP del servidor de aplicación. `OLLAMA_BIND` permite publicar en una sola interfaz. |

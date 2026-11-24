@@ -2,15 +2,27 @@
 
 ## Current Status
 
-The backend has feature coverage for health, authentication/authorization, Companies and Records API behavior, database relationships, schema constraints, and AI extraction/retry behavior. Run the full suite with `php artisan test` (or `docker compose exec -T tpvs-backend php artisan test`). Configure an isolated PostgreSQL test database before running `RefreshDatabase` tests; do not point test runs at a database whose data must be retained.
+The backend has feature coverage for health, authentication/authorization, Companies and Records API behavior, database relationships, schema constraints, and AI extraction/retry behavior. Tests run only against the dedicated `tpvs_test` PostgreSQL database; never point a run at a database whose data must be retained.
 
-In the Compose stack the backend container already exports `DB_DATABASE=tpvs`, and the `phpunit.xml` `<env>` entry does not replace it. Run the suite with the test database set explicitly:
+Under Docker, run the suite with:
+
+```bash
+make test                         # extra arguments: make test ARGS="--filter=Login"
+```
+
+`make test` first runs `docker/postgres/init/01-create-test-db.sh` (idempotent) so `tpvs_test` exists, then runs the suite with the database set explicitly. Without `make`, use the equivalent command:
 
 ```bash
 docker compose exec -T -e DB_DATABASE=tpvs_test tpvs-backend php artisan test
 ```
 
-The `tpvs_test` database must exist (`CREATE DATABASE tpvs_test OWNER tpvs`). On 2026-10-29 an unscoped run emptied the shared `tpvs` database; the explicit variable was verified to keep `tpvs` unchanged.
+The variable is needed because the backend container exports `DB_DATABASE=tpvs`, and the `phpunit.xml` `<env>` entry does not replace it.
+
+### Test Database Guard (SPEC 26)
+
+`Tests\TestCase::createApplication()` builds the application and throws a `RuntimeException` when `config('database.connections.pgsql.database')` is not `tpvs_test`. The check lives in `createApplication()` and not in `setUp()`, because `RefreshDatabase` runs inside `parent::setUp()` and would already have wiped the database. An unscoped `php artisan test` therefore fails every test that boots Laravel (pure PHPUnit unit tests still pass) and leaves `tpvs` untouched. A stale `bootstrap/cache/config.php` triggers the same error; clear it with `php artisan optimize:clear`.
+
+A new PostgreSQL volume gets `tpvs_test` from the init script on its first start. The guard was added after unscoped runs emptied the shared `tpvs` database on 2026-10-29 and 2026-11-09.
 
 ## Test Types
 

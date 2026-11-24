@@ -8,7 +8,7 @@ A module is complete only when its code, tests, and checkpoint are verified — 
 
 | Phase | Module | SPEC | Status |
 | --- | --- | --- | --- |
-| 8.2 | Infrastructure (Laravel, Next.js, PostgreSQL, Docker, queue worker) | — | Complete |
+| 8.2 | Infrastructure (Laravel, Next.js, PostgreSQL, Docker, queue worker) | 26 | Complete |
 | 8.3 | Database schema and relationships | — | Complete |
 | 8.4 | Authentication and roles | 01, 02, 17 | Complete |
 | 8.5 | Companies | 03, 23 | Complete |
