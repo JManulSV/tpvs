@@ -1,7 +1,8 @@
 import { Plus, Search } from "lucide-react";
+import type { MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import type { AuthUser } from "@/features/auth/types";
-import { getCompaniesSubtitle } from "../company-list-utils";
+import { getCompaniesSubtitle } from "../utils";
 
 /** `<h1>`, subtitle, search and «Nueva empresa» (EDITOR only, from `md`). */
 export function CompaniesHeader({
@@ -10,7 +11,7 @@ export function CompaniesHeader({
   role,
   searchInput,
 }: {
-  onCreate: (event: React.MouseEvent<HTMLElement>) => void;
+  onCreate: (event: MouseEvent<HTMLElement>) => void;
   onSearchChange: (value: string) => void;
   role: AuthUser["role"];
   searchInput: string;

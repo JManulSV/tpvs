@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { Building2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -21,7 +21,7 @@ export function CompaniesCatalogEmpty({
   onCreate,
 }: {
   /** Only for the EDITOR. */
-  onCreate?: (event: React.MouseEvent<HTMLElement>) => void;
+  onCreate?: (event: MouseEvent<HTMLElement>) => void;
 }) {
   return (
     <EmptyCard icon={<Building2 className="size-6" />}>
