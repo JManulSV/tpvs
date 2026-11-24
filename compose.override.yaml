@@ -1,0 +1,47 @@
+# Development overrides. `docker compose` loads this file automatically on top of compose.yaml.
+# Source code is bind-mounted from the host, and ports are published for local tools.
+
+services:
+  tpvs-postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  tpvs-backend:
+    volumes:
+      - ./backend:/var/www/html
+      - tpvs-backend-vendor:/var/www/html/vendor
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/up >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  tpvs-queue-worker:
+    volumes:
+      - ./backend:/var/www/html
+      - tpvs-backend-vendor:/var/www/html/vendor
+    command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--timeout=330"]
+    depends_on:
+      tpvs-backend:
+        condition: service_healthy
+
+  tpvs-frontend:
+    environment:
+      LARAVEL_API_URL: http://tpvs-backend:8000
+    volumes:
+      - ./frontend:/app
+      - tpvs-frontend-node-modules:/app/node_modules
+      - tpvs-frontend-next:/app/.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      tpvs-backend:
+        condition: service_healthy
+
+  ollama:
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11435}:11434"
