@@ -67,6 +67,8 @@ services:
       tpvs-backend:
         condition: service_healthy
 
-  ollama:
+  tpvs-ollama:
+    # Host port for local tools such as tools/ai-spike/run_ollama_spike.py. Localhost only.
     ports:
       - "127.0.0.1:${OLLAMA_PORT:-11435}:11434"
+    mem_limit: 8g
