@@ -61,7 +61,7 @@ For the current containerized setup, install:
 
 - Docker Engine or Docker Desktop with Compose 2.24.4 or newer.
 - Git.
-- `make` (optional; every target is a plain `docker compose` command, shown with `make -n <target>`).
+- `make` (optional: `sudo apt install make`). Every target is a plain `docker compose` command; see the equivalents in [make Commands](docs/backend/configuration-operations.md#make-commands).
 
 ### Local Development Setup
 

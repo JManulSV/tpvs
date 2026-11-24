@@ -75,7 +75,7 @@ cp .env.example .env    # then set a unique APP_KEY (see below) and UID/GID (`id
 make up                 # docker compose up -d --build
 ```
 
-Without `make`, run the `docker compose` command each target prints (`make -n <target>`). `APP_KEY` is required: `docker compose config` fails with `APP_KEY is required` when it is missing. Compose cannot start without it, so generate it on the host with `echo "base64:$(openssl rand -base64 32)"` and paste the line into `.env` as `APP_KEY=…`.
+Without `make`, use the equivalent commands in [make Commands](#make-commands). `APP_KEY` is required: `docker compose config` fails with `APP_KEY is required` when it is missing. Compose cannot start without it, so generate it on the host with `echo "base64:$(openssl rand -base64 32)"` and paste the line into `.env` as `APP_KEY=…`.
 
 - **Ports.** PostgreSQL (5432) and Laravel (8000) bind to `127.0.0.1` only. Next.js (3000) stays open to the LAN. For LAN access set `FRONTEND_ORIGIN`, `SANCTUM_STATEFUL_DOMAINS` and `NEXT_ALLOWED_DEV_ORIGINS` in `.env` (Compose has no LAN-IP fallback).
 - **Users.** Containers run as `www-data` (backend) and `node` (frontend), remapped at build time to `UID`/`GID` from `.env`, so files written to the bind mounts belong to the host user. `tpvs-migrate` alone starts as root to fix the ownership of named volumes left by older root images, then drops to `www-data`. If the frontend reports that `node_modules` or `.next` is not writable, recreate those cache volumes as the error message explains.
@@ -84,18 +84,25 @@ Without `make`, run the `docker compose` command each target prints (`make -n <t
 
 ### make Commands
 
-| Command | Action |
-| --- | --- |
-| `make up` / `make up-ai` | Build and start the stack, without / with the `ai` profile |
-| `make down` | Stop and remove the containers; volumes are kept |
-| `make ps` | All containers, including finished one-shot services |
-| `make logs s=<service>` | Follow logs (`tpvs-backend` by default) |
-| `make shell s=<service>` | Shell in a service (`tpvs-backend` by default) |
-| `make test ARGS="…"` | Backend suite, always against `tpvs_test`; creates it first if missing |
-| `make pint ARGS="…"` | Pint in the backend container |
-| `make migrate` | Run `tpvs-migrate` once |
-| `make ai-pull` | Download `AI_OLLAMA_MODEL` (profile `ai`) |
-| `make prod-config` | Validate and print the merged production configuration |
+`make` is optional (`sudo apt install make` on Debian/Ubuntu). Every target is a plain `docker compose` command; the last column is what to run without `make`.
+
+| Command | Action | Equivalent without `make` |
+| --- | --- | --- |
+| `make up` | Build and start the stack, without Ollama | `docker compose up -d --build` |
+| `make up-ai` | Build and start the stack with the `ai` profile | `docker compose --profile ai up -d --build` |
+| `make down` | Stop and remove the containers; volumes are kept | `docker compose --profile ai down` |
+| `make ps` | All containers, including finished one-shot services | `docker compose --profile ai ps -a` |
+| `make logs s=<service>` | Follow logs (`tpvs-backend` by default) | `docker compose logs -f --tail=100 <service>` |
+| `make shell s=<service>` | Shell in a service (`tpvs-backend` by default) | `docker compose exec <service> sh` |
+| `make test ARGS="…"` | Backend suite, always against `tpvs_test`; creates it first if missing | `docker compose exec -T tpvs-postgres sh /docker-entrypoint-initdb.d/01-create-test-db.sh`<br>`docker compose exec -T -e DB_DATABASE=tpvs_test tpvs-backend php artisan test` |
+| `make pint ARGS="…"` | Pint in the backend container | `docker compose exec -T tpvs-backend vendor/bin/pint …` |
+| `make migrate` | Run `tpvs-migrate` once | `docker compose run --rm tpvs-migrate` |
+| `make ai-pull` | Download `AI_OLLAMA_MODEL` (profile `ai`) | `docker compose --profile ai run --rm tpvs-ollama-pull` |
+| `make prod-config` | Validate and print the merged production configuration | `docker compose -f compose.yaml -f compose.prod.yaml config` |
+
+Without `make`, never drop `-e DB_DATABASE=tpvs_test` from the test command (see [`testing.md`](testing.md)). The first `test` line only creates `tpvs_test` when it is missing; skip it once the database exists.
+
+Keep this table in sync with the root `Makefile`.
 
 ### Ollama in Development (profile `ai`)
 
