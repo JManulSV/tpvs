@@ -1,0 +1,85 @@
+# Application server (production). Used on top of the base, without the dev override:
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+# Code is baked into the images (no bind mounts) and only tpvs-web publishes a port.
+# Ollama does not run here: AI_OLLAMA_URL points to the AI PC (compose.ai-host.yaml).
+# HTTP only: login needs HTTPS (SESSION_SECURE_COOKIE), which arrives with roadmap 8.18.
+
+# Production build of the backend image, shared by migrate, backend and worker.
+x-backend-prod-build: &backend-prod-build
+  context: ./backend
+  target: prod
+  args:
+    UID: ${UID:-1000}
+    GID: ${GID:-1000}
+
+# Overrides the base Laravel environment. Production values are fixed here, so a
+# local .env can never turn on debug mode on the server.
+x-laravel-prod-env: &laravel-prod-env
+  APP_ENV: production
+  APP_DEBUG: "false"
+  AI_OLLAMA_URL: ${AI_OLLAMA_URL:?AI_OLLAMA_URL is required (the AI PC, e.g. http://<ai-pc-ip>:11434)}
+
+services:
+  # Production has no test database, so the init-script bind mount is dropped.
+  tpvs-postgres:
+    volumes: !override
+      - tpvs-postgres-data:/var/lib/postgresql/data
+
+  # Explicit image names: without them Compose tags the prod build with the
+  # same name as the dev build (tpvs-tpvs-<service>) and each overwrites the other.
+  tpvs-migrate:
+    image: tpvs-backend:prod
+    build: *backend-prod-build
+    environment: *laravel-prod-env
+
+  tpvs-backend:
+    image: tpvs-backend:prod
+    build: *backend-prod-build
+    environment: *laravel-prod-env
+    # php-fpm speaks FastCGI, not HTTP: check that it accepts connections on :9000.
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  tpvs-queue-worker:
+    image: tpvs-backend:prod
+    build: *backend-prod-build
+    environment: *laravel-prod-env
+    # queue:work handles SIGTERM: it finishes the current job, then exits.
+    stop_signal: SIGTERM
+    # --max-time restarts the worker every hour (restart: unless-stopped) to release memory.
+    command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--timeout=330", "--max-time=3600"]
+
+  tpvs-frontend:
+    image: tpvs-frontend:prod
+    build:
+      context: ./frontend
+      target: prod
+    environment:
+      # The BFF reaches Laravel through nginx, never php-fpm directly.
+      LARAVEL_API_URL: http://tpvs-web:8080
+
+  # The only entry point: :80 -> Next.js, :8080 (internal) -> php-fpm.
+  tpvs-web:
+    image: tpvs-web:prod
+    build:
+      context: ./backend
+      target: web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      tpvs-backend:
+        condition: service_healthy
+      tpvs-frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks: [edge]
