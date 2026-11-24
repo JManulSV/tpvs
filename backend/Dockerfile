@@ -2,9 +2,9 @@ FROM php:8.3-cli
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libpq-dev unzip git curl \
-        libzip-dev libpng-dev libjpeg-dev libwebp-dev \
+        libzip-dev libpng-dev libjpeg-dev libwebp-dev libicu-dev \
     && docker-php-ext-configure gd --with-jpeg --with-webp \
-    && docker-php-ext-install pdo_pgsql zip gd \
+    && docker-php-ext-install pdo_pgsql zip gd pcntl intl bcmath \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
