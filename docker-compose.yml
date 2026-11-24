@@ -2,7 +2,7 @@ services:
   tpvs-postgres:
     image: postgres:17-alpine
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_DB: ${DB_DATABASE:-tpvs}
       POSTGRES_USER: ${DB_USERNAME:-tpvs}
@@ -23,14 +23,14 @@ services:
       APP_ENV: ${APP_ENV:-local}
       APP_DEBUG: ${APP_DEBUG:-true}
       APP_URL: ${APP_URL:-http://localhost:8000}
-      APP_KEY: ${APP_KEY:-base64:MAkRbTPzng0K+CAN8QI7qVGfJfAQMemd9pl8s3oxUJ0=}
+      APP_KEY: ${APP_KEY:?APP_KEY is required}
       SESSION_DRIVER: ${SESSION_DRIVER:-database}
       SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
       SESSION_EXPIRE_ON_CLOSE: ${SESSION_EXPIRE_ON_CLOSE:-true}
       SESSION_COOKIE: ${SESSION_COOKIE:-tpvs_session}
       SESSION_HTTP_ONLY: ${SESSION_HTTP_ONLY:-true}
       SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
-      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,127.0.0.1:3000,::1:3000,192.168.3.240:3000}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,127.0.0.1:3000,::1:3000}
       DB_CONNECTION: pgsql
       DB_HOST: tpvs-postgres
       DB_PORT: 5432
@@ -50,7 +50,7 @@ services:
       - tpvs-backend-storage:/var/www/html/storage
     command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       tpvs-postgres:
         condition: service_healthy
@@ -68,14 +68,14 @@ services:
       APP_ENV: ${APP_ENV:-local}
       APP_DEBUG: ${APP_DEBUG:-true}
       APP_URL: ${APP_URL:-http://localhost:8000}
-      APP_KEY: ${APP_KEY:-base64:MAkRbTPzng0K+CAN8QI7qVGfJfAQMemd9pl8s3oxUJ0=}
+      APP_KEY: ${APP_KEY:?APP_KEY is required}
       SESSION_DRIVER: ${SESSION_DRIVER:-database}
       SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
       SESSION_EXPIRE_ON_CLOSE: ${SESSION_EXPIRE_ON_CLOSE:-true}
       SESSION_COOKIE: ${SESSION_COOKIE:-tpvs_session}
       SESSION_HTTP_ONLY: ${SESSION_HTTP_ONLY:-true}
       SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
-      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,127.0.0.1:3000,::1:3000,192.168.3.240:3000}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,127.0.0.1:3000,::1:3000}
       DB_CONNECTION: pgsql
       DB_HOST: tpvs-postgres
       DB_PORT: 5432
@@ -94,6 +94,7 @@ services:
       - tpvs-backend-vendor:/var/www/html/vendor
       - tpvs-backend-storage:/var/www/html/storage
     command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--timeout=330"]
+    stop_grace_period: 340s
     depends_on:
       tpvs-backend:
         condition: service_healthy
@@ -103,8 +104,8 @@ services:
       context: ./frontend
     environment:
       LARAVEL_API_URL: http://tpvs-backend:8000
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000,http://127.0.0.1:3000,http://192.168.3.240:3000}
-      NEXT_ALLOWED_DEV_ORIGINS: ${NEXT_ALLOWED_DEV_ORIGINS:-192.168.3.240}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000,http://127.0.0.1:3000}
+      NEXT_ALLOWED_DEV_ORIGINS: ${NEXT_ALLOWED_DEV_ORIGINS:-}
     volumes:
       - ./frontend:/app
       - tpvs-frontend-node-modules:/app/node_modules
