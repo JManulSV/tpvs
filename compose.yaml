@@ -95,6 +95,10 @@ services:
     depends_on:
       tpvs-migrate:
         condition: service_completed_successfully
+      # Only with the ai profile: wait until the model is downloaded.
+      tpvs-ollama-pull:
+        condition: service_completed_successfully
+        required: false
     networks: [data, ai]
 
   tpvs-frontend:
@@ -131,6 +135,19 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks: [ai]
+
+  # One-shot: downloads AI_OLLAMA_MODEL once Ollama is healthy. Instant if it is already there.
+  tpvs-ollama-pull:
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.40.17}
+    profiles: ["ai"]
+    environment:
+      OLLAMA_HOST: tpvs-ollama:11434
+    command: ["pull", "${AI_OLLAMA_MODEL:-qwen2.5vl:3b}"]
+    restart: "no"
+    depends_on:
+      tpvs-ollama:
+        condition: service_healthy
     networks: [ai]
 
 # edge: browser-facing traffic (frontend -> backend).
