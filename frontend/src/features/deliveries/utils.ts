@@ -1,10 +1,15 @@
 import { formatMoney } from "@/lib/format";
 import type { DeliveryFormValues } from "./schemas/delivery.schema";
-import { officialDenominationValues, type Delivery } from "./types";
+import {
+  officialDenominationValues,
+  type Delivery,
+  type DeliveryErrorDetails,
+  type UpsertDeliveryInput,
+} from "./types";
 
 export const MAX_DENOMINATION_QUANTITY = 999;
 
-/** Cash differences up to $1.00 are tolerated (SPEC 14). */
+/** Cash differences up to $1.00 are tolerated. */
 const CASH_TOLERANCE_CENTS = 100;
 
 export function toCents(amount: string | number | null | undefined): number {
@@ -60,18 +65,6 @@ export function denominationBreakdownKey(
   return officialDenominationValues
     .map((value) => `${value}:${Math.max(Math.trunc(Number(quantities.get(value) ?? 0)), 0)}`)
     .join("|");
-}
-
-export function downloadBlob(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
 }
 
 function clampQuantity(quantity: number): number {
@@ -205,4 +198,94 @@ export function getDeliveryHeading(delivery: Delivery | null): {
   if (delivery.is_stale) return { title: "Preparar nueva entrega", saveLabel: "Actualizar entrega" };
 
   return { title: "Preparar entrega", saveLabel: "Actualizar entrega" };
+}
+
+function todayIsoDate(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+/** Form values from the saved delivery; a new one starts today, delivered by the current user. */
+export function buildDeliveryFormValues(delivery: Delivery | null, userName: string): DeliveryFormValues {
+  const quantities = new Map(
+    (delivery?.denominations ?? []).map((denomination) => [denomination.value, denomination.quantity]),
+  );
+
+  return {
+    delivery_date: delivery?.delivery_date ?? todayIsoDate(),
+    delivered_by_name: delivery?.delivered_by_name ?? userName,
+    received_by_name: delivery?.received_by_name ?? "",
+    denominations: officialDenominationValues.map((value) => ({
+      value,
+      quantity: String(quantities.get(value) ?? 0),
+    })),
+  };
+}
+
+export function toUpsertDeliveryInput(values: DeliveryFormValues): UpsertDeliveryInput {
+  const received = values.received_by_name.trim();
+
+  return {
+    delivery_date: values.delivery_date,
+    delivered_by_name: values.delivered_by_name.trim(),
+    received_by_name: received === "" ? null : received,
+    denominations: values.denominations.map((denomination) => ({
+      value: denomination.value,
+      quantity: Math.trunc(Number(denomination.quantity) || 0),
+    })),
+  };
+}
+
+const formFields = new Set(["delivery_date", "delivered_by_name", "received_by_name"]);
+
+/** True when a `422` field has a visible control, so its message goes next to it. */
+export function isDeliveryFormField(field: string): boolean {
+  return formFields.has(field) || /^denominations\.\d+\.quantity$/.test(field);
+}
+
+export type DeliveryBlock = { text: string; code?: string };
+
+/** Messages that block saving or generating, in the order the banner shows them. */
+export function getDeliveryBlocks({
+  cash,
+  hasImage,
+  mismatch,
+  errors,
+}: {
+  cash: CashCheck;
+  hasImage: boolean;
+  mismatch: DeliveryErrorDetails | null;
+  errors: Array<string | null>;
+}): DeliveryBlock[] {
+  const blocks: DeliveryBlock[] = [];
+
+  if (cash.shortOfficialCents > 0) {
+    blocks.push({
+      text: `Faltan ${formatCents(cash.shortOfficialCents)} en efectivo frente al retorno oficial. Ajusta las denominaciones.`,
+      code: "CASH_MISMATCH",
+    });
+  } else if (cash.shortDocumentCents > 0) {
+    blocks.push({
+      text: `Faltan ${formatCents(cash.shortDocumentCents)} en efectivo frente al monto del documento. Ajusta las denominaciones o elige otro monto del documento.`,
+      code: "CASH_MISMATCH",
+    });
+  }
+
+  if (!hasImage) blocks.push({ text: "Adjunta la imagen del registro para generar el Word." });
+
+  if (mismatch) {
+    blocks.push({
+      text: `El servidor rechazó el efectivo: esperado ${formatMoney(mismatch.expected_amount)}, contado ${formatMoney(mismatch.cash_amount)}, diferencia ${formatMoney(mismatch.difference)}.`,
+      code: "CASH_MISMATCH",
+    });
+  }
+
+  for (const error of errors) {
+    if (error) blocks.push({ text: error });
+  }
+
+  return blocks;
 }

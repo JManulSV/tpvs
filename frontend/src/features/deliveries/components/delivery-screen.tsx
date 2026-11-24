@@ -4,9 +4,11 @@ import { ChevronLeft, Image as ImageIcon, Pencil, TriangleAlert } from "lucide-r
 import Link from "next/link";
 import { useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { LoadError } from "@/components/load-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney } from "@/lib/format";
+import { cardSurface } from "@/lib/styles";
+import { cn } from "@/lib/utils";
 import { useRecord } from "@/features/records/hooks/use-records";
 import { getRecordPeriodLine } from "@/features/records/utils/detail";
 import type { RecordListItem } from "@/features/records/types";
@@ -55,8 +57,7 @@ export function DeliveryScreen({
   if (recordQuery.isError || !record) {
     return (
       <LoadError
-        backHref="/records"
-        backLabel="Volver a registros"
+        back={{ href: "/records", label: "Volver a registros" }}
         message={recordQuery.error?.message ?? "El registro no está disponible."}
         onRetry={() => void recordQuery.refetch()}
         title="No se pudo cargar el registro"
@@ -71,8 +72,7 @@ export function DeliveryScreen({
   if (deliveryQuery.isError) {
     return (
       <LoadError
-        backHref={`/records/${record.id}`}
-        backLabel="Volver al registro"
+        back={{ href: `/records/${record.id}`, label: "Volver al registro" }}
         message={deliveryQuery.error?.message ?? "La entrega no está disponible."}
         onRetry={() => void deliveryQuery.refetch()}
         title="No se pudo cargar la preparación de entrega"
@@ -195,12 +195,12 @@ function DeliverySkeleton({ label }: { label: string }) {
           <Skeleton className="h-6 w-80 max-w-full" />
         </div>
         <Skeleton className="h-44 w-full rounded-xl" />
-        <div className="space-y-3 rounded-lg border bg-card p-5 shadow-card">
+        <div className={cn(cardSurface, "space-y-3 p-5")}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-2/3" />
         </div>
-        <div className="space-y-3 rounded-lg border bg-card p-5 shadow-card">
+        <div className={cn(cardSurface, "space-y-3 p-5")}>
           <Skeleton className="h-5 w-32" />
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
@@ -208,35 +208,5 @@ function DeliverySkeleton({ label }: { label: string }) {
         </div>
       </div>
     </div>
-  );
-}
-
-function LoadError({
-  title,
-  message,
-  onRetry,
-  backHref,
-  backLabel,
-}: {
-  title: string;
-  message: string;
-  onRetry: () => void;
-  backHref: string;
-  backLabel: string;
-}) {
-  return (
-    <section
-      className="flex flex-col items-center gap-4 rounded-lg border bg-card p-6 text-center shadow-card"
-      role="alert"
-    >
-      <h1 className="text-xl/7 font-semibold">{title}</h1>
-      <p className="text-sm text-muted-foreground">{message}</p>
-      <div className="flex flex-wrap justify-center gap-3">
-        <Button className="min-h-11 md:min-h-10" onClick={onRetry} type="button" variant="outline">Reintentar</Button>
-        <Link className={buttonVariants({ className: "min-h-11 md:min-h-10", variant: "outline" })} href={backHref}>
-          {backLabel}
-        </Link>
-      </div>
-    </section>
   );
 }

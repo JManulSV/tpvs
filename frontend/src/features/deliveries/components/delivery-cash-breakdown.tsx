@@ -2,8 +2,10 @@
 
 import { Banknote, Coins, Minus, Plus } from "lucide-react";
 import { formatMoney } from "@/lib/format";
+import { cardSurface, focusRing } from "@/lib/styles";
 import { cn } from "@/lib/utils";
 import { centsToAmount, parseQuantityInput, stepQuantity, toCents } from "../utils";
+import { DeliverySectionHeader } from "./delivery-section-header";
 
 export type CashBreakdownRow = { value: string; quantity: string };
 
@@ -16,8 +18,6 @@ type DeliveryCashBreakdownProps = {
   onCustomerWillGiveChangeChange: (willGiveChange: boolean) => void;
   disabled?: boolean;
 };
-
-const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 function quantityOf(row: CashBreakdownRow): number {
   return Math.max(Math.trunc(Number(row.quantity) || 0), 0);
@@ -44,13 +44,12 @@ export function DeliveryCashBreakdown({
   const excess = formatMoney(centsToAmount(excessCents));
 
   return (
-    <section aria-labelledby="delivery-cash-heading" className="rounded-lg border bg-card shadow-card">
-      <header className="px-4 pt-4 md:px-6 md:pt-[18px]">
-        <h2 className="text-base/6 font-semibold" id="delivery-cash-heading">Desglose de efectivo</h2>
-        <p className="mt-0.5 text-xs/4 font-medium text-muted-foreground">
-          Efectivo bruto. Solo se guardan las denominaciones con cantidad mayor a cero.
-        </p>
-      </header>
+    <section aria-labelledby="delivery-cash-heading" className={cardSurface}>
+      <DeliverySectionHeader
+        id="delivery-cash-heading"
+        subtitle="Efectivo bruto. Solo se guardan las denominaciones con cantidad mayor a cero."
+        title="Desglose de efectivo"
+      />
 
       <div className="space-y-5 p-4 md:px-6 md:pb-6">
         <DenominationGroup

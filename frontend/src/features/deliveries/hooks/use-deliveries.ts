@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recordKeys } from "@/features/records/hooks/use-records";
+import { downloadBlob } from "@/lib/file-download";
 import { deliveriesService } from "../services/deliveries.service";
 import type { GenerateDeliveryDocumentInput, UpsertDeliveryInput } from "../types";
-import { downloadBlob } from "../utils";
 
 export const deliveryKeys = {
   all: ["deliveries"] as const,
