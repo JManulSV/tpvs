@@ -2,8 +2,8 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { formatFileSize } from "@/lib/format";
 import { buttonVariants } from "@/components/ui/button";
-import { recordsService } from "../services/records.service";
-import type { RecordListItem } from "../types";
+import { recordsService } from "../../services/records.service";
+import type { RecordListItem } from "../../types";
 
 function FileField({ className, label, value }: { className?: string; label: string; value: string }) {
   return (

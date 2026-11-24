@@ -1,12 +1,12 @@
 import type { RecordStatus } from "@/lib/status";
-import type { AiProcessingIssue, FieldChip } from "./types";
+import type { AiProcessingIssue, FieldChip } from "../types";
 
 export const SLOW_READING_MS = 10 * 60 * 1000;
 
 const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxImageBytes = 10 * 1024 * 1024;
 
-// Códigos reales de ai_processing.issues (ver SPEC 06 y el paso 0 de SPEC 21).
+// Issue codes emitted in `ai_processing.issues`.
 const missingCodes = ["MISSING_VALUE", "COMPANY_NAME_MISSING"];
 const inconsistentCodes = ["SOURCE_TOTAL_MISMATCH", "INVERTED_WEEK_DATE_RANGE"];
 
@@ -79,12 +79,12 @@ export function getFieldChip(input: {
   return "HIGH_CONFIDENCE";
 }
 
-// Códigos de los issues de un campo, por su ruta (por ejemplo "details.0.income").
+/** Issue codes for one field, by path (for example "details.0.income"). */
 export function getIssueCodes(issues: ReadonlyArray<AiProcessingIssue>, path: string): string[] {
   return issues.filter((issue) => issue.path === path).map((issue) => issue.code);
 }
 
-// Cuenta cambios hoja a hoja. Un movimiento agregado o quitado cuenta como 1.
+/** Counts changed leaf values. An added or removed movement counts as one change. */
 export function getDirtyCount(initial: unknown, current: unknown): number {
   if (Array.isArray(initial) && Array.isArray(current)) {
     let count = 0;

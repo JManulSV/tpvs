@@ -1,26 +1,26 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { LoadError } from "@/components/load-error";
 import { useResetOnHide } from "@/hooks/use-reset-on-hide";
-import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
-import { getRecordActionPermissions } from "../record-actions";
-import { getRecordBanner } from "../record-detail-utils";
-import { RecordsApiError, type RecordStatus } from "../types";
-import { ManualRecordForm } from "./manual-record-form";
-import { RecordActionDialog } from "./record-action-dialog";
+import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../../hooks/use-records";
+import { RecordsApiError, type RecordStatus } from "../../types";
+import { getRecordActionPermissions } from "../../utils/actions";
+import { getRecordBanner } from "../../utils/detail";
+import { ManualRecordForm } from "../capture/manual-record-form";
+import { RecordActionDialog } from "../record-action-dialog";
+import { RecordEditor } from "../record-editor";
+import { RecordCancelPanel } from "./record-cancel-panel";
 import { RecordDeliveryCard } from "./record-delivery-card";
 import { RecordDetailBanner } from "./record-detail-banner";
 import { RecordDetailHeader } from "./record-detail-header";
 import { RecordDetailHero } from "./record-detail-hero";
+import { RecordDetailSkeleton } from "./record-detail-skeleton";
+import { RecordHistoryPanel } from "./record-history-panel";
 import { RecordImageCard } from "./record-image-card";
 import { RecordMovementsCard } from "./record-movements-card";
-import { RecordDetailSkeleton } from "./record-detail-skeleton";
 import { RecordPeriodCard } from "./record-period-card";
-import { RecordHistoryPanel } from "./record-history-panel";
 import { RecordProcessingCard } from "./record-processing-card";
-import { RecordEditor } from "./record-editor";
 
 export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; recordId: number }) {
   const recordQuery = useRecord(recordId);
@@ -30,7 +30,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
-  // Edición: estado de partida (para el aviso de reapertura) y cambios sin guardar (para bloquear confirmar).
+  // Status when editing started (for the reopen notice) and unsaved changes (they block confirming).
   const [editStartStatus, setEditStartStatus] = useState<RecordStatus | null>(null);
   const [editDirtyCount, setEditDirtyCount] = useState(0);
   const [reopenNotice, setReopenNotice] = useState(false);
@@ -59,29 +59,21 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
 
   if (!record) {
     return (
-      <section
-        className="flex flex-col items-center gap-4 rounded-lg border bg-card p-6 text-center shadow-card"
-        role="alert"
-      >
-        <h1 className="text-xl/7 font-semibold">No se pudo cargar el registro</h1>
-        <p className="text-sm text-muted-foreground">{recordQuery.error?.message ?? "El registro no está disponible."}</p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button className="min-h-11 md:min-h-10" onClick={() => void recordQuery.refetch()} type="button" variant="outline">Reintentar</Button>
-          <Link className={buttonVariants({ className: "min-h-11 md:min-h-10", variant: "outline" })} href="/records">Volver a registros</Link>
-        </div>
-      </section>
+      <LoadError
+        back={{ href: "/records", label: "Volver a registros" }}
+        message={recordQuery.error?.message ?? "El registro no está disponible."}
+        onRetry={() => void recordQuery.refetch()}
+        title="No se pudo cargar el registro"
+      />
     );
   }
 
   const permissions = getRecordActionPermissions(record, canEdit);
   const { canCorrect } = permissions;
-  // Registros IMAGE pendientes de revisión muestran los datos extraídos con chips (SPEC 21).
+  // IMAGE records awaiting review show the extracted data with field chips.
   const usesEditor = record.source === "IMAGE" && record.status === "NEEDS_REVIEW";
   const banner = usesEditor ? null : getRecordBanner(record, canEdit);
-  // DOM order matches the single-column visual order (Tab follows it). The
-  // side column reuses the same order so both layouts stay consistent.
-  // Orden de la columna lateral (SPEC 21): imagen, procesamiento automático y entrega.
-  // Un registro manual sin imagen no muestra la columna de imagen.
+  // Side column order: image, AI processing, delivery. DOM order matches the single-column layout.
   const imageCard = record.image !== null ? <RecordImageCard key="image" record={record} /> : null;
   const processingCard = record.source === "IMAGE" ? <RecordProcessingCard key="processing" record={record} /> : null;
   const deliveryCard = <RecordDeliveryCard key="delivery" canEdit={canEdit} record={record} />;
@@ -175,11 +167,16 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
   }
 
   function finishEditing() {
-    // Un registro CONFIRMED pasa a NEEDS_REVIEW al guardar; se avisa una sola vez.
+    // Saving an edit moves a CONFIRMED record back to NEEDS_REVIEW; say so once.
     if (editStartStatus === "CONFIRMED") setReopenNotice(true);
     setEditStartStatus(null);
     setEditDirtyCount(0);
     setIsEditing(false);
+  }
+
+  function closeCancelPanel() {
+    setIsCancelOpen(false);
+    setCancelError(null);
   }
 
   function openCancelDialog() {
@@ -203,43 +200,14 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
       />
 
       {isCancelOpen && (
-        <section
-          aria-labelledby="cancel-record-heading"
-          className="space-y-3 rounded-lg border border-status-error bg-card p-5 shadow-card"
-          role="region"
-        >
-          <div className="space-y-1">
-            <h2 className="text-base/6 font-semibold" id="cancel-record-heading">Cancelar este registro</h2>
-            <p className="text-sm text-muted-foreground">
-              Un registro cancelado no cuenta en reportes ni totales. Esta acción queda en el historial.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="record-cancel-reason">Motivo (obligatorio)</label>
-            <textarea
-              className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm"
-              disabled={cancelRecord.isPending}
-              id="record-cancel-reason"
-              maxLength={2000}
-              onChange={(event) => setCancelReason(event.target.value)}
-              value={cancelReason}
-            />
-          </div>
-          {cancelError && <p className="text-sm text-destructive" role="alert">{cancelError}</p>}
-          <div className="flex flex-wrap justify-end gap-3">
-            <Button disabled={cancelRecord.isPending} onClick={() => { setIsCancelOpen(false); setCancelError(null); }} type="button" variant="outline">
-              Volver
-            </Button>
-            <Button
-              disabled={cancelRecord.isPending || cancelReason.trim() === ""}
-              onClick={() => void handleCancel()}
-              type="button"
-              variant="destructive"
-            >
-              {cancelRecord.isPending ? "Cancelando…" : "Confirmar cancelación"}
-            </Button>
-          </div>
-        </section>
+        <RecordCancelPanel
+          error={cancelError}
+          isPending={cancelRecord.isPending}
+          onBack={closeCancelPanel}
+          onConfirm={() => void handleCancel()}
+          onReasonChange={setCancelReason}
+          reason={cancelReason}
+        />
       )}
 
       {banner !== null && <RecordDetailBanner banner={banner} />}
@@ -304,7 +272,6 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
           title="Confirmar registro"
         />
       )}
-
     </section>
   );
 }

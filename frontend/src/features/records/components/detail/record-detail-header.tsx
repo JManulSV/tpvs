@@ -2,9 +2,9 @@ import { Ban, Check, ChevronLeft, Image as ImageIcon, Pencil, RefreshCw, RotateC
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import type { RecordActionPermissions } from "../record-actions";
-import { getRecordPeriodLine, getRecordTitle } from "../record-detail-utils";
-import type { RecordListItem } from "../types";
+import type { RecordActionPermissions } from "../../utils/actions";
+import { getRecordPeriodLine, getRecordTitle } from "../../utils/detail";
+import type { RecordListItem } from "../../types";
 
 const actionClass = "h-11 flex-1 md:h-10 md:flex-none";
 

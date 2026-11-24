@@ -7,8 +7,8 @@ import { useDelivery } from "@/features/deliveries/hooks/use-deliveries";
 import type { Delivery } from "@/features/deliveries/types";
 import { centsToAmount, denominationsTotalCents } from "@/features/deliveries/utils";
 import { formatDate, formatMoney } from "@/lib/format";
-import { getDeliveryCardState, type DeliveryCardState } from "../record-detail-utils";
-import type { RecordListItem } from "../types";
+import { getDeliveryCardState, type DeliveryCardState } from "../../utils/detail";
+import type { RecordListItem } from "../../types";
 
 const chipClass: Record<DeliveryCardState["tone"], string> = {
   ready: "bg-status-confirmed-bg text-status-confirmed",

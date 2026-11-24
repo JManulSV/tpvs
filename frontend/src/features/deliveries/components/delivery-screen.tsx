@@ -8,7 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney } from "@/lib/format";
 import { useRecord } from "@/features/records/hooks/use-records";
-import { getRecordPeriodLine } from "@/features/records/record-detail-utils";
+import { getRecordPeriodLine } from "@/features/records/utils/detail";
 import type { RecordListItem } from "@/features/records/types";
 import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";

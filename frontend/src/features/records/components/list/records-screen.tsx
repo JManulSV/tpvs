@@ -3,17 +3,18 @@
 import { useSearchParams } from "next/navigation";
 import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
+import { LoadError } from "@/components/load-error";
 import { Button } from "@/components/ui/button";
 import { useResetOnHide } from "@/hooks/use-reset-on-hide";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
-import { useRecords } from "../hooks/use-records";
-import { parseRecordListQuery, recordListHref, type RecordListQuery } from "../record-filters";
-import { hasActiveRecordFilters } from "../record-list-utils";
+import { useRecords } from "../../hooks/use-records";
+import { parseRecordListQuery, recordListHref, type RecordListFilters, type RecordListQuery } from "../../utils/filters";
+import { hasActiveRecordFilters } from "../../utils/list";
 import { RecordsCardList } from "./records-card-list";
 import { RecordsPagination } from "./records-pagination";
 import { RecordsSkeleton } from "./records-skeleton";
 import { RecordsTable } from "./records-table";
-import { RecordsFilterBar, type RecordListFilters } from "./records-filter-bar";
+import { RecordsFilterBar } from "./records-filter-bar";
 
 const PAGE_SIZE = 15;
 
@@ -104,13 +105,10 @@ export function RecordsScreen({ role }: { role: "EDITOR" | "VIEWER" }) {
         </div>
       )}
       {query.isError && (
-        <div
-          className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-6 text-center shadow-card"
-          role="alert"
-        >
-          <p>{query.error.message || "No se pudieron cargar los registros."}</p>
-          <Button onClick={() => void query.refetch()} type="button" variant="outline">Reintentar</Button>
-        </div>
+        <LoadError
+          message={query.error.message || "No se pudieron cargar los registros."}
+          onRetry={() => void query.refetch()}
+        />
       )}
       {query.isSuccess && rows.length === 0 && (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card px-6 py-14 text-center shadow-card">

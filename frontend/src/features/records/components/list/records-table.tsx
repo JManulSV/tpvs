@@ -17,8 +17,8 @@ import {
   getRecordRowAction,
   getRecordRowLabel,
   getRecordSubtitle,
-} from "../record-list-utils";
-import type { RecordListItem } from "../types";
+} from "../../utils/list";
+import type { RecordListItem } from "../../types";
 
 const headClass =
   "h-10 bg-muted px-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground first:px-6 last:px-6";

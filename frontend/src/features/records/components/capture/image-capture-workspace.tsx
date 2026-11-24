@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRecord } from "../hooks/use-records";
+import { useRecord } from "../../hooks/use-records";
 import { ImageCapturePanel } from "./image-capture-panel";
 import { ImageReadingStatus } from "./image-reading-status";
-import { RecordEditor } from "./record-editor";
+import { RecordEditor } from "../record-editor";
 
-// Alta desde imagen: subir a la izquierda y, tras el 202, leer y revisar lado a lado.
+/** Image capture: upload on the left; after the 202, reading and review side by side. */
 export function ImageCaptureWorkspace({ onUploaded }: { onUploaded?: () => void }) {
   const [recordId, setRecordId] = useState<number | null>(null);
   const [panelKey, setPanelKey] = useState(0);

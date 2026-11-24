@@ -1,5 +1,5 @@
 import { formatDateTime } from "@/lib/format";
-import type { AiProcessingStatus, RecordListItem } from "../types";
+import type { AiProcessingStatus, RecordListItem } from "../../types";
 
 const statusLabels: Record<AiProcessingStatus, string> = {
   PENDING: "En cola",
@@ -18,7 +18,7 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-// Solo para registros IMAGE. Muestra la última extracción; no hay lista de intentos (SPEC 20).
+/** IMAGE records only. Shows the latest extraction, not a list of attempts. */
 export function RecordProcessingCard({ record }: { record: RecordListItem }) {
   const processing = record.ai_processing;
 

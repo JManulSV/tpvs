@@ -1,8 +1,8 @@
 import { formatDate, formatMoney } from "@/lib/format";
-import { getFieldChip, getIssueCodes } from "../record-capture-utils";
+import { getFieldChip, getIssueCodes } from "../utils/capture";
 import type { FieldChip, RecordDetail, RecordDetailView } from "../types";
-import { RecordDetailBanner } from "./record-detail-banner";
-import { RecordDetailHero } from "./record-detail-hero";
+import { RecordDetailBanner } from "./detail/record-detail-banner";
+import { RecordDetailHero } from "./detail/record-detail-hero";
 
 const chipStyles: Record<FieldChip, { label: string; className: string }> = {
   HIGH_CONFIDENCE: { label: "Alta confianza", className: "bg-status-confirmed-bg text-status-confirmed" },
@@ -40,7 +40,6 @@ export function RecordEditor({ canEdit, record }: { canEdit: boolean; record: Re
     ? record.ai_processing?.normalized_extraction?.record.company_name?.value ?? null
     : null;
 
-  // Solo se usa para registros IMAGE en NEEDS_REVIEW, que es el único caso donde se muestra.
   const chipFor = (value: unknown, path: string) => getFieldChip({
     value,
     issueCodes: getIssueCodes(issues, path),
@@ -103,7 +102,7 @@ function MovementReviewCard({
   chipFor: (value: unknown, path: string) => FieldChip | null;
   detail: RecordDetail;
 }) {
-  // Los issues usan el índice de la extracción (0 a N-1); order es 1 a N.
+  // Issues use the extraction index (0 to N-1); `order` is 1 to N.
   const path = (field: string) => `details.${detail.order - 1}.${field}`;
 
   return (

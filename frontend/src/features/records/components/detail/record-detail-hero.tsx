@@ -1,6 +1,6 @@
 import { formatMoney } from "@/lib/format";
-import { getHeroNote } from "../record-detail-utils";
-import type { RecordListItem } from "../types";
+import { getHeroNote } from "../../utils/detail";
+import type { RecordListItem } from "../../types";
 
 const overlineClass = "text-[11px]/4 font-semibold tracking-[0.08em] uppercase opacity-85";
 

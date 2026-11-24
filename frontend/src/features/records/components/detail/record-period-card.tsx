@@ -1,6 +1,6 @@
 import { formatDate } from "@/lib/format";
-import { getReportMonthName } from "../record-detail-utils";
-import type { RecordListItem } from "../types";
+import { getReportMonthName } from "../../utils/detail";
+import type { RecordListItem } from "../../types";
 
 function Field({ label, tabular = false, value }: { label: string; tabular?: boolean; value: string }) {
   return (

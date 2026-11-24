@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { RecordDetail } from "../types";
+import type { RecordDetail } from "../../types";
 
 const labelClass = "text-[11px]/4 font-semibold tracking-[0.08em] uppercase";
 const headClass = `${labelClass} h-auto px-4 py-3 text-muted-foreground`;

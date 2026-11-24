@@ -6,7 +6,7 @@ import {
   getRecordSubtitle,
   hasActiveRecordFilters,
   selectValueToFilter,
-} from "@/features/records/record-list-utils";
+} from "@/features/records/utils/list";
 import { recordStatuses, type RecordListItem } from "@/features/records/types";
 
 function detail(id: number, affiliation: string | null, branch: string | null) {

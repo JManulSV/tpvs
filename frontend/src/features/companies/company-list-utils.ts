@@ -1,5 +1,5 @@
 import type { AuthUser } from "@/features/auth/types";
-import { recordListHref } from "@/features/records/record-filters";
+import { recordListHref } from "@/features/records/utils/filters";
 import { formatShortDate } from "@/lib/format";
 import type { Company } from "./types";
 

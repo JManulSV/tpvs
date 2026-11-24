@@ -9,8 +9,8 @@ import {
   getRecordRowAction,
   getRecordRowLabel,
   getRecordSubtitle,
-} from "../record-list-utils";
-import type { RecordListItem } from "../types";
+} from "../../utils/list";
+import type { RecordListItem } from "../../types";
 
 /** Narrow-container list. Each card is fully clickable through the company link's overlay. */
 export function RecordsCardList({ records, role }: { records: RecordListItem[]; role: AuthUser["role"] }) {

@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { SidebarMenuBadge } from "@/components/ui/sidebar"
-import { useRecords } from "../hooks/use-records"
+import { SidebarMenuBadge } from "@/components/ui/sidebar";
+import { useRecords } from "../hooks/use-records";
 
 type NeedsReviewNavBadgeProps = {
   variant?: "sidebar" | "bottom-nav"
@@ -10,14 +10,14 @@ type NeedsReviewNavBadgeProps = {
 export function NeedsReviewNavBadge({
   variant = "sidebar",
 }: NeedsReviewNavBadgeProps) {
-  const { data } = useRecords({ status: "NEEDS_REVIEW", per_page: 1 })
-  const total = data?.meta.total
+  const { data } = useRecords({ status: "NEEDS_REVIEW", per_page: 1 });
+  const total = data?.meta.total;
 
   if (total === undefined || total <= 0) {
-    return null
+    return null;
   }
 
-  const label = `${total} registros por revisar`
+  const label = `${total} registros por revisar`;
 
   if (variant === "bottom-nav") {
     return (
@@ -27,7 +27,7 @@ export function NeedsReviewNavBadge({
       >
         {total}
       </span>
-    )
+    );
   }
 
   return (
@@ -37,5 +37,5 @@ export function NeedsReviewNavBadge({
     >
       {total}
     </SidebarMenuBadge>
-  )
+  );
 }

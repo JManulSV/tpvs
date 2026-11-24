@@ -1,5 +1,5 @@
 import { CircleAlert, Info } from "lucide-react";
-import type { RecordBanner } from "../record-detail-utils";
+import type { RecordBanner } from "../../utils/detail";
 
 const toneClass: Record<RecordBanner["tone"], string> = {
   info: "bg-accent text-accent-foreground",

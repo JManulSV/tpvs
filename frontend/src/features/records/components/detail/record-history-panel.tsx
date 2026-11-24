@@ -2,77 +2,12 @@
 
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { formatDateTime, formatMoney } from "@/lib/format";
-import { recordStatusMeta, type RecordStatus } from "@/lib/status";
-import { useRecordHistory } from "../hooks/use-records";
-import { getHistoryDotClass } from "../record-detail-utils";
+import { formatDateTime } from "@/lib/format";
+import { useRecordHistory } from "../../hooks/use-records";
+import { getHistoryDotClass } from "../../utils/detail";
+import { historyFieldLabel, historyValue } from "../../utils/history";
 
 const PAGE_SIZE = 20;
-
-const eventLabels: Record<string, string> = {
-  record_created: "Registro creado",
-  record_updated: "Registro actualizado",
-  document_generated: "Documento Word generado",
-};
-
-const recordFieldLabels: Record<string, string> = {
-  company: "Empresa",
-  year: "Año",
-  week: "Semana",
-  week_start_date: "Inicio de semana",
-  week_end_date: "Fin de semana",
-  status: "Estado",
-};
-
-const detailFieldLabels: Record<string, string> = {
-  order: "Orden",
-  affiliation: "Afiliación",
-  branch: "Sucursal",
-  income: "Ingreso",
-  commission_percentage: "Porcentaje de comisión",
-  commission: "Comisión",
-  return_amount: "Retorno",
-};
-
-const deliveryFieldLabels: Record<string, string> = {
-  delivery_date: "Fecha de entrega",
-  delivered_by_name: "Entrega realizada por",
-  received_by_name: "Recibido por",
-  prepared_return_amount: "Importe preparado",
-};
-
-const denominationPattern = /^denominations\[(\d+(?:\.\d{1,2})?)\]$/;
-
-export function fieldLabel(fieldName: string): string {
-  if (deliveryFieldLabels[fieldName] !== undefined) return deliveryFieldLabels[fieldName];
-
-  const denominationMatch = denominationPattern.exec(fieldName);
-   if (denominationMatch !== null) return `Denominación ${formatMoney(denominationMatch[1])}`;
-
-  if (eventLabels[fieldName] !== undefined) return eventLabels[fieldName];
-  if (recordFieldLabels[fieldName] !== undefined) return recordFieldLabels[fieldName];
-
-  const detailMatch = /^details\[(\d+)\]\.(.+)$/.exec(fieldName);
-  if (detailMatch === null) return fieldName;
-
-  const [, order, field] = detailMatch;
-  return `Movimiento ${order} · ${detailFieldLabels[field] ?? field}`;
-}
-
-function displayValue(fieldName: string, value: string | null): string {
-  if (value === null) return "—";
-  if (fieldName === "status" || fieldName === "record_created") {
-    return recordStatusMeta[value as RecordStatus]?.label ?? value;
-  }
-  if (fieldName === "prepared_return_amount") return formatMoney(value);
-  if (denominationPattern.test(fieldName)) return value;
-  if (fieldName.endsWith(".income") || fieldName.endsWith(".commission") || fieldName.endsWith(".return_amount")) {
-    return formatMoney(value);
-  }
-  if (fieldName.endsWith(".commission_percentage")) return `${value}%`;
-
-  return value;
-}
 
 function HistoryCard({ children }: { children: ReactNode }) {
   return (
@@ -108,7 +43,14 @@ export function RecordHistoryPanel({ recordId }: { recordId: number }) {
       <HistoryCard>
         <div className="space-y-3" role="alert">
           <p className="text-sm text-status-error">{historyQuery.error.message}</p>
-          <Button className="min-h-11 md:min-h-10" onClick={() => void historyQuery.refetch()} type="button" variant="outline">Reintentar</Button>
+          <Button
+            className="min-h-11 md:min-h-10"
+            onClick={() => void historyQuery.refetch()}
+            type="button"
+            variant="outline"
+          >
+            Reintentar
+          </Button>
         </div>
       </HistoryCard>
     );
@@ -134,13 +76,14 @@ export function RecordHistoryPanel({ recordId }: { recordId: number }) {
                 />
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
-                    <p className="text-sm font-semibold">{fieldLabel(entry.field_name)}</p>
+                    <p className="text-sm font-semibold">{historyFieldLabel(entry.field_name)}</p>
                     <p className="text-xs/4 text-muted-foreground">
                       {entry.user.name} · {formatDateTime(entry.created_at)}
                     </p>
                   </div>
                   <p className="text-sm tabular-nums break-words">
-                    {displayValue(entry.field_name, entry.previous_value)} → {displayValue(entry.field_name, entry.new_value)}
+                    {historyValue(entry.field_name, entry.previous_value)} →{" "}
+                    {historyValue(entry.field_name, entry.new_value)}
                   </p>
                   {entry.reason !== "" && (
                     <p className="text-sm text-muted-foreground">Motivo: {entry.reason}</p>

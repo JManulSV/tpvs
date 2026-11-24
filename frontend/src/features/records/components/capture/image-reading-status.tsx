@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../hooks/use-records";
-import { getAiReadingView } from "../record-capture-utils";
-import { recordsService } from "../services/records.service";
-import { RecordsApiError } from "../types";
-import { RecordActionDialog } from "./record-action-dialog";
+import { useCancelRecord, useConfirmRecord, useRecord, useRetryAiProcessing } from "../../hooks/use-records";
+import { getAiReadingView } from "../../utils/capture";
+import { recordsService } from "../../services/records.service";
+import { RecordsApiError } from "../../types";
+import { RecordActionDialog } from "../record-action-dialog";
 
 const zoomLevels = [0.75, 1, 1.5, 2, 3];
 
@@ -17,7 +17,7 @@ export function ImageReadingStatus({ onStartNew, recordId }: { onStartNew: () =>
   const cancelRecord = useCancelRecord();
   const retryAiProcessing = useRetryAiProcessing();
 
-  // Reloj del cliente solo para el tiempo transcurrido; no se guarda en el navegador.
+  // Client clock for the elapsed time only; nothing is stored in the browser.
   const [startedAt] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
   const [zoomIndex, setZoomIndex] = useState(1);

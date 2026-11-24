@@ -1,7 +1,7 @@
 import type { AuthUser } from "@/features/auth/types";
 import { formatDate } from "@/lib/format";
 import { recordStatusMeta } from "@/lib/status";
-import type { RecordListItem } from "./types";
+import type { RecordListItem } from "../types";
 
 type UserRole = AuthUser["role"];
 

@@ -3,9 +3,9 @@
 import { ImageIcon, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { RecordImageCard } from "@/features/records/components/record-image-card";
+import { RecordImageCard } from "@/features/records/components/detail/record-image-card";
 import { useAttachRecordImage } from "@/features/records/hooks/use-records";
-import { validateImageFile } from "@/features/records/record-capture-utils";
+import { validateImageFile } from "@/features/records/utils/capture";
 import { RecordsApiError, type RecordListItem } from "@/features/records/types";
 
 const acceptedImageTypes = "image/jpeg,image/png,image/webp";

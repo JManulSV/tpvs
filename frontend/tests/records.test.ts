@@ -9,8 +9,8 @@ vi.mock("@/lib/api-client", () => ({
 }));
 
 import { apiClient } from "@/lib/api-client";
-import { getRecordActionPermissions } from "@/features/records/record-actions";
-import { parseRecordListQuery, recordListHref } from "@/features/records/record-filters";
+import { getRecordActionPermissions } from "@/features/records/utils/actions";
+import { parseRecordListQuery, recordListHref } from "@/features/records/utils/filters";
 import { manualRecordFormSchema, updateManualRecordFormSchema } from "@/features/records/schemas/record.schema";
 import { recordsService } from "@/features/records/services/records.service";
 import { RecordsApiError, type RecordSource, type RecordStatus } from "@/features/records/types";

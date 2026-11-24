@@ -4,7 +4,7 @@ import {
   type RecordListParams,
   type RecordSource,
   type RecordStatus,
-} from "./types";
+} from "../types";
 
 export type RecordListFilters = Omit<RecordListParams, "search" | "page" | "per_page">;
 

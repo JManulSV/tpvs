@@ -8,7 +8,7 @@ import {
   getRecordPeriodLine,
   getRecordTitle,
   getReportMonthName,
-} from "@/features/records/record-detail-utils";
+} from "@/features/records/utils/detail";
 import { recordStatuses, type RecordListItem } from "@/features/records/types";
 
 function record(overrides: Partial<RecordListItem> = {}): RecordListItem {

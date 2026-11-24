@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useRef, useState, type DragEvent } from "react";
+import { useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { formatFileSize } from "@/lib/format";
-import { useCreateRecordFromImage } from "../hooks/use-records";
-import { getUploadProgressLabel, validateImageFile } from "../record-capture-utils";
-import { RecordsApiError, type ImageCaptureState } from "../types";
+import { useCreateRecordFromImage } from "../../hooks/use-records";
+import { getUploadProgressLabel, validateImageFile } from "../../utils/capture";
+import { RecordsApiError, type ImageCaptureState } from "../../types";
 
 const networkErrorMessage = "No se pudo subir la imagen. Revisa tu conexión e inténtalo de nuevo.";
 
@@ -24,7 +24,7 @@ export function ImageCapturePanel({ onUploaded }: { onUploaded: (recordId: numbe
   const file = state.kind === "empty" ? null : state.file;
   const isUploading = state.kind === "uploading";
 
-  // Una URL temporal por archivo; el navegador la libera al salir de la página.
+  // One object URL per file; the browser releases it when the page unloads.
   const previewUrl = useMemo(() => (file === null ? null : URL.createObjectURL(file)), [file]);
 
   function handleFile(nextFile: File | null) {
@@ -39,7 +39,7 @@ export function ImageCapturePanel({ onUploaded }: { onUploaded: (recordId: numbe
     setState({ kind: "selected", file: nextFile });
   }
 
-  function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
     handleFile(event.target.files?.[0] ?? null);
     event.target.value = "";
   }
@@ -107,7 +107,7 @@ export function ImageCapturePanel({ onUploaded }: { onUploaded: (recordId: numbe
         <div className="space-y-4 rounded-md border p-4">
           <div className="flex gap-4">
             {previewUrl !== null && (
-              // eslint-disable-next-line @next/next/no-img-element -- miniatura local (blob URL)
+              // eslint-disable-next-line @next/next/no-img-element -- local blob URL preview
               <img alt={`Vista previa de ${file.name}`} className="h-28 w-28 rounded-md border object-cover" src={previewUrl} />
             )}
             <div className="min-w-0 space-y-1">

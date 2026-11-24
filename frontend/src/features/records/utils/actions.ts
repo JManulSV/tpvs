@@ -1,4 +1,4 @@
-import type { RecordSource, RecordStatus } from "./types";
+import type { RecordSource, RecordStatus } from "../types";
 
 export type RecordActionPermissions = {
   canCorrect: boolean;

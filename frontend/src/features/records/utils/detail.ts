@@ -2,7 +2,7 @@ import { getMonthName } from "@/features/dashboard/utils";
 import type { Delivery } from "@/features/deliveries/types";
 import { formatDate } from "@/lib/format";
 import type { RecordStatus } from "@/lib/status";
-import type { RecordListItem } from "./types";
+import type { RecordListItem } from "../types";
 
 export type RecordBanner = {
   tone: "info" | "review" | "cancel" | "error";
