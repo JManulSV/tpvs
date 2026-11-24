@@ -47,6 +47,12 @@ services:
     command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--timeout=330"]
 
   tpvs-frontend:
+    build:
+      context: ./frontend
+      target: dev
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     environment:
       LARAVEL_API_URL: http://tpvs-backend:8000
     volumes:
