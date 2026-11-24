@@ -6,7 +6,7 @@ import { formatMoney } from "@/lib/format";
 import type { DashboardSummary } from "../types";
 import { getMonthName, getReviewHeadline } from "../utils";
 
-// Same decorative pattern as the login hero (SPEC 17), shown from md.
+// Same decorative pattern as the login hero, shown from md.
 const dotPatternStyle: CSSProperties = {
   backgroundImage: "radial-gradient(circle, var(--brand-sky) 1.5px, transparent 1.5px)",
   backgroundSize: "28px 28px",

@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import type { ReactNode } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -15,9 +15,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { getInitials, getRoleLabel } from "./user-display"
-import { appNavItems, isNavItemActive } from "./nav-items"
+} from "@/components/ui/sidebar";
+import { getInitials, getRoleLabel } from "./user-display";
+import { appNavItems, isNavItemActive } from "./nav-items";
 
 type AppSidebarProps = {
   user: {
@@ -33,12 +33,12 @@ function SidebarNavigation({
   recordsBadge,
   sidebarLogout,
 }: AppSidebarProps) {
-  const pathname = usePathname()
-  const { isMobile, setOpenMobile } = useSidebar()
+  const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   function closeMobileSidebar() {
     if (isMobile) {
-      setOpenMobile(false)
+      setOpenMobile(false);
     }
   }
 
@@ -63,8 +63,8 @@ function SidebarNavigation({
             <SidebarGroupContent>
               <SidebarMenu className="gap-1">
                 {appNavItems.map((item) => {
-                  const isActive = isNavItemActive(pathname, item.href)
-                  const Icon = item.icon
+                  const isActive = isNavItemActive(pathname, item.href);
+                  const Icon = item.icon;
 
                   return (
                     <SidebarMenuItem key={item.id}>
@@ -87,7 +87,7 @@ function SidebarNavigation({
                       </SidebarMenuButton>
                       {item.id === "records" ? recordsBadge : null}
                     </SidebarMenuItem>
-                  )
+                  );
                 })}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -118,9 +118,9 @@ function SidebarNavigation({
         <SidebarMenu>{sidebarLogout}</SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
 
 export function AppSidebar(props: AppSidebarProps) {
-  return <SidebarNavigation {...props} />
+  return <SidebarNavigation {...props} />;
 }

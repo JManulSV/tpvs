@@ -167,7 +167,7 @@ export function IncludedRecords({
         {records.map((record) => (
           <li className="group relative flex items-center gap-3 px-6 py-4 transition-colors hover:bg-muted/50 focus-within:bg-muted/50" key={record.id}>
             <div className="min-w-0 flex-1 space-y-1">
-              {/* El enlace cubre toda la tarjeta: cualquier toque abre el registro. */}
+              {/* The link overlay makes the whole card open the record. */}
               <Link
                 aria-label={`Abrir registro de ${record.company.name}, semana ${record.week ?? "sin semana"}`}
                 className="block truncate font-semibold after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
@@ -200,7 +200,7 @@ export function IncludedRecords({
             {records.map((record) => (
               <tr className="group relative cursor-pointer border-b transition-colors hover:bg-muted/50 focus-within:bg-muted/50" key={record.id}>
                 <td className="h-14 px-6 font-semibold">
-                  {/* El enlace cubre toda la fila: cualquier clic en la fila abre el registro. */}
+                  {/* The link overlay makes the whole row open the record. */}
                   <Link
                     aria-label={`Abrir registro de ${record.company.name}, semana ${record.week ?? "sin semana"}`}
                     className="font-semibold after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"

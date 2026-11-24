@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { LogOut } from "lucide-react"
+import { LogOut } from "lucide-react";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { useLogout } from "../hooks/use-logout"
+} from "@/components/ui/sidebar";
+import { useLogout } from "../hooks/use-logout";
 
 export function LogoutNavItem() {
-  const { logout, isLoggingOut, errorMessage } = useLogout()
+  const { logout, isLoggingOut, errorMessage } = useLogout();
 
   return (
     <SidebarMenuItem>
@@ -29,5 +29,5 @@ export function LogoutNavItem() {
         </p>
       )}
     </SidebarMenuItem>
-  )
+  );
 }
