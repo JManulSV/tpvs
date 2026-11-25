@@ -16,7 +16,7 @@ class CreateManualRecordTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_creates_a_confirmed_manual_record_with_calculated_details_and_history(): void
+    public function test_it_creates_a_confirmed_manual_record_with_calculated_totals_and_history(): void
     {
         $user = User::factory()->create();
         $company = Company::factory()->create();
@@ -26,12 +26,17 @@ class CreateManualRecordTest extends TestCase
         $this->assertSame(RecordSource::MANUAL, $record->source);
         $this->assertSame(RecordStatus::CONFIRMED, $record->status);
         $this->assertSame('2026-09-14', $record->fresh()->week_start_date->toDateString());
-        $this->assertDatabaseHas('record_details', [
-            'record_id' => $record->id,
-            'income' => '1000.00',
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
             'commission_percentage' => '12.50',
             'commission' => '125.00',
             'return_amount' => '875.00',
+        ]);
+        $this->assertDatabaseHas('record_details', [
+            'record_id' => $record->id,
+            'affiliation' => 'AFF-1',
+            'bank' => 'LUUM',
+            'income' => '1000.00',
             'order' => 1,
         ]);
         $this->assertDatabaseHas('histories', [
@@ -45,13 +50,13 @@ class CreateManualRecordTest extends TestCase
     {
         $user = User::factory()->create();
         $payload = $this->payload(Company::factory()->create()->id);
-        $payload['details'][0] = ['affiliation' => 'AFF-1', 'branch' => 'Centro', 'income' => '100.00', 'commission' => '150.00'];
+        $payload['commission_percentage'] = '100.01';
 
         try {
             app(CreateManualRecord::class)->handle($payload, $user->id);
             $this->fail('Expected a validation error.');
         } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('details.0.commission', $exception->errors());
+            $this->assertArrayHasKey('commission_percentage', $exception->errors());
         }
 
         $this->assertSame(0, Record::query()->count());
@@ -67,8 +72,9 @@ class CreateManualRecordTest extends TestCase
             'week' => 38,
             'week_start_date' => '2026-09-14',
             'week_end_date' => '2026-09-20',
+            'commission_percentage' => '12.5',
             'details' => [
-                ['affiliation' => 'AFF-1', 'branch' => 'Centro', 'income' => '1000.00', 'commission_percentage' => '12.5'],
+                ['affiliation' => 'AFF-1', 'bank' => 'LUUM', 'income' => '1000.00'],
             ],
         ];
     }

@@ -48,6 +48,21 @@ class ConfirmRecordTest extends TestCase
         $this->assertDatabaseCount('histories', 0);
     }
 
+    public function test_a_record_without_a_commission_percentage_is_blocked(): void
+    {
+        $record = $this->recordInReview(commission: '100.00');
+        $record->forceFill(['commission_percentage' => null])->save();
+
+        try {
+            app(ConfirmRecord::class)->handle($record, User::factory()->create()->id);
+            $this->fail('Expected the confirmation to be blocked.');
+        } catch (RecordConfirmationBlocked $blocked) {
+            $this->assertSame(['reason' => 'BUSINESS_VALIDATION_FAILED'], $blocked->responseDetails());
+        }
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+    }
+
     public function test_an_image_record_without_its_image_is_blocked(): void
     {
         $record = $this->recordInReview(commission: '100.00');
@@ -60,14 +75,16 @@ class ConfirmRecordTest extends TestCase
 
     private function recordInReview(string $commission): Record
     {
-        $record = Record::factory()->create(['status' => RecordStatus::NEEDS_REVIEW]);
-        $record->details()->create([
-            'affiliation' => 'AFF-1',
-            'branch' => 'Centro',
-            'income' => '1000.00',
+        $record = Record::factory()->create([
+            'status' => RecordStatus::NEEDS_REVIEW,
             'commission_percentage' => '10.00',
             'commission' => $commission,
             'return_amount' => '900.00',
+        ]);
+        $record->details()->create([
+            'affiliation' => 'AFF-1',
+            'bank' => 'LUUM',
+            'income' => '1000.00',
             'order' => 1,
         ]);
 

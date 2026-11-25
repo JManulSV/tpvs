@@ -30,23 +30,24 @@ class UpdateRecordRequest extends FormRequest
             'week' => ['required', 'integer', 'between:1,53'],
             'week_start_date' => ['required', 'date'],
             'week_end_date' => ['required', 'date'],
+            'commission_percentage' => ['required', 'string', 'regex:/^\d{1,3}(?:\.\d{1,2})?$/', 'numeric', 'between:0,100'],
             'details' => ['required', 'array', 'min:1'],
             'details.*' => ['required', 'array'],
             'details.*.affiliation' => ['required', 'string', 'max:255'],
-            'details.*.branch' => ['required', 'string', 'max:255'],
+            'details.*.bank' => ['required', 'string', 'max:255'],
             'details.*.income' => ['required', 'string', 'regex:/^\d{1,10}(?:\.\d{1,2})?$/'],
-            'details.*.commission_percentage' => [
-                'sometimes', 'nullable', 'string', 'regex:/^\d{1,3}(?:\.\d{1,2})?$/', 'numeric', 'between:0,100',
-            ],
-            'details.*.commission' => [
-                'sometimes', 'nullable', 'string', 'regex:/^\d{1,10}(?:\.\d{1,2})?$/',
-            ],
             'reason' => ['required', 'string', 'max:2000'],
             'source' => ['prohibited'],
             'status' => ['prohibited'],
             'affiliation' => ['missing'],
-            'branch' => ['missing'],
+            'branch' => ['prohibited'],
+            // Derived by Laravel on the Record (SPEC 27): the client never sends them.
+            'commission' => ['prohibited'],
+            'return_amount' => ['prohibited'],
             'details.*.order' => ['prohibited'],
+            'details.*.branch' => ['prohibited'],
+            'details.*.commission_percentage' => ['prohibited'],
+            'details.*.commission' => ['prohibited'],
             'details.*.return_amount' => ['prohibited'],
         ];
     }

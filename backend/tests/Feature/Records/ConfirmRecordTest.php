@@ -30,12 +30,12 @@ class ConfirmRecordTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $record->id)
             ->assertJsonPath('data.source', RecordSource::MANUAL->value)
-            ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value)
-            ->assertJsonPath('data.return_total', '95.00');
+            ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value);
 
         $this->assertDatabaseHas('records', [
             'id' => $record->id,
             'status' => RecordStatus::CONFIRMED->value,
+            'return_amount' => '95.00',
         ]);
         $this->assertDatabaseCount('histories', 1);
         $this->assertDatabaseHas('histories', [
@@ -131,7 +131,7 @@ class ConfirmRecordTest extends TestCase
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $record = $this->createRecordWithDetails();
-        $record->details()->firstOrFail()->update([
+        $record->update([
             'commission' => '6.00',
             'return_amount' => '94.00',
         ]);
@@ -173,9 +173,31 @@ class ConfirmRecordTest extends TestCase
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $record = $this->createRecordWithDetails(null, ['source' => RecordSource::IMAGE]);
-        $record->details()->firstOrFail()->update([
+        $record->update([
             'commission' => '1.00',
             'return_amount' => '99.00',
+        ]);
+        $image = Image::factory()->for($record)->create();
+        AiProcessing::factory()->for($image)->create();
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records/'.$record->id.'/confirm', [])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'RECORD_CONFIRMATION_BLOCKED')
+            ->assertJsonPath('details.reason', 'BUSINESS_VALIDATION_FAILED');
+
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_confirmation_rejects_image_record_without_commission_percentage(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, [
+            'source' => RecordSource::IMAGE,
+            'commission_percentage' => null,
+            'commission' => null,
+            'return_amount' => null,
         ]);
         $image = Image::factory()->for($record)->create();
         AiProcessing::factory()->for($image)->create();
