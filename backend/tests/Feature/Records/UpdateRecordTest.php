@@ -46,8 +46,12 @@ class UpdateRecordTest extends TestCase
             ->assertJsonMissingPath('data.affiliation')
             ->assertJsonMissingPath('data.branch')
             ->assertJsonCount(2, 'data.details')
+            ->assertJsonPath('data.commission_percentage', '10.00')
             ->assertJsonPath('data.details.0.affiliation', 'AFF-NEW-2')
+            ->assertJsonPath('data.details.0.bank', 'BBVA')
             ->assertJsonPath('data.details.0.order', 1)
+            ->assertJsonPath('data.commission_total', '25.00')
+            ->assertJsonPath('data.return_total', '225.00')
             ->assertJsonPath('data.details.1.affiliation', 'AFF-NEW-1')
             ->assertJsonPath('data.details.1.order', 2);
 
@@ -214,7 +218,9 @@ class UpdateRecordTest extends TestCase
             ->assertJsonPath('data.id', $record->id)
             ->assertJsonPath('data.source', RecordSource::MANUAL->value)
             ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
-            ->assertJsonPath('data.details.0.income', '120.00');
+            ->assertJsonPath('data.details.0.income', '120.00')
+            ->assertJsonPath('data.commission_total', '6.00')
+            ->assertJsonPath('data.return_total', '114.00');
 
         $this->assertDatabaseHas('records', [
             'id' => $record->id,

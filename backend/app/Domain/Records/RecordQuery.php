@@ -37,7 +37,7 @@ class RecordQuery
     }
 
     /**
-     * Case-insensitive match on the company name or any movement's affiliation or branch.
+     * Case-insensitive match on the company name or any movement's affiliation or bank.
      *
      * @param  Builder<Record>  $query
      */
@@ -50,7 +50,7 @@ class RecordQuery
                 ->whereRaw('LOWER(name) LIKE ?', [$term]))
                 ->orWhereHas('details', static fn (Builder $detailsQuery) => $detailsQuery
                     ->whereRaw('LOWER(affiliation) LIKE ?', [$term])
-                    ->orWhereRaw('LOWER(branch) LIKE ?', [$term]));
+                    ->orWhereRaw('LOWER(bank) LIKE ?', [$term]));
         });
     }
 }

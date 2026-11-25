@@ -32,7 +32,14 @@ class CreateManualRecordTest extends TestCase
             ->assertJsonPath('data.source', RecordSource::MANUAL->value)
             ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value)
             ->assertJsonMissingPath('data.affiliation')
-            ->assertJsonMissingPath('data.branch');
+            ->assertJsonMissingPath('data.branch')
+            ->assertJsonPath('data.commission_percentage', '6.50')
+            ->assertJsonPath('data.details.0.affiliation', '8889067')
+            ->assertJsonPath('data.details.0.bank', 'LUUM')
+            ->assertJsonPath('data.details.0.income', '236741.30')
+            ->assertJsonPath('data.income_total', '236741.30')
+            ->assertJsonPath('data.commission_total', '15388.18')
+            ->assertJsonPath('data.return_total', '221353.12');
 
         $recordId = $response->json('data.id');
         $this->assertDatabaseHas('records', [
@@ -77,7 +84,10 @@ class CreateManualRecordTest extends TestCase
                 ['affiliation' => 'AFF-SECOND', 'bank' => 'BBVA', 'income' => '100.10'],
             ], '6.50'));
 
-        $response->assertCreated();
+        $response->assertCreated()
+            ->assertJsonPath('data.income_total', '200.20')
+            ->assertJsonPath('data.commission_total', '13.01')
+            ->assertJsonPath('data.return_total', '187.19');
         $recordId = $response->json('data.id');
         $this->assertDatabaseHas('records', [
             'id' => $recordId,

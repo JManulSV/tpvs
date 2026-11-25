@@ -17,11 +17,8 @@ class RecordDetailResource extends JsonResource
         return [
             'id' => $this->getKey(),
             'affiliation' => $this->affiliation,
-            'branch' => $this->branch,
+            'bank' => $this->bank,
             'income' => $this->income,
-            'commission_percentage' => $this->commission_percentage,
-            'commission' => $this->commission,
-            'return_amount' => $this->return_amount,
             'order' => $this->order,
         ];
     }
