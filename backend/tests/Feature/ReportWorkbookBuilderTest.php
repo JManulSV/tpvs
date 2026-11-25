@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Documents\ReportWorkbookBuilder;
+use App\Domain\Records\RecordFinancials;
 use App\Domain\Reports\ReportFilters;
 use App\Domain\Reports\ReportQuery;
 use App\Enums\RecordStatus;
@@ -77,7 +78,7 @@ class ReportWorkbookBuilderTest extends TestCase
         }
     }
 
-    public function test_records_sheet_lists_one_row_per_record_without_affiliation_or_branch(): void
+    public function test_records_sheet_lists_one_row_per_record_with_its_global_percentage(): void
     {
         $scenario = $this->scenario();
 
@@ -85,47 +86,60 @@ class ReportWorkbookBuilderTest extends TestCase
 
         $this->assertSame([
             'ID registro', 'Empresa', 'Año', 'Semana', 'Inicio', 'Fin', 'Movimientos',
-            'Ingreso', 'Comisión', 'Retorno', 'Fecha de entrega',
-        ], $this->row($sheet, 1, 11));
+            'Ingreso', '% Comisión', 'Comisión', 'Retorno', 'Fecha de entrega',
+        ], $this->row($sheet, 1, 12));
         $this->assertSame(3, $sheet->getHighestRow() - 1);
 
-        $first = $this->row($sheet, 2, 11);
+        $first = $this->row($sheet, 2, 12);
         $this->assertSame($scenario['acmeWithDelivery']->getKey(), (int) $first[0]);
         $this->assertSame('Acme', $first[1]);
         $this->assertSame(2026, (int) $first[2]);
         $this->assertSame(38, (int) $first[3]);
         $this->assertSame(2, (int) $first[6]);
-        $this->assertSame([1000.0, 100.0, 900.0], array_slice($first, 7, 3));
+        $this->assertSame([1000.0, 10.0, 100.0, 900.0], array_slice($first, 7, 4));
+        $this->assertSame(DataType::TYPE_NUMERIC, $sheet->getCell('I2')->getDataType());
+        $this->assertSame('0.00', $sheet->getStyle('I2')->getNumberFormat()->getFormatCode());
 
         $this->assertSame('2026-09-07', Date::excelToDateTimeObject($sheet->getCell('E2')->getValue())->format('Y-m-d'));
         $this->assertSame('2026-09-13', Date::excelToDateTimeObject($sheet->getCell('F2')->getValue())->format('Y-m-d'));
-        $this->assertSame('2026-09-15', Date::excelToDateTimeObject($sheet->getCell('K2')->getValue())->format('Y-m-d'));
-        foreach (['E2', 'F2', 'K2'] as $coordinate) {
+        $this->assertSame('2026-09-15', Date::excelToDateTimeObject($sheet->getCell('L2')->getValue())->format('Y-m-d'));
+        foreach (['E2', 'F2', 'L2'] as $coordinate) {
             $this->assertSame('dd/mm/yyyy', $sheet->getStyle($coordinate)->getNumberFormat()->getFormatCode(), $coordinate);
             $this->assertTrue(Date::isDateTime($sheet->getCell($coordinate)), $coordinate);
         }
 
-        $this->assertNull($sheet->getCell('K3')->getValue(), 'A record without Delivery has an empty delivery date.');
-        $this->assertNotContains('Afiliación', $this->row($sheet, 1, 11));
-        $this->assertNotContains('Sucursal', $this->row($sheet, 1, 11));
+        $this->assertNull($sheet->getCell('L3')->getValue(), 'A record without Delivery has an empty delivery date.');
+        $this->assertNotContains('Afiliación', $this->row($sheet, 1, 12));
+        $this->assertNotContains('Banco', $this->row($sheet, 1, 12));
+        $this->assertNotContains('Sucursal', $this->row($sheet, 1, 12));
     }
 
-    public function test_details_sheet_lists_every_movement_with_blank_percentage_for_fixed_commissions(): void
+    public function test_details_sheet_lists_every_movement_with_affiliation_bank_and_income(): void
     {
         $scenario = $this->scenario();
 
         $sheet = $this->workbook(new ReportFilters(2026))->getSheetByName('Detalles');
 
-        $this->assertSame(
-            ['ID registro', 'Orden', 'Afiliación', 'Sucursal', 'Ingreso', '% Comisión', 'Comisión', 'Retorno'],
-            $this->row($sheet, 1, 8),
-        );
+        $this->assertSame(['ID registro', 'Orden', 'Afiliación', 'Banco', 'Ingreso'], $this->row($sheet, 1, 5));
+        $this->assertNull($sheet->getCell('F1')->getValue(), 'Commission columns no longer exist per movement.');
         $this->assertSame(4, $sheet->getHighestRow() - 1);
 
         $recordId = $scenario['acmeWithDelivery']->getKey();
-        $this->assertSame([$recordId, 1, 'AFF-1', 'Centro', 600.0, 10.0, 60.0, 540.0], $this->typed($this->row($sheet, 2, 8)));
-        $this->assertSame([$recordId, 2, 'AFF-2', 'Norte', 400.0, null, 40.0, 360.0], $this->typed($this->row($sheet, 3, 8)));
-        $this->assertSame('0.00', $sheet->getStyle('F2')->getNumberFormat()->getFormatCode());
+        $this->assertSame([$recordId, 1, 'AFF-1', 'LUUM', 600.0], $this->typed($this->row($sheet, 2, 5)));
+        $this->assertSame([$recordId, 2, 'AFF-2', 'BBVA', 400.0], $this->typed($this->row($sheet, 3, 5)));
+        $this->assertSame('$#,##0.00', $sheet->getStyle('E2')->getNumberFormat()->getFormatCode());
+    }
+
+    public function test_a_record_with_three_movements_is_not_multiplied_in_the_workbook(): void
+    {
+        // 3 × 100.10 = 300.30; 300.30 × 6.5% = 19.52 once; return 280.78.
+        $this->record(Company::factory()->create(['name' => 'Acme']), ['commission_percentage' => '6.50'], ['100.10', '100.10', '100.10']);
+
+        $spreadsheet = $this->workbook(new ReportFilters(2026));
+
+        $this->assertSame(['Acme', 300.3, 19.52, 280.78], $this->row($spreadsheet->getSheetByName('Resumen'), 2, 4));
+        $this->assertSame([300.3, 6.5, 19.52, 280.78], array_slice($this->row($spreadsheet->getSheetByName('Registros'), 2, 12), 7, 4));
+        $this->assertSame(3, $spreadsheet->getSheetByName('Detalles')->getHighestRow() - 1);
     }
 
     public function test_cash_sheet_has_one_row_per_delivery_with_all_denominations_and_totals(): void
@@ -178,7 +192,7 @@ class ReportWorkbookBuilderTest extends TestCase
     public function test_non_confirmed_records_and_other_filters_are_excluded(): void
     {
         $scenario = $this->scenario();
-        $this->record($scenario['acme'], ['status' => RecordStatus::NEEDS_REVIEW], [['9999.00', '999.00']]);
+        $this->record($scenario['acme'], ['status' => RecordStatus::NEEDS_REVIEW], ['9999.00']);
 
         $sheet = $this->workbook(new ReportFilters(2026, month: 9, companyId: $scenario['acme']->getKey()))
             ->getSheetByName('Registros');
@@ -191,8 +205,8 @@ class ReportWorkbookBuilderTest extends TestCase
     public function test_text_that_looks_like_a_formula_is_stored_as_text(): void
     {
         $company = Company::factory()->create(['name' => '=HYPERLINK("http://x","Acme")']);
-        $record = $this->record($company, [], [['10.00', '1.00']]);
-        $record->details()->update(['affiliation' => '=1+1', 'branch' => '@SUM(1)']);
+        $record = $this->record($company, [], ['10.00']);
+        $record->details()->update(['affiliation' => '=1+1', 'bank' => '@SUM(1)']);
 
         $spreadsheet = $this->workbook(new ReportFilters(2026));
 
@@ -206,7 +220,7 @@ class ReportWorkbookBuilderTest extends TestCase
     public function test_decimal_totals_keep_cent_precision(): void
     {
         $company = Company::factory()->create();
-        $this->record($company, [], [['0.10', '0.00'], ['0.20', '0.00']]);
+        $this->record($company, ['commission_percentage' => '0.00'], ['0.10', '0.20']);
 
         $sheet = $this->workbook(new ReportFilters(2026))->getSheetByName('Resumen');
 
@@ -263,17 +277,17 @@ class ReportWorkbookBuilderTest extends TestCase
             'week' => 38,
             'week_start_date' => '2026-09-07',
             'week_end_date' => '2026-09-13',
-        ], [['600.00', '60.00', '10.00'], ['400.00', '40.00', null]]);
+        ], ['600.00', '400.00']);
         $acmeWithoutDelivery = $this->record($acme, [
             'week' => 39,
             'week_start_date' => '2026-09-14',
             'week_end_date' => '2026-09-20',
-        ], [['500.00', '50.00', null]]);
+        ], ['500.00']);
         $zetaStale = $this->record($zeta, [
             'week' => 38,
             'week_start_date' => '2026-09-07',
             'week_end_date' => '2026-09-13',
-        ], [['300.00', '30.00', null]]);
+        ], ['300.00']);
 
         $delivery = Delivery::factory()->create([
             'record_id' => $acmeWithDelivery->getKey(),
@@ -297,17 +311,21 @@ class ReportWorkbookBuilderTest extends TestCase
             DeliveryCashDenomination::factory()->create(['delivery_id' => $staleDelivery->getKey(), 'value' => $value, 'quantity' => $quantity]);
         }
         // The Record return changed after the Delivery was prepared.
-        RecordDetail::query()->where('record_id', $zetaStale->getKey())->update(['return_amount' => '250.50', 'commission' => '49.50']);
+        $zetaStale->update(['commission_percentage' => '16.50', 'commission' => '49.50', 'return_amount' => '250.50']);
 
         return compact('acme', 'zeta', 'acmeWithDelivery', 'acmeWithoutDelivery', 'zetaStale');
     }
 
     /**
+     * A CONFIRMED Record at a 10.00% global commission unless $attributes say otherwise.
+     *
      * @param  array<string, mixed>  $attributes
-     * @param  list<array{0: string, 1: string, 2?: string|null}>  $movements  [income, commission, percentage]
+     * @param  list<string>  $incomes  one income per movement
      */
-    private function record(Company $company, array $attributes, array $movements): Record
+    private function record(Company $company, array $attributes, array $incomes): Record
     {
+        $percentage = $attributes['commission_percentage'] ?? '10.00';
+
         $record = Record::factory()->create(array_merge([
             'company_id' => $company->getKey(),
             'status' => RecordStatus::CONFIRMED,
@@ -315,17 +333,16 @@ class ReportWorkbookBuilderTest extends TestCase
             'week' => 38,
             'week_start_date' => '2026-09-07',
             'week_end_date' => '2026-09-13',
+            'commission_percentage' => $percentage,
+            ...RecordFinancials::attributes(RecordFinancials::calculate($incomes, $percentage)),
         ], $attributes));
 
-        foreach ($movements as $index => $movement) {
+        foreach ($incomes as $index => $income) {
             RecordDetail::factory()->create([
                 'record_id' => $record->getKey(),
                 'affiliation' => 'AFF-'.($index + 1),
-                'branch' => $index === 0 ? 'Centro' : 'Norte',
-                'income' => $movement[0],
-                'commission' => $movement[1],
-                'commission_percentage' => $movement[2] ?? null,
-                'return_amount' => number_format((float) $movement[0] - (float) $movement[1], 2, '.', ''),
+                'bank' => $index === 0 ? 'LUUM' : 'BBVA',
+                'income' => $income,
                 'order' => $index + 1,
             ]);
         }
