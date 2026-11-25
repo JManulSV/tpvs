@@ -18,11 +18,12 @@ class Record extends Model
     /** Relations that RecordResource renders. */
     private const RESOURCE_RELATIONS = ['company', 'details', 'image.aiProcessing'];
 
-    /** Aggregate attribute => detail column summed by RecordResource. */
+    /**
+     * Aggregate attribute => detail column summed by RecordResource.
+     * Commission and return live on the Record itself (SPEC 27).
+     */
     private const RESOURCE_SUMS = [
         'income_total' => 'income',
-        'commission_total' => 'commission',
-        'return_total' => 'return_amount',
     ];
 
     protected $fillable = [
@@ -33,6 +34,9 @@ class Record extends Model
         'year',
         'week_start_date',
         'week_end_date',
+        'commission_percentage',
+        'commission',
+        'return_amount',
     ];
 
     protected function casts(): array
@@ -42,6 +46,9 @@ class Record extends Model
             'status' => RecordStatus::class,
             'week_start_date' => 'date',
             'week_end_date' => 'date',
+            'commission_percentage' => 'decimal:2',
+            'commission' => 'decimal:2',
+            'return_amount' => 'decimal:2',
         ];
     }
 

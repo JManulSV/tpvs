@@ -16,11 +16,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('record_id')->constrained()->cascadeOnDelete();
             $table->string('affiliation')->nullable();
-            $table->string('branch')->nullable();
+            $table->string('bank')->nullable();
             $table->decimal('income', 12, 2)->nullable();
-            $table->decimal('commission_percentage', 5, 2)->nullable();
-            $table->decimal('commission', 12, 2)->nullable();
-            $table->decimal('return_amount', 12, 2)->nullable();
             $table->unsignedInteger('order');
             $table->timestamps();
 
@@ -31,27 +28,6 @@ return new class extends Migration
             ALTER TABLE record_details
             ADD CONSTRAINT record_details_income_check
             CHECK (income >= 0)
-        SQL);
-
-        DB::statement(<<<'SQL'
-            ALTER TABLE record_details
-            ADD CONSTRAINT record_details_commission_percentage_check
-            CHECK (
-                commission_percentage IS NULL
-                OR commission_percentage BETWEEN 0 AND 100
-            )
-        SQL);
-
-        DB::statement(<<<'SQL'
-            ALTER TABLE record_details
-            ADD CONSTRAINT record_details_commission_check
-            CHECK (commission >= 0)
-        SQL);
-
-        DB::statement(<<<'SQL'
-            ALTER TABLE record_details
-            ADD CONSTRAINT record_details_return_amount_check
-            CHECK (return_amount >= 0)
         SQL);
 
         DB::statement(<<<'SQL'
