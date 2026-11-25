@@ -9,6 +9,9 @@ use Illuminate\Validation\ValidationException;
 
 class BusinessValidator
 {
+    /** Largest amount records.commission and records.return_amount can hold: decimal(12,2). */
+    public const MAX_RECORD_TOTAL_CENTS = 999_999_999_999;
+
     /**
      * Calculate IMAGE proposal amounts with the same decimal rules used by manual records.
      * Missing source values remain provisional nulls and must be resolved during review.
@@ -74,13 +77,23 @@ class BusinessValidator
         $this->validateCommissionPercentage($record['commission_percentage'] ?? null);
 
         $details = [];
+        $total = Money::zero();
         foreach ($record['details'] as $index => $detail) {
+            $income = Money::fromDecimal($detail['income']);
+            $total = $total->add($income);
             $details[] = [
                 'affiliation' => $detail['affiliation'],
                 'bank' => $detail['bank'],
-                'income' => Money::fromDecimal($detail['income'])->toDecimal(),
+                'income' => $income->toDecimal(),
                 'order' => $index + 1,
             ];
+        }
+
+        // Each movement fits its own column, but the record's return is stored in one decimal(12,2).
+        if ($total->cents > self::MAX_RECORD_TOTAL_CENTS) {
+            throw ValidationException::withMessages([
+                'details' => ['The total income of the record may not exceed 9999999999.99.'],
+            ]);
         }
 
         return $details;

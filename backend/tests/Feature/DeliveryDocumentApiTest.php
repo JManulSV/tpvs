@@ -210,7 +210,7 @@ class DeliveryDocumentApiTest extends TestCase
     public function test_a_delivery_prepared_with_an_older_amount_is_blocked(): void
     {
         $delivery = $this->preparedDelivery();
-        RecordDetail::query()->where('record_id', $delivery->record_id)->update(['return_amount' => '1000.00']);
+        Record::query()->whereKey($delivery->record_id)->update(['return_amount' => '1000.00']);
 
         $this->assertBlocked($delivery, [
             'reason' => 'STALE_DELIVERY',
@@ -421,12 +421,15 @@ class DeliveryDocumentApiTest extends TestCase
         RecordStatus $status = RecordStatus::CONFIRMED,
         ?string $imageType = 'jpeg',
     ): Delivery {
-        $record = Record::factory()->create(['status' => $status]);
+        $record = Record::factory()->create([
+            'status' => $status,
+            'commission_percentage' => '8.00',
+            'commission' => '80.00',
+            'return_amount' => '920.00',
+        ]);
         RecordDetail::factory()->create([
             'record_id' => $record->id,
             'income' => '1000.00',
-            'commission' => '80.00',
-            'return_amount' => '920.00',
             'order' => 1,
         ]);
 
@@ -475,8 +478,8 @@ class DeliveryDocumentApiTest extends TestCase
         $record = Record::query()->with('details', 'image')->findOrFail($delivery->record_id);
 
         return json_decode(json_encode([
-            'record' => $record->only(['status', 'source', 'week', 'year', 'updated_at']),
-            'details' => $record->details->map->only(['id', 'income', 'commission', 'return_amount', 'updated_at'])->all(),
+            'record' => $record->only(['status', 'source', 'week', 'year', 'commission_percentage', 'commission', 'return_amount', 'updated_at']),
+            'details' => $record->details->map->only(['id', 'affiliation', 'bank', 'income', 'updated_at'])->all(),
             'image' => $record->image?->only(['id', 'file_path', 'mime_type', 'file_size', 'updated_at']),
             'delivery' => Delivery::query()->findOrFail($delivery->id)->only([
                 'delivery_date', 'delivered_by_name', 'received_by_name', 'prepared_return_amount', 'updated_at',

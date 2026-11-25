@@ -569,6 +569,25 @@ class UpdateRecordTest extends TestCase
         $this->assertDatabaseCount('histories', 0);
     }
 
+    public function test_record_replacement_rejects_a_total_income_that_does_not_fit_the_record(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+        $payload = $this->validManualRecordPayload($record->company_id, [
+            ['income' => '9999999999.99'],
+            ['income' => '0.01'],
+        ]);
+        $payload['reason'] = 'Total fuera de rango';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['details']);
+
+        $this->assertDatabaseCount('record_details', 1);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
     public function test_changing_only_the_percentage_recalculates_and_logs_the_percentage(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);

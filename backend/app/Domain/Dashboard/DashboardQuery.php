@@ -54,9 +54,9 @@ class DashboardQuery
         $row = $this->inMonth(Record::query(), $year, $month)
             ->toBase()
             ->where('records.status', RecordStatus::CONFIRMED->value)
-            ->leftJoin('record_details', 'record_details.record_id', '=', 'records.id')
-            ->selectRaw('count(distinct records.id) as confirmed_count')
-            ->selectRaw('round(coalesce(sum(record_details.return_amount), 0), 2) as return_total')
+            // The return lives on the Record (SPEC 27): no join, so it is never multiplied by movements.
+            ->selectRaw('count(records.id) as confirmed_count')
+            ->selectRaw('round(coalesce(sum(records.return_amount), 0), 2) as return_total')
             ->first();
 
         return [

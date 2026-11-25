@@ -268,6 +268,32 @@ class CreateManualRecordTest extends TestCase
         $this->assertDatabaseCount('record_details', 0);
     }
 
+    public function test_manual_creation_rejects_a_total_income_that_does_not_fit_the_record(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $companyId = Company::factory()->create()->id;
+
+        // Each movement is valid, but 9999999999.99 + 0.01 overflows records.return_amount.
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $this->validManualRecordPayload($companyId, [
+                ['income' => '9999999999.99'],
+                ['income' => '0.01'],
+            ], '0.00'))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['details']);
+
+        $this->assertDatabaseCount('records', 0);
+        $this->assertDatabaseCount('record_details', 0);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $this->validManualRecordPayload($companyId, [
+                ['income' => '9999999999.98'],
+                ['income' => '0.01'],
+            ], '0.00'))
+            ->assertCreated()
+            ->assertJsonPath('data.return_total', '9999999999.99');
+    }
+
     public function test_zero_and_full_percentages_are_accepted(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);

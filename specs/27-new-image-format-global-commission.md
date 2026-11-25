@@ -241,6 +241,8 @@ Respuesta (`RecordResource`): agrega `commission_percentage` en la raíz. Conser
 - **No:** migración de datos ni soporte del formato anterior. Duplicaría prompt, validación y modelo sin beneficio.
 - **Sí:** `document_number` y `completion_date` se extraen, pero solo se guardan en `AIProcessing.result`. Decisión del usuario: son datos a tener en cuenta pero aún no tienen uso. Un SPEC futuro puede promoverlos a columnas sin volver a procesar el contrato.
 - **Sí:** prompt v6 nuevo y borrar v5. Un solo prompt activo. El historial de v5 queda en git.
+- **Sí:** validar que el ingreso total del registro quepa en `decimal(12,2)` (máximo `9999999999.99`). Cada movimiento cabe en su columna, pero la comisión y el retorno del registro se guardan en una sola. En captura y edición manual responde `422` en `details`; en la extracción por IA emite un issue y deja `commission` y `return_amount` en `null`. Decisión del usuario durante la implementación (2026-11-25).
+- **No:** ampliar las columnas de `records` a `decimal(14,2)`. Se conserva el modelo de datos del SPEC.
 - **Sí:** un solo SPEC aunque toque varias capas. El cambio de esquema rompe todas a la vez; las fases permiten ejecutarlo por sesiones.
 
 ## Risks
@@ -248,6 +250,7 @@ Respuesta (`RecordResource`): agrega `commission_percentage` en la raíz. Conser
 | Risk | Mitigation |
 | --- | --- |
 | Las consultas de reportes y dashboard hacen `join` con `record_details` y multiplican `records.commission` por el número de movimientos. | Sumar los totales del registro en una subconsulta o sin `join`. Hay un criterio de aceptación con tres movimientos. |
+| La suma de varios movimientos válidos excede `decimal(12,2)` y la escritura en `records` falla con un error 500. | `BusinessValidator` rechaza el total con `422`, y la extracción por IA emite un issue y deja los totales en `null`. |
 | Un movimiento se modifica sin recalcular los totales del registro. | Todas las escrituras pasan por `CreateManualRecord`, `UpdateRecord` o `RecordExtractionService`, que usan `RecordFinancials`. `ConfirmRecord` revalida. |
 | El modelo confunde `Ingreso LUUM` o `Egreso Retorno LUUM` con movimientos porque llevan el nombre del banco. | El prompt v6 los nombra explícitamente como totales. La verificación manual con `nuevo-formato.png` lo comprueba. |
 | El modelo lee `6.5%` desde la etiqueta y lo pierde o lo confunde con el monto. | `commission_percentage` está en `record` y se transcribe como string. Si falta, queda un issue y el Editor lo captura. |

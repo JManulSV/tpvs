@@ -23,10 +23,10 @@ class ReportQueryTest extends TestCase
     {
         $company = Company::factory()->create(['name' => 'Acme']);
 
-        $confirmed = $this->record($company, ['status' => RecordStatus::CONFIRMED], [['100.00', '10.00']]);
+        $confirmed = $this->record($company, ['status' => RecordStatus::CONFIRMED], ['100.00']);
         foreach (RecordStatus::cases() as $status) {
             if ($status !== RecordStatus::CONFIRMED) {
-                $this->record($company, ['status' => $status], [['9999.00', '999.00']]);
+                $this->record($company, ['status' => $status], ['9999.00']);
             }
         }
 
@@ -44,8 +44,8 @@ class ReportQueryTest extends TestCase
     public function test_year_filter_uses_the_record_business_year(): void
     {
         $company = Company::factory()->create();
-        $this->record($company, ['year' => 2025], [['100.00', '10.00']]);
-        $current = $this->record($company, ['year' => 2026], [['200.00', '20.00']]);
+        $this->record($company, ['year' => 2025], ['100.00']);
+        $current = $this->record($company, ['year' => 2026], ['200.00']);
 
         $this->assertSame(
             [$current->getKey()],
@@ -60,7 +60,7 @@ class ReportQueryTest extends TestCase
         $crossing = $this->record($company, [
             'week_start_date' => '2026-08-28',
             'week_end_date' => '2026-09-03',
-        ], [['100.00', '10.00']]);
+        ], ['100.00']);
 
         $this->assertSame([$crossing->getKey()], $this->query()->export(new ReportFilters(2026, month: 9))->pluck('id')->all());
         $this->assertSame([], $this->query()->export(new ReportFilters(2026, month: 8))->pluck('id')->all());
@@ -74,7 +74,7 @@ class ReportQueryTest extends TestCase
             'week' => 53,
             'week_start_date' => '2026-12-28',
             'week_end_date' => '2027-01-03',
-        ], [['100.00', '10.00']]);
+        ], ['100.00']);
 
         $this->assertSame([$record->getKey()], $this->query()->export(new ReportFilters(2026))->pluck('id')->all());
         $this->assertSame([$record->getKey()], $this->query()->export(new ReportFilters(2026, month: 1))->pluck('id')->all());
@@ -86,10 +86,10 @@ class ReportQueryTest extends TestCase
         $acme = Company::factory()->create(['name' => 'Acme']);
         $other = Company::factory()->create(['name' => 'Other']);
 
-        $match = $this->record($acme, ['week' => 38, 'week_start_date' => '2026-09-07', 'week_end_date' => '2026-09-13'], [['100.00', '10.00']]);
-        $otherWeek = $this->record($acme, ['week' => 39, 'week_start_date' => '2026-09-14', 'week_end_date' => '2026-09-20'], [['100.00', '10.00']]);
-        $otherCompany = $this->record($other, ['week' => 38, 'week_start_date' => '2026-09-07', 'week_end_date' => '2026-09-13'], [['100.00', '10.00']]);
-        $otherMonth = $this->record($acme, ['week' => 38, 'week_start_date' => '2026-09-28', 'week_end_date' => '2026-10-04'], [['100.00', '10.00']]);
+        $match = $this->record($acme, ['week' => 38, 'week_start_date' => '2026-09-07', 'week_end_date' => '2026-09-13'], ['100.00']);
+        $otherWeek = $this->record($acme, ['week' => 39, 'week_start_date' => '2026-09-14', 'week_end_date' => '2026-09-20'], ['100.00']);
+        $otherCompany = $this->record($other, ['week' => 38, 'week_start_date' => '2026-09-07', 'week_end_date' => '2026-09-13'], ['100.00']);
+        $otherMonth = $this->record($acme, ['week' => 38, 'week_start_date' => '2026-09-28', 'week_end_date' => '2026-10-04'], ['100.00']);
 
         $ids = fn (ReportFilters $filters): array => $this->query()->export($filters)->pluck('id')->sort()->values()->all();
 
@@ -108,8 +108,8 @@ class ReportQueryTest extends TestCase
     public function test_totals_count_records_not_movements_and_ignore_pagination(): void
     {
         $company = Company::factory()->create();
-        $this->record($company, [], [['100.00', '10.00'], ['50.00', '5.00'], ['25.00', '2.50']]);
-        $this->record($company, [], [['200.00', '20.00']]);
+        $this->record($company, [], ['100.00', '50.00', '25.00']);
+        $this->record($company, [], ['200.00']);
 
         $filters = new ReportFilters(2026);
 
@@ -129,7 +129,9 @@ class ReportQueryTest extends TestCase
     public function test_decimal_sums_are_exact(): void
     {
         $company = Company::factory()->create();
-        $this->record($company, [], [['0.10', '0.00'], ['0.20', '0.00'], ['9999999999.99', '0.00']]);
+        // Two records: a single record's return is limited to decimal(12,2).
+        $this->record($company, ['commission_percentage' => '0.00'], ['0.10', '0.20']);
+        $this->record($company, ['commission_percentage' => '0.00'], ['9999999999.99']);
 
         $totals = $this->query()->totals(new ReportFilters(2026));
 
@@ -138,14 +140,44 @@ class ReportQueryTest extends TestCase
         $this->assertSame('10000000000.29', $totals['return_total']);
     }
 
+    public function test_a_record_with_three_movements_is_not_multiplied_in_any_total(): void
+    {
+        $company = Company::factory()->create();
+        // 3 × 100.10 = 300.30; 300.30 × 6.5% = 19.52 once; return 280.78.
+        $record = $this->record($company, ['commission_percentage' => '6.50'], ['100.10', '100.10', '100.10']);
+        $filters = new ReportFilters(2026);
+
+        $this->assertSame([
+            'records_count' => 1,
+            'income_total' => '300.30',
+            'commission_total' => '19.52',
+            'return_total' => '280.78',
+        ], $this->query()->totals($filters));
+
+        $this->assertSame([
+            'company' => ['id' => $company->getKey(), 'name' => $company->name],
+            'records_count' => 1,
+            'income_total' => '300.30',
+            'commission_total' => '19.52',
+            'return_total' => '280.78',
+        ], $this->query()->companies($filters)[0]);
+
+        $exported = $this->query()->export($filters)->sole();
+        $this->assertTrue($exported->is($record));
+        $this->assertSame(3, (int) $exported->details_count);
+        $this->assertSame('300.30', (string) $exported->income_total);
+        $this->assertSame('19.52', (string) $exported->commission_total);
+        $this->assertSame('280.78', (string) $exported->return_total);
+    }
+
     public function test_company_breakdown_is_grouped_and_ordered_by_name(): void
     {
         $zeta = Company::factory()->create(['name' => 'Zeta']);
         $alpha = Company::factory()->create(['name' => 'Alpha']);
 
-        $this->record($zeta, [], [['300.00', '30.00']]);
-        $this->record($alpha, [], [['100.00', '10.00']]);
-        $this->record($alpha, [], [['50.00', '5.00'], ['50.00', '5.00']]);
+        $this->record($zeta, [], ['300.00']);
+        $this->record($alpha, [], ['100.00']);
+        $this->record($alpha, [], ['50.00', '50.00']);
 
         $companies = $this->query()->companies(new ReportFilters(2026));
 
@@ -164,9 +196,9 @@ class ReportQueryTest extends TestCase
     public function test_period_spans_the_earliest_start_and_latest_end(): void
     {
         $company = Company::factory()->create();
-        $this->record($company, ['week_start_date' => '2026-09-07', 'week_end_date' => '2026-09-13'], [['100.00', '10.00']]);
-        $this->record($company, ['week_start_date' => '2026-08-28', 'week_end_date' => '2026-09-03'], [['100.00', '10.00']]);
-        $this->record($company, ['week_start_date' => '2026-09-14', 'week_end_date' => '2026-09-20'], [['100.00', '10.00']]);
+        $this->record($company, ['week_start_date' => '2026-09-07', 'week_end_date' => '2026-09-13'], ['100.00']);
+        $this->record($company, ['week_start_date' => '2026-08-28', 'week_end_date' => '2026-09-03'], ['100.00']);
+        $this->record($company, ['week_start_date' => '2026-09-14', 'week_end_date' => '2026-09-20'], ['100.00']);
 
         $this->assertSame(
             ['week_start_date' => '2026-08-28', 'week_end_date' => '2026-09-20'],
@@ -196,10 +228,10 @@ class ReportQueryTest extends TestCase
         $beta = Company::factory()->create(['name' => 'Beta']);
         $alpha = Company::factory()->create(['name' => 'Alpha']);
 
-        $betaWeek1 = $this->record($beta, ['week' => 1, 'week_start_date' => '2026-01-05', 'week_end_date' => '2026-01-11'], [['1.00', '0.00']]);
-        $alphaWeek5 = $this->record($alpha, ['week' => 5, 'week_start_date' => '2026-02-02', 'week_end_date' => '2026-02-08'], [['1.00', '0.00']]);
-        $alphaWeek2First = $this->record($alpha, ['week' => 2, 'week_start_date' => '2026-01-12', 'week_end_date' => '2026-01-18'], [['1.00', '0.00']]);
-        $alphaWeek2Second = $this->record($alpha, ['week' => 2, 'week_start_date' => '2026-01-12', 'week_end_date' => '2026-01-18'], [['1.00', '0.00']]);
+        $betaWeek1 = $this->record($beta, ['week' => 1, 'week_start_date' => '2026-01-05', 'week_end_date' => '2026-01-11'], ['1.00']);
+        $alphaWeek5 = $this->record($alpha, ['week' => 5, 'week_start_date' => '2026-02-02', 'week_end_date' => '2026-02-08'], ['1.00']);
+        $alphaWeek2First = $this->record($alpha, ['week' => 2, 'week_start_date' => '2026-01-12', 'week_end_date' => '2026-01-18'], ['1.00']);
+        $alphaWeek2Second = $this->record($alpha, ['week' => 2, 'week_start_date' => '2026-01-12', 'week_end_date' => '2026-01-18'], ['1.00']);
 
         $expected = [
             $alphaWeek2First->getKey(),
@@ -215,8 +247,8 @@ class ReportQueryTest extends TestCase
     public function test_pagination_returns_requested_page_with_per_record_totals_and_delivery(): void
     {
         $company = Company::factory()->create(['name' => 'Acme']);
-        $first = $this->record($company, ['week' => 1, 'week_start_date' => '2026-01-05', 'week_end_date' => '2026-01-11'], [['100.00', '10.00'], ['50.00', '5.00']]);
-        $second = $this->record($company, ['week' => 2, 'week_start_date' => '2026-01-12', 'week_end_date' => '2026-01-18'], [['200.00', '20.00']]);
+        $first = $this->record($company, ['week' => 1, 'week_start_date' => '2026-01-05', 'week_end_date' => '2026-01-11'], ['100.00', '50.00']);
+        $second = $this->record($company, ['week' => 2, 'week_start_date' => '2026-01-12', 'week_end_date' => '2026-01-18'], ['200.00']);
         Delivery::factory()->create([
             'record_id' => $second->getKey(),
             'delivery_date' => '2026-01-20',
@@ -249,7 +281,7 @@ class ReportQueryTest extends TestCase
                 'week' => $week,
                 'week_start_date' => '2026-01-05',
                 'week_end_date' => '2026-01-11',
-            ], [['100.00', '10.00'], ['50.00', '5.00']]);
+            ], ['100.00', '50.00']);
 
             $delivery = Delivery::factory()->create(['record_id' => $record->getKey(), 'prepared_return_amount' => '135.00']);
             DeliveryCashDenomination::factory()->create(['delivery_id' => $delivery->getKey(), 'value' => '100.00', 'quantity' => 1]);
