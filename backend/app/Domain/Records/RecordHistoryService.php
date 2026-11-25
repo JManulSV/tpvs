@@ -12,18 +12,18 @@ class RecordHistoryService
 {
     private const DETAIL_TEXT_FIELDS = [
         'affiliation',
-        'branch',
+        'bank',
     ];
 
     private const DETAIL_DECIMAL_FIELDS = [
         'income',
-        'commission_percentage',
-        'commission',
-        'return_amount',
     ];
 
     /**
      * Build a canonical snapshot of the record and its ordered details.
+     *
+     * The Record's commission and return_amount are left out on purpose: they
+     * are derived from the percentage and the incomes, which are tracked instead.
      *
      * @return array<string, string|null>
      */
@@ -37,6 +37,7 @@ class RecordHistoryService
             $record->week,
             $record->week_start_date,
             $record->week_end_date,
+            $record->commission_percentage,
             $record->details->map(static fn ($detail): array => $detail->toArray())->all(),
         );
     }
@@ -56,6 +57,7 @@ class RecordHistoryService
             $record['week'] ?? null,
             $record['week_start_date'] ?? null,
             $record['week_end_date'] ?? null,
+            $record['commission_percentage'] ?? null,
             $details,
         );
     }
@@ -153,6 +155,7 @@ class RecordHistoryService
         mixed $week,
         mixed $weekStartDate,
         mixed $weekEndDate,
+        mixed $commissionPercentage,
         iterable $details,
     ): array {
         $snapshot = [
@@ -161,6 +164,7 @@ class RecordHistoryService
             'week' => CanonicalValue::integer($week),
             'week_start_date' => CanonicalValue::date($weekStartDate),
             'week_end_date' => CanonicalValue::date($weekEndDate),
+            'commission_percentage' => CanonicalValue::decimal($commissionPercentage),
         ];
 
         foreach ($details as $detail) {
