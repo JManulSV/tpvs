@@ -21,6 +21,7 @@ function record(overrides: Partial<RecordListItem> = {}): RecordListItem {
     week: 38,
     week_start_date: "2026-09-09",
     week_end_date: "2026-09-15",
+    commission_percentage: "6.50",
     image: null,
     ai_processing: null,
     details: [],

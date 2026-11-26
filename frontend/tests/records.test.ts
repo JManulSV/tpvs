@@ -27,18 +27,18 @@ const validRecord = {
   week: 38,
   week_start_date: "2026-09-14",
   week_end_date: "2026-09-20",
+  commission_percentage: "6.50",
   details: [
     {
-      affiliation: "AFF-123",
-      branch: "Guadalajara",
-      income: "100.00",
-      commission_percentage: "5.00",
+      affiliation: "8889067",
+      bank: "LUUM",
+      income: "236741.30",
     },
   ],
 };
 
 describe("manual record schemas", () => {
-  it("accepts business periods and one commission mode", () => {
+  it("accepts business periods with one global percentage", () => {
     expect(manualRecordFormSchema.safeParse(validRecord).success).toBe(true);
     expect(updateManualRecordFormSchema.safeParse(validRecord).success).toBe(false);
     expect(updateManualRecordFormSchema.safeParse({ ...validRecord, reason: "Correction" }).success).toBe(true);
@@ -53,14 +53,32 @@ describe("manual record schemas", () => {
       week_start_date: "2026-09-21",
       week_end_date: "2026-09-20",
     }).success).toBe(false);
-    expect(manualRecordFormSchema.safeParse({
+    for (const income of ["", "10.001", "-1.00", "abc"]) {
+      expect(manualRecordFormSchema.safeParse({
+        ...validRecord,
+        details: [{ ...validRecord.details[0], income }],
+      }).success, income).toBe(false);
+    }
+  });
+
+  it("requires the global percentage between 0 and 100 with up to two decimals", () => {
+    expect(manualRecordFormSchema.safeParse({ ...validRecord, commission_percentage: undefined }).success).toBe(false);
+
+    for (const percentage of ["0", "6.5", "6.50", "100", "100.00"]) {
+      expect(manualRecordFormSchema.safeParse({ ...validRecord, commission_percentage: percentage }).success, percentage).toBe(true);
+    }
+    for (const percentage of ["", "100.01", "101", "-1", "6.505", "abc"]) {
+      expect(manualRecordFormSchema.safeParse({ ...validRecord, commission_percentage: percentage }).success, percentage).toBe(false);
+    }
+  });
+
+  it("does not keep per-movement commission fields", () => {
+    const parsed = manualRecordFormSchema.parse({
       ...validRecord,
-      details: [{ ...validRecord.details[0], commission: "10.00" }],
-    }).success).toBe(false);
-    expect(manualRecordFormSchema.safeParse({
-      ...validRecord,
-      details: [{ affiliation: "AFF-123", branch: "Guadalajara", income: "10.00", commission: "10.01" }],
-    }).success).toBe(false);
+      details: [{ ...validRecord.details[0], branch: "Centro", commission: "10.00", commission_percentage: "5.00" }],
+    });
+
+    expect(parsed.details[0]).toEqual({ affiliation: "8889067", bank: "LUUM", income: "236741.30" });
   });
 
   it("accepts week 53 with custom dates without ISO interpretation", () => {
@@ -73,11 +91,14 @@ describe("manual record schemas", () => {
     }).success).toBe(true);
   });
 
-  it("requires affiliation and branch on every manual movement", () => {
-    expect(manualRecordFormSchema.safeParse({
+  it("requires affiliation and bank on every manual movement", () => {
+    const result = manualRecordFormSchema.safeParse({
       ...validRecord,
-      details: [{ ...validRecord.details[0], affiliation: "", branch: "" }],
-    }).success).toBe(false);
+      details: [{ ...validRecord.details[0], affiliation: "", bank: " " }],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path.join("."))).toEqual(["details.0.affiliation", "details.0.bank"]);
   });
 });
 

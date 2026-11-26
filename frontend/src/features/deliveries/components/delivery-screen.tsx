@@ -14,12 +14,7 @@ import { getRecordPeriodLine } from "@/features/records/utils/detail";
 import type { RecordListItem } from "@/features/records/types";
 import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";
-import {
-  centsToAmount,
-  documentReturnOptions,
-  getDeliveryHeading,
-  toCents,
-} from "../utils";
+import { documentReturnOptions, getDeliveryHeading } from "../utils";
 import { DeliveryForm } from "./delivery-form";
 import { DeliveryReadOnly } from "./delivery-read-only";
 
@@ -39,10 +34,8 @@ export function DeliveryScreen({
   const delivery = deliveryQuery.data ?? null;
   const [selectedDocumentReturnAmount, setSelectedDocumentReturnAmount] = useState<string | null>(null);
   const [customerWillGiveChange, setCustomerWillGiveChange] = useState(false);
-  const currentReturnAmount = record
-    ? record.return_total
-      ?? centsToAmount(record.details.reduce((total, detail) => total + toCents(detail.return_amount), 0))
-    : "0.00";
+  // The official return is calculated and stored by Laravel on the record (SPEC 27).
+  const currentReturnAmount = record?.return_total ?? "0.00";
 
   const documentAmountOptions = documentReturnOptions(currentReturnAmount);
   const documentReturnAmount = selectedDocumentReturnAmount !== null
