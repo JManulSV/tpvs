@@ -1,6 +1,6 @@
 # SPEC 27 — Nuevo formato de imagen con comisión global
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 06, SPEC 07, SPEC 08, SPEC 09, SPEC 10, SPEC 13, SPEC 25
 > **Date:** 2026-11-25
 > **Objective:** Adaptar la base de datos, la extracción por IA, la API, la interfaz y el Excel al nuevo formato de imagen, con un porcentaje de comisión global por registro y el banco en lugar de la sucursal en cada movimiento.
@@ -203,27 +203,27 @@ Respuesta (`RecordResource`): agrega `commission_percentage` en la raíz. Conser
 
 ## Acceptance criteria
 
-- [ ] `migrate:fresh` crea `records.commission_percentage`, `records.commission`, `records.return_amount` y `record_details.bank`. `record_details` ya no tiene `branch`, `commission_percentage`, `commission` ni `return_amount`.
-- [ ] Un registro manual con un movimiento de `236741.30` y `commission_percentage=6.50` se guarda `CONFIRMED` con `commission_total="15388.18"` y `return_total="221353.12"`.
-- [ ] Con dos movimientos, la comisión se calcula una sola vez sobre la suma de ingresos, no sumando comisiones redondeadas por renglón. Lo cubre un test con montos donde ambos métodos difieren.
-- [ ] `POST` y `PUT` sin `commission_percentage` responden `422`.
-- [ ] `POST` y `PUT` con `branch`, `details.*.commission`, `details.*.commission_percentage` o `details.*.return_amount` responden `422`.
-- [ ] Cambiar el porcentaje o un ingreso con `PUT` recalcula y guarda `commission` y `return_amount` en la misma transacción. El historial registra `commission_percentage` o `details[N].income`, no la comisión derivada.
-- [ ] Cambiar el banco de un movimiento escribe un evento `details[N].bank`.
-- [ ] `GET /api/records?search=LUUM` encuentra registros por banco.
-- [ ] `GET /api/reports`, el Excel, el dashboard (`month_summary.return_total`) y `current_return_amount` de la entrega usan `records.return_amount`. Un registro con tres movimientos no triplica su comisión ni su retorno en los totales.
-- [ ] El Excel tiene `% Comisión` en «Registros» y las columnas `ID registro`, `Orden`, `Afiliación`, `Banco`, `Ingreso` en «Detalles».
-- [ ] El prompt cargado es `prompt-v6.txt` y `prompt-v5.txt` ya no existe en `backend/resources/ai/`.
-- [ ] Una extracción simulada v6 completa produce un registro `NEEDS_REVIEW` con empresa, periodo, porcentaje, movimientos con banco, y comisión y retorno calculados.
-- [ ] `document_number` y `completion_date` aparecen en `AIProcessing.result` normalizado, pero no en `records` ni en `RecordResource`.
-- [ ] Una extracción sin porcentaje deja `commission` y `return_amount` en `null`, emite un issue y no usa la comisión impresa como fallback.
-- [ ] Una comisión impresa distinta de la calculada emite un issue de discrepancia.
-- [ ] Confirmar un registro IMAGE sin porcentaje responde `409 RECORD_CONFIRMATION_BLOCKED` con `details.reason=BUSINESS_VALIDATION_FAILED`.
-- [ ] La suite backend pasa con `make test` y `pint` no reporta cambios en los archivos tocados.
-- [ ] En el frontend, la captura manual y la corrección muestran un solo campo «Comisión %» y los movimientos piden «Afiliación», «Banco» e «Ingreso». No existe la opción de comisión fija.
-- [ ] El detalle del registro muestra el banco por movimiento, el porcentaje global y los totales que devuelve la API.
-- [ ] `npm test`, `npm run lint`, `npx tsc --noEmit` y `npm run build` pasan.
-- [ ] `docs/frontend/verification-log.md` registra el checkpoint en el navegador y el resultado de procesar `test-images/nuevo-formato.png` con Ollama.
+- [x] `migrate:fresh` crea `records.commission_percentage`, `records.commission`, `records.return_amount` y `record_details.bank`. `record_details` ya no tiene `branch`, `commission_percentage`, `commission` ni `return_amount`.
+- [x] Un registro manual con un movimiento de `236741.30` y `commission_percentage=6.50` se guarda `CONFIRMED` con `commission_total="15388.18"` y `return_total="221353.12"`.
+- [x] Con dos movimientos, la comisión se calcula una sola vez sobre la suma de ingresos, no sumando comisiones redondeadas por renglón. Lo cubre un test con montos donde ambos métodos difieren.
+- [x] `POST` y `PUT` sin `commission_percentage` responden `422`.
+- [x] `POST` y `PUT` con `branch`, `details.*.commission`, `details.*.commission_percentage` o `details.*.return_amount` responden `422`.
+- [x] Cambiar el porcentaje o un ingreso con `PUT` recalcula y guarda `commission` y `return_amount` en la misma transacción. El historial registra `commission_percentage` o `details[N].income`, no la comisión derivada.
+- [x] Cambiar el banco de un movimiento escribe un evento `details[N].bank`.
+- [x] `GET /api/records?search=LUUM` encuentra registros por banco.
+- [x] `GET /api/reports`, el Excel, el dashboard (`month_summary.return_total`) y `current_return_amount` de la entrega usan `records.return_amount`. Un registro con tres movimientos no triplica su comisión ni su retorno en los totales.
+- [x] El Excel tiene `% Comisión` en «Registros» y las columnas `ID registro`, `Orden`, `Afiliación`, `Banco`, `Ingreso` en «Detalles».
+- [x] El prompt cargado es `prompt-v6.txt` y `prompt-v5.txt` ya no existe en `backend/resources/ai/`.
+- [x] Una extracción simulada v6 completa produce un registro `NEEDS_REVIEW` con empresa, periodo, porcentaje, movimientos con banco, y comisión y retorno calculados.
+- [x] `document_number` y `completion_date` aparecen en `AIProcessing.result` normalizado, pero no en `records` ni en `RecordResource`.
+- [x] Una extracción sin porcentaje deja `commission` y `return_amount` en `null`, emite un issue y no usa la comisión impresa como fallback.
+- [x] Una comisión impresa distinta de la calculada emite un issue de discrepancia.
+- [x] Confirmar un registro IMAGE sin porcentaje responde `409 RECORD_CONFIRMATION_BLOCKED` con `details.reason=BUSINESS_VALIDATION_FAILED`.
+- [x] La suite backend pasa con `make test` y `pint` no reporta cambios en los archivos tocados.
+- [x] En el frontend, la captura manual y la corrección muestran un solo campo «Comisión %» y los movimientos piden «Afiliación», «Banco» e «Ingreso». No existe la opción de comisión fija.
+- [x] El detalle del registro muestra el banco por movimiento, el porcentaje global y los totales que devuelve la API.
+- [x] `npm test`, `npm run lint`, `npx tsc --noEmit` y `npm run build` pasan.
+- [x] `docs/frontend/verification-log.md` registra el checkpoint en el navegador y el resultado de procesar `test-images/nuevo-formato.png` con Ollama.
 
 ## Decisions
 
@@ -243,6 +243,8 @@ Respuesta (`RecordResource`): agrega `commission_percentage` en la raíz. Conser
 - **Sí:** prompt v6 nuevo y borrar v5. Un solo prompt activo. El historial de v5 queda en git.
 - **Sí:** validar que el ingreso total del registro quepa en `decimal(12,2)` (máximo `9999999999.99`). Cada movimiento cabe en su columna, pero la comisión y el retorno del registro se guardan en una sola. En captura y edición manual responde `422` en `details`; en la extracción por IA emite un issue y deja `commission` y `return_amount` en `null`. Decisión del usuario durante la implementación (2026-11-25).
 - **No:** ampliar las columnas de `records` a `decimal(14,2)`. Se conserva el modelo de datos del SPEC.
+- **Sí:** `RecordResource` quita `document_number` y `completion_date` de `ai_processing.normalized_extraction`. Siguen guardados en `AIProcessing.result`, pero la API no los expone. Decisión del usuario durante la implementación (2026-11-25).
+- **Sí:** reglas 8–10 de `prompt-v6.txt` más explícitas: los movimientos terminan antes de la primera línea que empieza con `Ingreso`, una afiliación real es un número y un documento con un renglón produce un solo movimiento. Con la primera versión, `qwen2.5vl:3b` tomó las líneas de resumen como movimientos en 2 de 2 corridas; con el ajuste, 3 de 3 corridas fueron correctas. Decisión del usuario durante la verificación del paso 10 (2026-11-26); el detalle está en `docs/frontend/verification-log.md`.
 - **Sí:** un solo SPEC aunque toque varias capas. El cambio de esquema rompe todas a la vez; las fases permiten ejecutarlo por sesiones.
 
 ## Risks

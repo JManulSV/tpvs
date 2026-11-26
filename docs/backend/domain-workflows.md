@@ -22,27 +22,27 @@ Tests
 
 ## Manual Record
 
-**SPEC:** 04, 07.
+**SPEC:** 04, 07, 27.
 
 **Entry points:** `POST /api/records`, `PUT /api/records/{id}`, and `POST /api/records/{id}/confirm`.
 
-**Code:** `Domain/Records/Actions/CreateManualRecord`, `UpdateRecord`, and `ConfirmRecord`; the listing uses `Domain/Records/RecordQuery` with `RecordFilters`.
+**Code:** `Domain/Records/Actions/CreateManualRecord`, `UpdateRecord`, and `ConfirmRecord`, which validate with `Domain/Records/BusinessValidator` and calculate with `Domain/Records/RecordFinancials`; the listing uses `Domain/Records/RecordQuery` with `RecordFilters`.
 
 **Preconditions:** The user is authenticated. Mutations require `EDITOR`. Creation and replacement reference an existing Company and supply required record fields and at least one valid detail.
 
 **Workflow:**
 
-1. An Editor creates a manual Record with company, business year/week, period dates, and one or more ordered movement inputs. Each movement includes its own affiliation, branch, income, and one commission input.
-2. The backend validates that dates exist and that the start date is not after the end date. It does not impose ISO week rules or weekday boundaries.
-3. For each detail, the backend accepts exactly one commission input: percentage or fixed amount. It calculates the commission using decimal arithmetic and `ROUND_HALF_UP` for percentages, then calculates return as income minus commission.
-4. A transaction persists the Record as `source=MANUAL`, `status=CONFIRMED`, its RecordDetails, and a single History event (`record_created`, null to `CONFIRMED`, authenticated user, reason `Registro creado manualmente`). No Image, AIProcessing, or AI job is created.
+1. An Editor creates a manual Record with company, business year/week, period dates, one global `commission_percentage`, and one or more ordered movement inputs. Each movement includes its own affiliation, bank, and income.
+2. The backend validates that dates exist and that the start date is not after the end date. It does not impose ISO week rules or weekday boundaries. It also requires the percentage (0–100) and a total income no greater than `9999999999.99`.
+3. `RecordFinancials` calculates the commission once over the total income, using decimal arithmetic and `ROUND_HALF_UP`, then calculates the return as total income minus commission. There is no per-movement or fixed commission.
+4. A transaction persists the Record as `source=MANUAL`, `status=CONFIRMED` with its percentage, commission, and return, its RecordDetails, and a single History event (`record_created`, null to `CONFIRMED`, authenticated user, reason `Registro creado manualmente`). No Image, AIProcessing, or AI job is created.
 5. An Editor may replace the full aggregate while it is `MANUAL` in `NEEDS_REVIEW` or `CONFIRMED`. Replacement requires a reason and writes one field-level History row per changed field; a no-change `NEEDS_REVIEW` replacement writes `record_updated` with null values.
 6. A `CONFIRMED` replacement with changes additionally writes `status` `CONFIRMED -> NEEDS_REVIEW` and leaves the record in `NEEDS_REVIEW`; a no-change `CONFIRMED` replacement returns `422 RECORD_UPDATE_NO_CHANGES` and writes nothing. The Record, details, status event, and field diff are committed together under a row lock.
 7. The explicit confirmation endpoint remains for records that start in `NEEDS_REVIEW`, such as AI-assisted capture or a reopened confirmed record. It is not an extra step for valid first-time manual capture.
 
 **Failure behavior:** Invalid request or business input returns `422`; an unsupported source/state transition returns `409`; a Viewer mutation returns `403`. Create, replace, and confirmation leave no partial writes on failure.
 
-**Tests:** Verify Editor/Viewer authorization, business week values without ISO interpretation, custom valid date ranges, financial rounding and fixed commission, invalid input, no Image/AIProcessing/job, atomic creation/history and replacement/history, and disallowed transitions.
+**Tests:** Verify Editor/Viewer authorization, business week values without ISO interpretation, custom valid date ranges, financial rounding over the total income (not per movement), the required percentage and prohibited legacy fields, the total-income limit, invalid input, recalculation and percentage/bank History on replacement, no Image/AIProcessing/job, atomic creation/history and replacement/history, and disallowed transitions.
 
 ## Image Record
 
@@ -57,11 +57,11 @@ Tests
 5. An Editor may replace an image only if it has no AI processing attempts. The old file is deleted after the new association commits.
 6. Canceled Records do not allow image upload, replacement, or viewing. A non-canceled Record without an image returns `404` on GET.
 
-**AI extraction — phases 8.8–8.9:**
+**AI extraction — phases 8.8–8.9, SPEC 27:**
 
-1. A later AI workflow creates a processing attempt for the stored Image.
-2. AI output is normalized and validated.
-3. The Record enters `NEEDS_REVIEW` or `ERROR`.
+1. A later AI workflow creates a processing attempt for the stored Image. `OllamaAIService` sends `prompt-v6.txt` and the v6 JSON schema.
+2. `ExtractionValidator` validates and normalizes the output. `ExtractionFinancialCalculator` checks the database ranges and calculates the commission and return with `RecordFinancials`. `RecordExtractionService` stores the company, period, percentage, commission, return, and movements (affiliation, bank, income), and compares them with `source_totals`. `document_number` and `completion_date` stay only in `AIProcessing.result`.
+3. The Record enters `NEEDS_REVIEW` or `ERROR`. Without a percentage, the commission and return stay `null` and confirmation is blocked until the Editor captures it.
 4. An Editor reviews and confirms or cancels it.
 
 ## Image Review, Correction, Confirmation, and Cancellation
@@ -158,7 +158,7 @@ A replacement of a `CONFIRMED` Record requires a different aggregate and a reaso
 1. The Editor opens the delivery preparation for a confirmed Record. The backend returns the existing Delivery or `data: null`, the current Record return total, and whether the preparation is stale.
 2. The Editor submits the complete preparation: delivery date, delivering person, optional receiving person, and the cash denominations with quantities.
 3. Laravel validates the request shape, official denominations, positive quantities, and prohibited client fields. Zero-quantity rows are ignored; an empty breakdown remains valid only for a `0.00` return.
-4. In one transaction, Laravel locks the Record and any existing Delivery, rechecks that the Record is `CONFIRMED`, and derives the current return total from the Record details.
+4. In one transaction, Laravel locks the Record and any existing Delivery, rechecks that the Record is `CONFIRMED`, and reads the current return from `Record.return_amount`.
 5. Laravel compares gross cash with the current return in integer cents. It accepts a shortfall up to `$1.00` and any excess. A larger shortfall returns `409 DELIVERY_PREPARATION_BLOCKED` with `details.reason=CASH_MISMATCH` and the expected, cash, and difference amounts.
 6. On a valid preparation, Laravel creates the Delivery or updates the existing row in place, replaces its positive denominations, sets `prepared_return_amount` to the current return total, and writes field-level History with `delivery_id` and a fixed creation/update reason.
 7. If the resulting preparation is identical to the stored one, Laravel returns `200` without writing History or changing `updated_at`.

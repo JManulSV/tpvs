@@ -74,6 +74,9 @@ Represents one received document/image and the business record attached to it.
 | year | integer nullable | No for provisional IMAGE | Calendar year for the record period; required for MANUAL creation and confirmation |
 | week_start_date | date nullable | No for provisional IMAGE | Start date for the business period; required for MANUAL creation and confirmation |
 | week_end_date | date nullable | No for provisional IMAGE | End date for the business period; determines the month used by month-based reports; required for MANUAL creation and confirmation |
+| commission_percentage | decimal(5,2) nullable | No for provisional IMAGE | Global commission percentage for the whole document (SPEC 27), `CHECK 0 <= x <= 100`; required for MANUAL creation and confirmation |
+| commission | decimal(12,2) nullable | No for provisional IMAGE | Calculated by Laravel (`RecordFinancials`): `SUM(record_details.income) × commission_percentage / 100`, rounded once with `ROUND_HALF_UP`; `CHECK >= 0`; never sent by the client |
+| return_amount | decimal(12,2) nullable | No for provisional IMAGE | Calculated by Laravel: `SUM(record_details.income) - commission`; `CHECK >= 0`; never sent by the client |
 | created_at | datetime | Yes | Audit timestamp |
 | updated_at | datetime | Yes | Audit timestamp |
 
@@ -89,7 +92,9 @@ Important rule:
 - A manual record does not require an image.
 - A manual record must have an image before a Word delivery document can be generated.
 - A record can contain zero or many movement details while IMAGE extraction is provisional; MANUAL creation and confirmation require at least one complete detail.
-- Totals are not stored as source-of-truth fields.
+- `commission` and `return_amount` are derived values that Laravel stores in the same transaction as the movements (`CreateManualRecord`, `UpdateRecord`, `RecordExtractionService`). `ConfirmRecord` recalculates them and blocks confirmation if they differ. Reports, the dashboard, and deliveries read these columns instead of reproducing the rounding in SQL.
+- Both stay `null` when the percentage or any income is missing, which can happen only on a provisional IMAGE record. They also stay `null` when the total income exceeds `9999999999.99` (the `decimal(12,2)` limit); MANUAL capture rejects that total with `422`.
+- The income total is not stored; it is `SUM(record_details.income)`.
 - The record period is defined by `week` plus `year`.
 
 Reporting note:
@@ -104,12 +109,9 @@ Represents each movement inside a record.
 | id | UUID / bigint | Yes | Primary key |
 | record_id | FK | Yes | References `Record` |
 | affiliation | string nullable | No for provisional IMAGE | Movement affiliation; required for MANUAL creation and confirmation |
-| branch | string nullable | No for provisional IMAGE | Movement branch; required for MANUAL creation and confirmation |
-| income | decimal(12,2) nullable | No for provisional IMAGE | Gross amount; required for MANUAL creation and confirmation |
-| commission_percentage | decimal(5,2) nullable | No | Percentage points, for example `5.00` for 5 percent |
-| commission | decimal(12,2) nullable | No for provisional IMAGE | Commission amount; required for MANUAL creation and confirmation |
-| return_amount | decimal(12,2) nullable | No for provisional IMAGE | Return amount; required for MANUAL creation and confirmation |
-| order | integer | Yes | Positive display/order sequence |
+| bank | string nullable | No for provisional IMAGE | Movement bank, free text (no catalog); required for MANUAL creation and confirmation |
+| income | decimal(12,2) nullable | No for provisional IMAGE | Gross amount, `CHECK >= 0`; required for MANUAL creation and confirmation |
+| order | integer | Yes | Positive display/order sequence, `UNIQUE(record_id, order)` |
 | created_at | datetime | Yes | Audit timestamp |
 | updated_at | datetime | Yes | Audit timestamp |
 
@@ -118,8 +120,8 @@ Relationships:
  - `RecordDetail 1:N History`
 
 Important rule:
-- Do not persist derived totals like `total`, `calculated_return`, or `calculated_commission` as the source of truth.
-- `RecordDetail` owns affiliation and branch; they are not stored on `Record`.
+- Since SPEC 27 a movement has no commission, percentage, or return: the commission is global to the `Record`. The former `branch`, `commission_percentage`, `commission`, and `return_amount` columns were removed by editing the base migrations; there was no data migration.
+- `RecordDetail` owns affiliation and bank; they are not stored on `Record`. A document may contain several banks.
 - Database nullability permits incomplete IMAGE data in `PENDING`, `PROCESSING`, `NEEDS_REVIEW`, or `ERROR`. Application validation still requires complete company, period, and movement fields for MANUAL creation and confirmation.
 
 ## 6. Image
@@ -253,7 +255,8 @@ Value conventions:
 - Dates use `Y-m-d`; amounts and percentages use decimal text with two decimals.
 - `year`, `week`, and detail `order` use integer text; `status` and `source` use enum values.
 - Company changes store the company name, not its id.
-- Detail fields use `details[N].campo`, with `N` 1-based and equal to the movement `order`. Added details produce null-to-values rows; removed details produce values-to-null rows.
+- Detail fields use `details[N].campo` (`affiliation`, `bank`, `income`, `order`), with `N` 1-based and equal to the movement `order`. Added details produce null-to-values rows; removed details produce values-to-null rows.
+- `commission_percentage` is audited as a Record field. The derived `commission` and `return_amount` write no events (SPEC 27).
 - Delivery fields use `delivery_date`, `delivered_by_name`, `received_by_name`, `prepared_return_amount`, and `denominations[1000.00]`-style entries using the canonical denomination with two decimals; the stored value is the integer quantity.
 - Delivery creation writes one row per persisted field with a null previous value. Delivery updates write only changed fields; an identical update writes no History.
 - Values are canonicalized before comparison, so formatting-only differences do not create events.
@@ -280,7 +283,7 @@ Important rules:
 - Only rows with `quantity > 0` are stored; zero-quantity input rows are ignored.
 - `UNIQUE(delivery_id, value)` must be enforced.
 - Database constraints reject non-positive quantities and denominations outside the official MVP list.
-- At save time, `SUM(value × quantity)` may be up to `$1.00` below the current total `RecordDetail.return_amount` or any amount above it, compared in integer cents.
+- At save time, `SUM(value × quantity)` may be up to `$1.00` below the current `Record.return_amount` or any amount above it, compared in integer cents.
 - An empty breakdown is valid only when the current Record return total is `0.00`.
 - The request-time document adjustment and customer-change declaration are not fields of `Delivery` or `DeliveryCashDenomination` and are not persisted.
 - The official MVP denominations are `1000`, `500`, `200`, `100`, `50`, `20`, `10`, `5`, `2`, `1`, and `0.50`.

@@ -14,14 +14,14 @@ AI is never the final authority for financial data.
 
 The AI is responsible for:
 - reading the image;
-- identifying the company;
+- identifying the company from the header line (`<number> | <company> | <date>`);
+- extracting the header `document_number` and `completion_date` (SPEC 27);
 - extracting `year` and `week`;
 - extracting `week_start_date` and `week_end_date` when visible;
 - identifying multiple movements within one image;
-- extracting `affiliation` and `branch` for each movement;
+- extracting `affiliation` and `bank` for each movement;
 - extracting `income`;
-- extracting `commission_percentage` when visible;
-- extracting `source_commission` as shown in the document;
+- extracting the global `commission_percentage` from the `Comision N%` summary label;
 - extracting source totals when visible;
 - indicating missing or doubtful information;
 - preserving the visual order of the movements;
@@ -56,30 +56,41 @@ MCP is not required for this MVP because the system is performing information ex
 
 ## 4. Output Contract
 
-The AI returns one JSON object using the following extraction shape for the experimental spike and the SPEC 08 candidate. `record` contains general document fields, each item in `details` contains movement-specific fields in visual order, and `source_totals` contains totals transcribed from the document when present. Production pipeline and persistence behavior are specified separately in SPEC 08.
+The AI returns one JSON object using the v6 extraction shape (SPEC 27). `record` contains document-level fields, including the single global commission percentage; each item in `details` contains movement-specific fields in visual order; and `source_totals` contains totals transcribed from the document when present. Pipeline and persistence behavior are specified in SPEC 08 and SPEC 27. The reference image is `test-images/nuevo-formato.png`:
+
+```text
+18006 | Villaseñor | 23/11/2026                    <- document number, company, completion date
+SEM 46 del 16 al 22 de Noviembre de 2026           <- period
+Afiliacion | Banco | Ingreso Terminal              <- movements header
+8889067    | LUUM  | $ 236,741.30                  <- one row per movement
+Ingreso LUUM          $ 236,741.30                 <- total income
+Comision 6.5%         $  15,388.18                 <- global percentage and total commission
+Egreso Retorno LUUM   $ 221,353.12                 <- total return
+```
 
 ```json
 {
   "record": {
-    "company_name": { "value": "Compañía Ejemplo", "confidence": 0.98 },
-    "year": { "value": 2026, "confidence": 0.99 },
-    "week": { "value": 38, "confidence": 0.95 },
-    "week_start_date": { "value": "2026-09-14", "confidence": 0.90 },
-    "week_end_date": { "value": "2026-09-20", "confidence": 0.90 }
+    "company_name": { "value": "Villaseñor", "confidence": 0.95 },
+    "document_number": { "value": "18006", "confidence": 0.95 },
+    "completion_date": { "value": "2026-11-23", "confidence": 0.90 },
+    "year": { "value": 2026, "confidence": 0.95 },
+    "week": { "value": 46, "confidence": 0.95 },
+    "week_start_date": { "value": "2026-11-16", "confidence": 0.90 },
+    "week_end_date": { "value": "2026-11-22", "confidence": 0.90 },
+    "commission_percentage": { "value": "6.5%", "confidence": 0.90 }
   },
   "details": [
     {
-      "affiliation": { "value": "AF-123", "confidence": 0.92 },
-      "branch": { "value": "Guadalajara", "confidence": 0.96 },
-      "income": { "value": "10000.00", "confidence": 0.98 },
-      "commission_percentage": { "value": "2.00", "confidence": 0.88 },
-      "source_commission": { "value": "200.00", "confidence": 0.96 }
+      "affiliation": { "value": "8889067", "confidence": 0.95 },
+      "bank": { "value": "LUUM", "confidence": 0.95 },
+      "income": { "value": "$ 236,741.30", "confidence": 0.95 }
     }
   ],
   "source_totals": {
-    "income": { "value": "10000.00", "confidence": 0.95 },
-    "commission": { "value": "200.00", "confidence": 0.95 },
-    "return_amount": { "value": "9800.00", "confidence": 0.95 }
+    "income": { "value": "$ 236,741.30", "confidence": 0.95 },
+    "commission": { "value": "$ 15,388.18", "confidence": 0.95 },
+    "return_amount": { "value": "$ 221,353.12", "confidence": 0.95 }
   }
 }
 ```
@@ -88,17 +99,20 @@ All properties shown in the contract are required, including when a value is not
 
 ### Value types and normalization
 
-- `company_name`, `affiliation`, and `branch` use strings or `null`.
+- `company_name`, `affiliation`, and `bank` use strings or `null`. The company is the text of the header line, not an `EMPRESA:` label.
+- `document_number` is a string or `null`, transcribed as printed and never converted to a number.
 - `year` and `week` use integers or `null`. A business week is not interpreted as an ISO week.
-- `week_start_date` and `week_end_date` use `YYYY-MM-DD` strings or `null`. Do not derive dates from the year/week; only transcribe dates supported by the image.
+- `week_start_date`, `week_end_date`, and `completion_date` use `YYYY-MM-DD` strings or `null`. The completion date is printed as `dd/mm/aaaa`. Do not derive dates from the year/week; only transcribe dates supported by the image.
 - The model transcribes monetary amounts and `commission_percentage` faithfully as strings, retaining visible currency symbols, grouping/decimal separators, and percent signs. The experimental normalizer accepts only unambiguous patterns and converts accepted values to decimal strings with a period and exactly two fractional digits (for example, `"$1,234.56"` -> `"1234.56"`, `"1.234,56"` -> `"1234.56"`, `"5%"` -> `"5.00"`). Ambiguous forms such as `"1,200"`, `"1.200"`, and malformed values such as `"55.963.03"` remain unconvertible issues; they are not guessed.
 - `details` is an array with at least one movement. Array order is the visual order in the document; the backend assigns the persisted `order` value.
-- `affiliation` and `branch` are movement-level fields and belong inside each `details` item.
+- `affiliation` and `bank` are movement-level fields and belong inside each `details` item. A document may contain several banks.
 - Movement order comes from each item's array position.
-- `details` does not include a per-movement return amount. The official return for each movement is calculated by the backend as `income - commission`; only the printed total return is transcribed in `source_totals.return_amount`.
+- `commission_percentage` belongs to `record`: one percentage for the whole document, read from the `Comision N%` label. `details` contains no commission, percentage, or return. The summary lines `Ingreso <bank>`, `Comision N%`, and `Egreso Retorno <bank>` are totals, never movements.
 - `source_totals` always contains `income`, `commission`, and `return_amount`. If a total is not shown or cannot be read, its value is `null`.
 
-The `source_commission` and `source_totals` values are evidence transcribed from the document only. They are not official values and must not be calculated or treated as the values stored in `RecordDetail`.
+The `source_totals` values are evidence transcribed from the document only. They are not official values and are never used as a fallback: if the percentage is missing, the commission and return stay `null` and the Editor captures the percentage during review.
+
+`document_number` and `completion_date` pass type and format validation and are kept only in the normalized `AIProcessing.result`. They are not copied to `Record`, and `RecordResource` removes them from `ai_processing.normalized_extraction`; a future SPEC can promote them to columns.
 
 ## 5. Required JSON Shape and Missing Values
 
@@ -182,8 +196,11 @@ Checks business rules:
 Example:
 
 ```text
-Income - Commission = ReturnAmount
+Commission = ROUND_HALF_UP(SUM(income) × commission_percentage / 100, 2)   -- once per Record
+ReturnAmount = SUM(income) - Commission
 ```
+
+`ExtractionFinancialCalculator` checks the database ranges and delegates the calculation to `RecordFinancials`, the same class manual capture uses. A missing percentage or income, or a total income above `9999999999.99`, leaves the commission and return `null`; the last case adds `RECORD_TOTAL_OUT_OF_RANGE`. When the calculated income, commission, or return differs from `source_totals`, `RecordExtractionService` adds `SOURCE_TOTAL_MISMATCH` for that total.
 
 The AI may show a commission or return value observed in the document, but the backend calculates the official values.
 
@@ -269,7 +286,7 @@ The AI may partially extract:
 Record
 ├── company = Company X
 ├── week = 38
-├── branch = null
+├── commission_percentage = null
 └── details = ...
 ```
 
@@ -466,7 +483,9 @@ Measure:
 
 The MVP uses a single prompt for the current document format.
 
-The current production prompt is v5, versioned in [`../backend/resources/ai/prompt-v5.txt`](../backend/resources/ai/prompt-v5.txt). It instructs the model to transcribe visible values, preserve movement order, separate movements from totals, use `null` with confidence `0` for missing or unreadable data, and return only the expected JSON. Dates are requested in ISO form without deriving them from the period. Monetary values and percentages are transcribed faithfully; deterministic numeric normalization happens after extraction. Per-movement returns are never extracted; the backend derives them. Preserve raw output and report issues instead of guessing or hiding questionable values.
+The current production prompt is v6 (SPEC 27), versioned in [`../backend/resources/ai/prompt-v6.txt`](../backend/resources/ai/prompt-v6.txt) and loaded through `OllamaAIService::PROMPT_VERSION`. It describes the layout of the new format: the `<number> | <company> | <date>` header, the period line, the `Afiliacion | Banco | Ingreso Terminal` table, and the three summary lines. Movement rows end before the first line that starts with `Ingreso`. A real affiliation is a number. The summary lines are totals, never movements, and the percentage is read from the `Comision N%` label. The prompt also keeps the earlier rules: transcribe visible values, preserve movement order, use `null` with confidence `0` for missing or unreadable data, and return only the expected JSON. Dates are returned as ISO strings without being derived from the period. Monetary values and percentages are transcribed faithfully; deterministic numeric normalization happens after extraction.
+
+The format before SPEC 27 (`EMPRESA:`, `SUCURSAL`, per-row commission; `test-images/prueba1`–`prueba5`) is no longer supported, and there is no format detection. Prompt v5 remains in the git history only. The first v6 wording turned the three summary lines into movements, and the rules above fixed it; see the SPEC 27 entry in [`frontend/verification-log.md`](frontend/verification-log.md).
 
 The experimental prompt v4 remains versioned in [`ai-spike/prompt-v4.txt`](ai-spike/prompt-v4.txt) as benchmark history.
 

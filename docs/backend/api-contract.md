@@ -159,7 +159,7 @@ All endpoints use the authenticated Sanctum session. Laravel remains authoritati
 
 | Parameter | Rules | Default |
 | --- | --- | --- |
-| `search` | Optional string, trimmed, maximum 255 characters; case-insensitive partial match against company name, affiliation, or branch. | No filter |
+| `search` | Optional string, trimmed, maximum 255 characters; case-insensitive partial match against company name, affiliation, or bank. | No filter |
 | `company_id` | Optional existing company identifier. | No filter |
 | `year` | Optional calendar/business year integer from 1 to 9999. | No filter |
 | `month` | Optional integer from 1 to 12; filters by the month containing `week_end_date`. | No filter |
@@ -169,55 +169,47 @@ All endpoints use the authenticated Sanctum session. Laravel remains authoritati
 | `page` | Integer greater than or equal to 1. Invalid values return `422`. | `1` |
 | `per_page` | Integer from 1 to 100. Invalid values return `422`. | `15` |
 
-When a `week` filter is supplied, `year` is required so the business period is unambiguous. The API does not validate `week` as an ISO week. Results are ordered by `updated_at` descending and use Laravel's standard paginated response (`data`, `links`, `meta`). List resources include record identity, nullable company and period, source, status, calculated income/commission/return totals, and the ordered movement summary needed by search and display. Affiliation and branch are returned on movement details, never on the Record root. Financial totals are calculated from `RecordDetail`; they are not stored as Record source-of-truth columns. Search matches affiliation and branch on any movement in the aggregate.
+When a `week` filter is supplied, `year` is required so the business period is unambiguous. The API does not validate `week` as an ISO week. Results are ordered by `updated_at` descending and use Laravel's standard paginated response (`data`, `links`, `meta`). List resources include record identity, nullable company and period, source, status, the global `commission_percentage`, income/commission/return totals, and the ordered movement summary needed by search and display. Affiliation and bank are returned on movement details, never on the Record root. `income_total` is the sum of `record_details.income`; `commission_total` and `return_total` are `records.commission` and `records.return_amount`, calculated once by Laravel (SPEC 27). Search matches affiliation and bank on any movement in the aggregate.
 
 ### Record Create and Replace Payload
 
-`POST /api/records` accepts the aggregate fields below and returns `201` with `{ "data": { ...record } }`. `PUT /api/records/{id}` accepts the same complete editable aggregate plus a required `reason` for `MANUAL` or `IMAGE` records in `NEEDS_REVIEW`; it replaces, rather than patches, the record's full detail collection. The JSON example shows the common aggregate fields; include `reason` only for `PUT`. Neither request accepts `source`, `status`, `order`, `return_amount`, or aggregate totals as client-controlled values.
+`POST /api/records` accepts the aggregate fields below and returns `201` with `{ "data": { ...record } }`. `PUT /api/records/{id}` accepts the same complete editable aggregate plus a required `reason` for `MANUAL` or `IMAGE` records in `NEEDS_REVIEW`; it replaces, rather than patches, the record's full detail collection. The JSON example shows the common aggregate fields; include `reason` only for `PUT`. Neither request accepts `source`, `status`, `order`, `commission`, `return_amount`, or aggregate totals as client-controlled values.
 
 ```json
 {
-  "company_id": 1,
+  "company_id": 7,
   "year": 2026,
-  "week": 38,
-  "week_start_date": "2026-09-14",
-  "week_end_date": "2026-09-20",
+  "week": 46,
+  "week_start_date": "2026-11-16",
+  "week_end_date": "2026-11-22",
+  "commission_percentage": "6.50",
   "details": [
-    {
-      "affiliation": "AFF-123",
-      "branch": "Guadalajara",
-      "income": "10000.00",
-      "commission_percentage": "2.00"
-    },
-    {
-      "affiliation": "AFF-456",
-      "branch": "Zapopan",
-      "income": "5000.00",
-      "commission": "100.00"
-    }
+    { "affiliation": "8889067", "bank": "LUUM", "income": "236741.30" }
   ]
 }
 ```
 
-For replacement, add the required top-level field `"reason": "Corrección de captura"`. Each detail requires affiliation, branch, and non-negative `income` with at most two decimal places. Exactly one of `commission_percentage` or fixed-amount `commission` must be supplied. The percentage is between 0 and 100 with at most two decimal places. A fixed commission is non-negative, has at most two decimal places, and cannot exceed income. Details must contain at least one item. Their `order` is assigned from array order, starting at 1.
+For replacement, add the required top-level field `"reason": "Corrección de captura"`. `commission_percentage` is required at the root (SPEC 27): a string between 0 and 100 with at most two decimal places. Each detail requires `affiliation`, `bank`, and non-negative `income` with at most two decimal places. Details must contain at least one item, and their `order` is assigned from array order, starting at 1. The total income of the Record may not exceed `9999999999.99`; a larger total returns `422` on `details`.
+
+The following fields return `422` (`prohibited`): `branch`, `commission`, and `return_amount` at the root, and `details.*.branch`, `details.*.commission_percentage`, `details.*.commission`, and `details.*.return_amount`. There is no fixed commission and no legacy payload support.
 
 `PUT` accepts `MANUAL` or `IMAGE` records in `NEEDS_REVIEW` or `CONFIRMED`. The request always replaces the complete aggregate. For a `CONFIRMED` record with differences, the transaction updates the aggregate, writes one History row per modified field, writes a `status` `CONFIRMED -> NEEDS_REVIEW` row with the supplied reason, and returns the record in `NEEDS_REVIEW`. Confirmation remains a separate human action. A `CONFIRMED` replacement with no differences returns `422` with `code=RECORD_UPDATE_NO_CHANGES` and `details.reason=NO_CHANGES`, without writing History or changing state. `PENDING`, `PROCESSING`, `ERROR`, and `CANCELED` records return `409 RECORD_UPDATE_BLOCKED` with `details.reason=INVALID_STATE`.
 
-For percentage input, Laravel calculates `commission` using decimal arithmetic and `ROUND_HALF_UP` to two decimal places. For fixed commission input, Laravel stores the supplied amount and sets `commission_percentage` to `null`. Laravel always calculates `return_amount = income - commission`; the client must not submit a return amount. Zero-valued income, commission, and return are permitted by the current schema, provided all rules above pass.
+Laravel calculates the Record's `commission` once over the total income (`SUM(income) × commission_percentage / 100`, decimal arithmetic, `ROUND_HALF_UP` to two decimals) and `return_amount = SUM(income) - commission`, and stores both on the Record in the same transaction as the movements. For the example above, the commission is `15388.18` and the return is `221353.12`. A percentage of `0` or `100` is permitted.
 
-`year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id` and all period fields are required. Each detail requires `affiliation`, `branch`, `income`, and exactly one commission input. The API rejects `affiliation` or `branch` at the Record root; there is no legacy dual-payload support. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a single History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=record_created`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro creado manualmente`. It replaces the former creation `status` event.
+`year` and `week` are business period identifiers: `year` is a calendar year and `week` is an integer from 1 to 53. The backend does not interpret them as ISO week data or derive the dates from them. `week_start_date` and `week_end_date` must be valid dates and the start must not be after the end; the range need not start on Monday or end on Sunday. `company_id`, all period fields, and `commission_percentage` are required. Each detail requires `affiliation`, `bank`, and `income`. The API rejects `affiliation` or `branch` at the Record root. Laravel assigns `source=MANUAL` and `status=CONFIRMED` after successful validation. Creation persists the record, details, and a single History event in one transaction and creates no Image or AIProcessing rows and dispatches no AI job. The creation History event has `field_name=record_created`, `previous_value=null`, `new_value=CONFIRMED`, the authenticated user, and fixed reason `Registro creado manualmente`. It replaces the former creation `status` event.
 
-On replacement, Laravel accepts a `MANUAL` or `IMAGE` record in `NEEDS_REVIEW` or `CONFIRMED`. It validates the complete new aggregate before atomically updating the Record and replacing its details. For IMAGE records, replacement preserves the associated Image and the existing `AIProcessing` row and result; it does not re-run AI, replace the image, or alter the AI evidence. The request must not change `source` or `status` directly. For a `NEEDS_REVIEW` correction, Laravel writes one History row per modified field with canonical previous/new values, the authenticated user, and the supplied reason. If the canonicalized aggregate has no differences, it writes a single `record_updated` event with null values and the supplied reason, then responds `200`. For a `CONFIRMED` record with differences, Laravel applies the same field-level diff and additionally writes `status` `CONFIRMED -> NEEDS_REVIEW` with the supplied reason; the record remains in `NEEDS_REVIEW` for a separate confirmation. A `CONFIRMED` replacement with no differences responds `422 RECORD_UPDATE_NO_CHANGES` and writes nothing. The aggregate update, detail replacement, and History events share one database transaction under a Record row lock. Because replacement recreates `record_details` rows, detail events use `details[N].campo` keyed by 1-based `order` and leave `record_detail_id` null.
+On replacement, Laravel accepts a `MANUAL` or `IMAGE` record in `NEEDS_REVIEW` or `CONFIRMED`. It validates the complete new aggregate before atomically updating the Record and replacing its details. For IMAGE records, replacement preserves the associated Image and the existing `AIProcessing` row and result; it does not re-run AI, replace the image, or alter the AI evidence. The request must not change `source` or `status` directly. For a `NEEDS_REVIEW` correction, Laravel writes one History row per modified field with canonical previous/new values, the authenticated user, and the supplied reason. If the canonicalized aggregate has no differences, it writes a single `record_updated` event with null values and the supplied reason, then responds `200`. For a `CONFIRMED` record with differences, Laravel applies the same field-level diff and additionally writes `status` `CONFIRMED -> NEEDS_REVIEW` with the supplied reason; the record remains in `NEEDS_REVIEW` for a separate confirmation. A `CONFIRMED` replacement with no differences responds `422 RECORD_UPDATE_NO_CHANGES` and writes nothing. The aggregate update, detail replacement, and History events share one database transaction under a Record row lock. Because replacement recreates `record_details` rows, detail events use `details[N].campo` (`affiliation`, `bank`, `income`, `order`) keyed by 1-based `order` and leave `record_detail_id` null. `commission_percentage` is audited as a Record field; the derived `commission` and `return_amount` write no events.
 
 ### Record Resource and Detail
 
-`GET /api/records/{id}` returns `200` with `{ "data": { ...record } }`, including `id`, nullable `company`, `source`, `status`, nullable `year`, `week`, `week_start_date`, and `week_end_date`, ordered `details`, and calculated aggregate totals. The Record root does not expose `affiliation` or `branch`. Each detail contains `id`, `affiliation`, `branch`, `income`, `commission_percentage`, `commission`, `return_amount`, and `order`; IMAGE extraction may leave detail values null until review. Totals with no calculable value may be absent, whereas a calculated zero is returned as `"0.00"`. MANUAL creation and all confirmation validation remain strict and reject incomplete business data. A missing record returns `404`. No private file paths are exposed.
+`GET /api/records/{id}` returns `200` with `{ "data": { ...record } }`, including `id`, nullable `company`, `source`, `status`, nullable `year`, `week`, `week_start_date`, and `week_end_date`, nullable `commission_percentage`, ordered `details`, and the totals `income_total`, `commission_total`, and `return_total`. The keys keep their names, but `commission_total` and `return_total` now come from `records.commission` and `records.return_amount` rather than from sums. The Record root does not expose `affiliation` or `bank`. Each detail contains `id`, `affiliation`, `bank`, `income`, and `order`; IMAGE extraction may leave detail values null until review. A total that cannot be calculated is absent (for example `commission_total` and `return_total` on an IMAGE record without a percentage), whereas a calculated zero is returned as `"0.00"`. `ai_processing.normalized_extraction` never includes `document_number` or `completion_date`, which stay only in `AIProcessing.result`. MANUAL creation and all confirmation validation remain strict and reject incomplete business data. A missing record returns `404`. No private file paths are exposed.
 
-The list resource uses the same record fields and may omit detail fields not needed by the list, but it includes nullable company/period fields, state, source, calculated totals, and ordered movement summaries including affiliation and branch. Response types must be kept consistent between list and detail where a field has the same meaning. If a provisional IMAGE aggregate has no calculable total, the corresponding total may be absent; zero totals remain `"0.00"`.
+The list resource uses the same record fields and may omit detail fields not needed by the list, but it includes nullable company/period fields, state, source, calculated totals, and ordered movement summaries including affiliation and bank. Response types must be kept consistent between list and detail where a field has the same meaning. If a provisional IMAGE aggregate has no calculable total, the corresponding total may be absent; zero totals remain `"0.00"`.
 
 ### Confirm a Review-Required Record
 
-`POST /api/records/{id}/confirm` accepts an empty JSON object for records that require separate human review, including IMAGE/AI records. Laravel accepts only a record in `NEEDS_REVIEW`, revalidates its business data, and transactionally updates status to `CONFIRMED` with a History row for `status` (`NEEDS_REVIEW` to `CONFIRMED`) and the authenticated user. The fixed reason is `Registro manual confirmado` for MANUAL records and `Registro de imagen confirmado` for IMAGE records. For IMAGE records, confirmation additionally requires an active Image, a company, a complete business period, and complete movement data. AI issues are review signals and do not block confirmation once the persisted aggregate passes backend validation. Manual creation is different: Laravel validates and confirms it atomically when created, because the Editor enters and reviews the data together. Clients cannot choose the status or supply a confirmation reason.
+`POST /api/records/{id}/confirm` accepts an empty JSON object for records that require separate human review, including IMAGE/AI records. Laravel accepts only a record in `NEEDS_REVIEW`, revalidates its business data, and transactionally updates status to `CONFIRMED` with a History row for `status` (`NEEDS_REVIEW` to `CONFIRMED`) and the authenticated user. The fixed reason is `Registro manual confirmado` for MANUAL records and `Registro de imagen confirmado` for IMAGE records. For every record, revalidation requires `commission_percentage` and checks that the stored `commission` and `return_amount` equal a fresh calculation. For IMAGE records, confirmation additionally requires an active Image, a company, a complete business period, the percentage with its calculated commission and return, and complete movement data (`affiliation`, `bank`, `income`). An IMAGE record without a percentage returns `409 RECORD_CONFIRMATION_BLOCKED` with `details.reason=BUSINESS_VALIDATION_FAILED`. AI issues are review signals and do not block confirmation once the persisted aggregate passes backend validation. Manual creation is different: Laravel validates and confirms it atomically when created, because the Editor enters and reviews the data together. Clients cannot choose the status or supply a confirmation reason.
 
 ### Cancel a Review-Required or Failed Record
 
@@ -318,7 +310,7 @@ SPEC 14 adds the preparation cash tolerance. Requires Laravel's authenticated Sa
 }
 ```
 
-`current_return_amount` is calculated from the Record's current details. `is_stale` is `true` when `prepared_return_amount` differs from `current_return_amount`. Denominations are ordered from highest to lowest value. The endpoint never exposes private paths, image bytes, tokens, or AIProcessing data. Unauthenticated requests return `401`; missing records return `404`. A record in any state may be read; mutation remains restricted to `CONFIRMED`.
+`current_return_amount` is the Record's current `return_amount`. `is_stale` is `true` when `prepared_return_amount` differs from `current_return_amount`. Denominations are ordered from highest to lowest value. The endpoint never exposes private paths, image bytes, tokens, or AIProcessing data. Unauthenticated requests return `401`; missing records return `404`. A record in any state may be read; mutation remains restricted to `CONFIRMED`.
 
 ### Delivery Create or Replace
 
@@ -491,6 +483,7 @@ A successful response is `200`:
 - Amounts are decimal strings with two decimals. With no results, totals are `"0.00"`, `companies` is `[]`, and `records` is `[]`.
 - `delivery_date` is `null` when the Record has no Delivery.
 - Companies are ordered by name. Records are ordered by company name, `year`, `week`, `week_start_date`, and `id`.
+- `commission_total` and `return_total` add up `records.commission` and `records.return_amount`; `income_total` adds up movement incomes in a per-Record subquery, so a Record with several movements is counted once (SPEC 27).
 
 ### `GET /api/documents/excel`
 
@@ -542,7 +535,7 @@ Values in this example are illustrative.
 - `status_counts` is present only for `EDITOR`. `VIEWER` receives `period`, `month_summary`, and `recent_activity` only.
 - `needs_review`, `error`, `pending`, and `processing` count all records in that status, without a period filter.
 - `confirmed_month` and `canceled_month` count records of the current period with the same rule as `GET /api/reports`: `records.year` equals the business year and the month of `week_end_date` equals the business month. Records with a null `week_end_date` are not counted in any month.
-- `month_summary.confirmed_count` equals `confirmed_month`. `month_summary.return_total` is the sum of `record_details.return_amount` for `CONFIRMED` records of the period, as a decimal string with 2 decimals (`"0.00"` when there is no data). It equals `totals.return_total` of `GET /api/reports` for the same year and month.
+- `month_summary.confirmed_count` equals `confirmed_month`. `month_summary.return_total` is the sum of `records.return_amount` for `CONFIRMED` records of the period, with no join to `record_details`, as a decimal string with 2 decimals (`"0.00"` when there is no data). It equals `totals.return_total` of `GET /api/reports` for the same year and month.
 - `recent_activity` has at most 5 records of any status, ordered by `updated_at` descending and then `id` descending. `company`, `year`, and `week` may be `null` for IMAGE records that are still provisional. `updated_at` is ISO 8601.
 - The response does not include history events, amounts other than the month return, or record details.
 

@@ -92,7 +92,7 @@ The automated Laravel feature tests remain authoritative for persistence, pagina
 
 Sign in through the browser and verify:
 
-1. As `EDITOR`, open `/records/new`, select a company, enter a business year/week (including week 53 where needed), a valid date range that need not be Monday-Sunday, and at least one movement with its own affiliation, branch, income, and commission.
+1. As `EDITOR`, open `/records/new`, select a company, enter a business year/week (including week 53 where needed), a valid date range that need not be Monday-Sunday, one «Comisión %» for the record, and at least one movement with its own affiliation, bank, and income.
 2. Save the record. Verify `POST /api/records` returns `201`, the UI remains on `/records/new`, a success status is announced, and all fields reset for another capture.
 3. Verify the resulting record has source `MANUAL`, status `CONFIRMED`, and backend-calculated commission/return. Verify History has a single `record_created` event `null -> CONFIRMED` with the Editor; no Image or AIProcessing exists.
 4. Open `/records`; verify the new row, business period, confirmed state, and calculated return. Open its detail and verify the same totals and no edit/confirm controls for the already confirmed manual record.

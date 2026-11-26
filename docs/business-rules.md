@@ -50,31 +50,29 @@ Every modification must include a reason and must be written to `History`.
 
 ## 5. Financial Validation Rules
 
-For each `RecordDetail`:
+The commission is one percentage for the whole `Record` (SPEC 27), calculated once over the total income and never per movement:
 
-- Expected commission is derived from `income × commission_percentage / 100` when percentage is available.
-- Expected return is `income - commission`.
-- The backend compares the persisted values with the expected values.
+- Income total = `SUM(record_details.income)`.
+- Commission = income total × `commission_percentage` / 100, rounded once to two decimals with `ROUND_HALF_UP`.
+- Return = income total − commission.
 
-### Recommended Handling for `commission_percentage`
+Example from `test-images/nuevo-formato.png`: `236741.30 × 6.50 / 100 = 15388.1845 → 15388.18`; return `221353.12`. Rounding per movement can differ by a few cents from the printed total, so it is not used: three movements of `100.10` at `6.50%` give `19.52`, not `3 × 6.51 = 19.53`.
 
-Use:
-- type: `DECIMAL(5,2)`
-- nullable: yes
-- business meaning: percentage points
-- example: `5.00` means 5 percent
+`RecordFinancials` is the only implementation of this rule. `CreateManualRecord`, `UpdateRecord`, and `RecordExtractionService` store `commission` and `return_amount` on the `Record` in the same transaction as the movements.
 
-Reason:
-- It keeps the field flexible because the source image may not always contain a percentage.
-- It preserves the field in the model without making it a hard operational dependency.
+### `commission_percentage`
+
+- type: `DECIMAL(5,2)` on `records`, from `0` to `100` with at most two decimals; `5.00` means 5 percent.
+- Required for MANUAL creation, replacement, and confirmation. It may be null only on a provisional IMAGE record whose percentage was not read; the commission and return then stay null too.
+- Only percentage commission exists. There is no fixed or mixed commission, and the printed commission is never used as a fallback.
+
+### Limits
+
+- The total income of a Record may not exceed `9999999999.99`, the largest value that `records.commission` and `records.return_amount` (`decimal(12,2)`) can hold. MANUAL capture and replacement return `422` on `details`. An IMAGE extraction adds `RECORD_TOTAL_OUT_OF_RANGE` and leaves the commission and return null.
 
 ### Validation Result
 
-A detail is valid only when:
-- `commission` matches the expected value within the defined decimal precision; and
-- `return_amount` matches `income - commission` within the defined decimal precision.
-
-If any comparison fails, the record must move to `NEEDS_REVIEW`.
+A record is valid for confirmation only when it has a percentage, every movement has affiliation, bank, and income, and the stored `commission` and `return_amount` equal a fresh `RecordFinancials` calculation. Otherwise confirmation returns `409 RECORD_CONFIRMATION_BLOCKED` with `details.reason=BUSINESS_VALIDATION_FAILED` and the record stays in `NEEDS_REVIEW`.
 
 ## 6. Report Inclusion Rule
 
@@ -158,7 +156,7 @@ It does not require:
 
 Manual capture keeps the office working when the image is unreadable, the supplier sent no image, the AI provider is unavailable, or an extraordinary case occurs. It uses the same `Record` model; there is no separate entity.
 
-MANUAL creation requires the company and all period fields (they may be null only on provisional IMAGE records). Each movement requires its own `affiliation`, `branch`, `income`, and exactly one commission input (`commission_percentage` or fixed `commission`); its positive `order` comes from its position in the submitted array. MANUAL capture never accepts missing movement values.
+MANUAL creation requires the company, all period fields, and the global `commission_percentage` (these may be null only on provisional IMAGE records). Each movement requires its own `affiliation`, `bank`, and `income`; its positive `order` comes from its position in the submitted array. MANUAL capture never accepts missing movement values.
 
 A valid manual record is confirmed when the Editor saves it, because the Editor enters and reviews the data in the same workflow. The creation transaction records a single `record_created` event with `new_value=CONFIRMED` in `History`, replacing the former creation `status` event. The audited `CONFIRMED -> NEEDS_REVIEW -> CONFIRMED` editing workflow is available through the record replacement endpoint.
 
@@ -170,7 +168,7 @@ Both sources use the same financial business validation rules. Image-derived rec
 
 - A Delivery can only be prepared for a `CONFIRMED` Record.
 - There is at most one Delivery row per Record in the MVP. Preparing again updates that row; delivery versions are not stored.
-- The official return total is calculated from the Record's details. The backend derives `prepared_return_amount` from that current total on every successful preparation; clients cannot set it.
+- The official return is `Record.return_amount`, calculated once by Laravel over the total income (SPEC 27). The backend derives `prepared_return_amount` from that current value on every successful preparation; clients cannot set it.
 - `prepared_return_amount` stores the amount the cash preparation was checked against. Compare it with the current Record return total to detect stale preparation.
 - Updating a stale preparation updates this same Delivery row; no delivery versions or delivery status enum are added in the MVP.
 - Cash denominations belong to Delivery, not directly to Record.
@@ -221,7 +219,8 @@ Both sources use the same financial business validation rules. Image-derived rec
 
 - Dates use `Y-m-d`; amounts and percentages use decimal text with two decimals (for example `100.00`).
 - `year`, `week`, and detail `order` use integer text. `status` and `source` use the enum value. A company change uses the company name, not its id.
-- Detail fields use `details[N].campo`, where `N` is 1-based and matches the movement's `order`. Adding or removing a movement writes null to values or values to null.
+- Detail fields use `details[N].campo` (`affiliation`, `bank`, `income`, `order`), where `N` is 1-based and matches the movement's `order`. Adding or removing a movement writes null to values or values to null.
+- `commission_percentage` is a Record field. The Record's `commission` and `return_amount` are derived and write no events of their own; the change is recorded through the percentage or income that caused it.
 - `record_detail_id` remains null because replacement recreates detail rows.
 - `delivery_id` is set for delivery-preparation events. Delivery fields use `delivery_date`, `delivered_by_name`, `received_by_name`, `prepared_return_amount`, and `denominations[1000.00]`-style entries using the canonical denomination with two decimals. Denomination values store the quantity as integer text.
 - Values are canonicalized before comparison, so changes in formatting alone do not create events.

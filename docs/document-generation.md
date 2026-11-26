@@ -49,19 +49,19 @@ The `TOTAL` row equals the `totals` returned by `GET /api/reports` for the same 
 
 One row per included `Record`:
 
-| ID registro | Empresa | Año | Semana | Inicio | Fin | Movimientos | Ingreso | Comisión | Retorno | Fecha de entrega |
-| --- | --- | ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | --- |
+| ID registro | Empresa | Año | Semana | Inicio | Fin | Movimientos | Ingreso | % Comisión | Comisión | Retorno | Fecha de entrega |
+| --- | --- | ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
 
-`Fecha de entrega` comes from `Delivery.delivery_date` and is empty when no Delivery exists. There is no status column because every row is `CONFIRMED`. Affiliation and branch belong to movements and appear only in `Detalles`.
+`% Comisión` is the Record's global percentage (number format `0.00`). `Comisión` and `Retorno` are `records.commission` and `records.return_amount`, calculated once over the Record's income (SPEC 27). `Fecha de entrega` comes from `Delivery.delivery_date` and is empty when no Delivery exists. There is no status column because every row is `CONFIRMED`. Affiliation and bank belong to movements and appear only in `Detalles`.
 
 #### 3. `Detalles`
 
 One row per movement of the included records:
 
-| ID registro | Orden | Afiliación | Sucursal | Ingreso | % Comisión | Comisión | Retorno |
-| --- | ---: | --- | --- | ---: | ---: | ---: | ---: |
+| ID registro | Orden | Afiliación | Banco | Ingreso |
+| --- | ---: | --- | --- | ---: |
 
-`% Comisión` is empty when the commission was captured as a fixed amount.
+Movements carry no commission or return since SPEC 27: those belong to the Record and appear in `Registros`.
 
 #### 4. `Efectivo`
 
