@@ -104,7 +104,7 @@ class UpdateDeliveryTest extends TestCase
             $updatedAt,
             Delivery::query()->findOrFail($delivery['id'])->updated_at->toISOString(),
         );
-        $this->assertDatabaseCount('histories', 8);
+        $this->assertDatabaseCount('histories', 10);
         $this->assertDatabaseCount('delivery_cash_denominations', 4);
     }
 
@@ -167,7 +167,7 @@ class UpdateDeliveryTest extends TestCase
         $this->actingAs($viewer, 'web')
             ->getJson('/api/records/'.$record->id.'/history')
             ->assertOk()
-            ->assertJsonCount(8, 'data')
+            ->assertJsonCount(10, 'data')
             ->assertJsonFragment([
                 'field_name' => 'delivery_date',
                 'previous_value' => null,
@@ -233,6 +233,113 @@ class UpdateDeliveryTest extends TestCase
             'delivered_by_name' => 'Maria Lopez',
         ]);
         $this->assertDatabaseCount('delivery_cash_denominations', 4);
-        $this->assertDatabaseCount('histories', 8);
+        $this->assertDatabaseCount('histories', 10);
+    }
+
+    public function test_changing_the_split_audits_only_its_inputs(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('200.00');
+        $allCash = [
+            'requested_cash_amount' => '200.00',
+            'cash_commission_percentage' => '0.00',
+            'denominations' => [['value' => '200.00', 'quantity' => 1]],
+        ];
+
+        $deliveryId = $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload($allCash))
+            ->assertOk()
+            ->json('data.id');
+
+        $historiesAfterCreation = History::query()->count();
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '100.00',
+                'cash_commission_percentage' => '10.00',
+                'denominations' => [['value' => '50.00', 'quantity' => 1], ['value' => '20.00', 'quantity' => 2]],
+            ]))
+            ->assertOk();
+
+        foreach ([
+            ['field_name' => 'requested_cash_amount', 'previous_value' => '200.00', 'new_value' => '100.00'],
+            ['field_name' => 'cash_commission_percentage', 'previous_value' => '0.00', 'new_value' => '10.00'],
+        ] as $expected) {
+            $this->assertDatabaseHas('histories', [
+                'delivery_id' => $deliveryId,
+                'reason' => 'Preparación de entrega actualizada',
+            ] + $expected);
+        }
+
+        foreach (['transfer_amount', 'cash_commission', 'cash_amount'] as $derived) {
+            $this->assertDatabaseMissing('histories', ['field_name' => $derived]);
+        }
+
+        // 2 split inputs + denominations: 200 removed, 50 and 20 added.
+        $this->assertSame($historiesAfterCreation + 5, History::query()->count());
+    }
+
+    public function test_changing_only_the_cash_commission_percentage_is_not_a_noop(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('9800.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload())
+            ->assertOk();
+
+        // 9800.00 × 0.01% = 0.98, so the 9800.00 breakdown is 0.98 over the 9799.02 to deliver.
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'cash_commission_percentage' => '0.01',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.cash_commission', '0.98')
+            ->assertJsonPath('data.cash_amount', '9799.02');
+
+        $this->assertDatabaseHas('histories', [
+            'field_name' => 'cash_commission_percentage',
+            'previous_value' => '0.00',
+            'new_value' => '0.01',
+        ]);
+        $this->assertDatabaseCount('histories', 11);
+    }
+
+    public function test_stale_delivery_keeps_its_split_and_the_transfer_absorbs_the_new_return(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('200.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '100.00',
+                'cash_commission_percentage' => '10.00',
+                'denominations' => [['value' => '50.00', 'quantity' => 1], ['value' => '20.00', 'quantity' => 2]],
+            ]))
+            ->assertOk();
+
+        $record->update(['return_amount' => '250.00']);
+
+        // The stored split is read against the stored official return.
+        $this->actingAs($editor, 'web')
+            ->getJson('/api/records/'.$record->id.'/delivery')
+            ->assertOk()
+            ->assertJsonPath('data.is_stale', true)
+            ->assertJsonPath('data.prepared_return_amount', '200.00')
+            ->assertJsonPath('data.current_return_amount', '250.00')
+            ->assertJsonPath('data.requested_cash_amount', '100.00')
+            ->assertJsonPath('data.transfer_amount', '100.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '100.00',
+                'cash_commission_percentage' => '10.00',
+                'denominations' => [['value' => '50.00', 'quantity' => 1], ['value' => '20.00', 'quantity' => 2]],
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.is_stale', false)
+            ->assertJsonPath('data.prepared_return_amount', '250.00')
+            ->assertJsonPath('data.transfer_amount', '150.00')
+            ->assertJsonPath('data.cash_amount', '90.00');
     }
 }

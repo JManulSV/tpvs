@@ -44,6 +44,11 @@ class PrepareDeliveryTest extends TestCase
             ->assertJsonPath('data.prepared_return_amount', '9800.00')
             ->assertJsonPath('data.current_return_amount', '9800.00')
             ->assertJsonPath('data.is_stale', false)
+            ->assertJsonPath('data.requested_cash_amount', '9800.00')
+            ->assertJsonPath('data.transfer_amount', '0.00')
+            ->assertJsonPath('data.cash_commission_percentage', '0.00')
+            ->assertJsonPath('data.cash_commission', '0.00')
+            ->assertJsonPath('data.cash_amount', '9800.00')
             ->assertJsonPath('data.denominations.0.value', '1000.00')
             ->assertJsonPath('data.denominations.0.quantity', 5)
             ->assertJsonPath('data.denominations.1.value', '500.00')
@@ -56,13 +61,15 @@ class PrepareDeliveryTest extends TestCase
         $this->assertSame($record->id, $delivery->record_id);
         $this->assertSame('9800.00', $delivery->prepared_return_amount);
         $this->assertDatabaseCount('delivery_cash_denominations', 4);
-        $this->assertDatabaseCount('histories', 8);
+        $this->assertDatabaseCount('histories', 10);
 
         foreach ([
             ['field_name' => 'delivery_date', 'previous_value' => null, 'new_value' => '2026-09-18'],
             ['field_name' => 'delivered_by_name', 'previous_value' => null, 'new_value' => 'Maria Lopez'],
             ['field_name' => 'received_by_name', 'previous_value' => null, 'new_value' => 'Juan Perez'],
             ['field_name' => 'prepared_return_amount', 'previous_value' => null, 'new_value' => '9800.00'],
+            ['field_name' => 'requested_cash_amount', 'previous_value' => null, 'new_value' => '9800.00'],
+            ['field_name' => 'cash_commission_percentage', 'previous_value' => null, 'new_value' => '0.00'],
             ['field_name' => 'denominations[1000.00]', 'previous_value' => null, 'new_value' => '5'],
             ['field_name' => 'denominations[500.00]', 'previous_value' => null, 'new_value' => '5'],
             ['field_name' => 'denominations[200.00]', 'previous_value' => null, 'new_value' => '10'],
@@ -242,7 +249,7 @@ class PrepareDeliveryTest extends TestCase
             ->assertJsonPath('data.denominations', []);
 
         $this->assertDatabaseCount('delivery_cash_denominations', 0);
-        $this->assertDatabaseCount('histories', 4);
+        $this->assertDatabaseCount('histories', 6);
 
         $nonZeroRecord = $this->createRecordWithReturn('9800.00');
 

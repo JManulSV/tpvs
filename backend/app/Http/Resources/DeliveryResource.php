@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Domain\Deliveries\DeliveryReturnPolicy;
+use App\Domain\Deliveries\DeliverySplit;
 use App\Models\Delivery;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -22,6 +23,12 @@ class DeliveryResource extends JsonResource
         $isStale = $this->is_stale !== null
             ? (bool) $this->is_stale
             : $returnPolicy->isStale($this->prepared_return_amount, $currentReturnAmount);
+        // The transfer is read against the stored official return, so a stale delivery keeps its own split.
+        $split = DeliverySplit::calculate(
+            (string) $this->prepared_return_amount,
+            (string) $this->requested_cash_amount,
+            (string) $this->cash_commission_percentage,
+        );
 
         return [
             'id' => $this->getKey(),
@@ -32,6 +39,11 @@ class DeliveryResource extends JsonResource
             'prepared_return_amount' => $this->prepared_return_amount,
             'current_return_amount' => $currentReturnAmount,
             'is_stale' => $isStale,
+            'requested_cash_amount' => $this->requested_cash_amount,
+            'transfer_amount' => $split->transferAmount,
+            'cash_commission_percentage' => $this->cash_commission_percentage,
+            'cash_commission' => $this->cash_commission,
+            'cash_amount' => $this->cash_amount,
             'denominations' => $this->cashDenominations
                 ->sortByDesc(static fn ($denomination): float => (float) $denomination->value)
                 ->values()

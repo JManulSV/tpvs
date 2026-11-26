@@ -99,6 +99,8 @@ class PrepareDelivery
                 $attributes['delivered_by_name'],
                 $attributes['received_by_name'],
                 $attributes['prepared_return_amount'],
+                $attributes['requested_cash_amount'],
+                $attributes['cash_commission_percentage'],
                 $denominations,
             );
 

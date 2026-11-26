@@ -229,7 +229,7 @@ Referencia visual: `DeliveryPrepare.dc.html`, `DeliveryPrepareMobile.dc.html` y 
 - [ ] `requested_cash_amount` mayor que el retorno oficial responde `409` con `reason=CASH_REQUEST_EXCEEDS_RETURN` y no escribe `Delivery` ni `History`.
 - [ ] Un `PUT` sin `requested_cash_amount` o sin `cash_commission_percentage` responde `422`. Un porcentaje fuera de `0–100` o con tres decimales responde `422`.
 - [ ] Un `PUT` con `transfer_amount`, `cash_commission`, `cash_amount` o `prepared_return_amount` responde `422`.
-- [ ] Con `cash_amount=90.00`, un desglose de `89.00` se guarda y uno de `88.99` responde `CASH_MISMATCH` con `expected_amount=90.00`.
+- [ ] Con `cash_amount=90.00`, un desglose de `89.00` se guarda y uno de `88.50` responde `CASH_MISMATCH` con `expected_amount=90.00`.
 - [ ] `prepared_return_amount` sigue siendo el retorno oficial (`200.00` en el ejemplo).
 - [ ] Cambiar el retorno del registro marca la entrega como obsoleta y bloquea el Word, igual que hoy.
 - [ ] Cambiar el efectivo solicitado o el porcentaje escribe un evento `requested_cash_amount` o `cash_commission_percentage`. No hay eventos `transfer_amount`, `cash_commission` ni `cash_amount`.

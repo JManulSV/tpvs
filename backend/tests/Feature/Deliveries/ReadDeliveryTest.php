@@ -39,4 +39,32 @@ class ReadDeliveryTest extends TestCase
             ->getJson('/api/records/999999/delivery')
             ->assertNotFound();
     }
+
+    public function test_editors_and_viewers_read_the_transfer_and_cash_split(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('200.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '100.00',
+                'cash_commission_percentage' => '10.00',
+                'denominations' => [['value' => '50.00', 'quantity' => 1], ['value' => '20.00', 'quantity' => 2]],
+            ]))
+            ->assertOk();
+
+        foreach ([UserRole::EDITOR, UserRole::VIEWER] as $role) {
+            $this->actingAs(User::factory()->create(['role' => $role]), 'web')
+                ->getJson('/api/records/'.$record->id.'/delivery')
+                ->assertOk()
+                ->assertJsonPath('data.prepared_return_amount', '200.00')
+                ->assertJsonPath('data.current_return_amount', '200.00')
+                ->assertJsonPath('data.is_stale', false)
+                ->assertJsonPath('data.requested_cash_amount', '100.00')
+                ->assertJsonPath('data.transfer_amount', '100.00')
+                ->assertJsonPath('data.cash_commission_percentage', '10.00')
+                ->assertJsonPath('data.cash_commission', '10.00')
+                ->assertJsonPath('data.cash_amount', '90.00');
+        }
+    }
 }

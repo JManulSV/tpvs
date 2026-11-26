@@ -36,6 +36,8 @@ class DeliveryHistoryServiceTest extends TestCase
             'delivered_by_name' => 'Maria Lopez',
             'received_by_name' => null,
             'prepared_return_amount' => '9800.00',
+            'requested_cash_amount' => '9800.00',
+            'cash_commission_percentage' => '0.00',
             'denominations[1000.00]' => '5',
             'denominations[500.00]' => '5',
             'denominations[200.00]' => '10',
@@ -57,6 +59,8 @@ class DeliveryHistoryServiceTest extends TestCase
             'delivered_by_name' => $delivery->delivered_by_name,
             'received_by_name' => $delivery->received_by_name,
             'prepared_return_amount' => '0.00',
+            'requested_cash_amount' => '0.00',
+            'cash_commission_percentage' => '0.00',
         ], $snapshot);
     }
 
@@ -171,8 +175,8 @@ class DeliveryHistoryServiceTest extends TestCase
             'Preparación de entrega creada',
         );
 
-        $this->assertCount(5, $changes);
-        $this->assertDatabaseCount('histories', 5);
+        $this->assertCount(7, $changes);
+        $this->assertDatabaseCount('histories', 7);
         $this->assertDatabaseHas('histories', [
             'delivery_id' => $delivery->id,
             'field_name' => 'delivered_by_name',

@@ -25,6 +25,8 @@ class DeliveryHistoryService
             $delivery->delivered_by_name,
             $delivery->received_by_name,
             $delivery->prepared_return_amount,
+            $delivery->requested_cash_amount,
+            $delivery->cash_commission_percentage,
             $delivery->cashDenominations->map(static fn ($denomination): array => [
                 'value' => $denomination->value,
                 'quantity' => $denomination->quantity,
@@ -43,6 +45,8 @@ class DeliveryHistoryService
         mixed $deliveredByName,
         mixed $receivedByName,
         mixed $preparedReturnAmount,
+        mixed $requestedCashAmount,
+        mixed $cashCommissionPercentage,
         iterable $denominations,
     ): array {
         return $this->buildSnapshot(
@@ -50,6 +54,8 @@ class DeliveryHistoryService
             $deliveredByName,
             $receivedByName,
             $preparedReturnAmount,
+            $requestedCashAmount,
+            $cashCommissionPercentage,
             $denominations,
         );
     }
@@ -120,6 +126,8 @@ class DeliveryHistoryService
         mixed $deliveredByName,
         mixed $receivedByName,
         mixed $preparedReturnAmount,
+        mixed $requestedCashAmount,
+        mixed $cashCommissionPercentage,
         iterable $denominations,
     ): array {
         $snapshot = [
@@ -127,6 +135,9 @@ class DeliveryHistoryService
             'delivered_by_name' => CanonicalValue::string($deliveredByName),
             'received_by_name' => CanonicalValue::string($receivedByName),
             'prepared_return_amount' => $this->normalizer->canonicalAmount($preparedReturnAmount),
+            // The split inputs (SPEC 28). transfer_amount, cash_commission and cash_amount are derived and not audited.
+            'requested_cash_amount' => $this->normalizer->canonicalAmount($requestedCashAmount),
+            'cash_commission_percentage' => $this->normalizer->canonicalAmount($cashCommissionPercentage),
         ];
 
         $ordered = [];
