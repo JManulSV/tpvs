@@ -4,6 +4,7 @@ namespace App\Domain\Documents;
 
 use App\Domain\Deliveries\CashBreakdown;
 use App\Domain\Deliveries\DeliveryInputNormalizer;
+use App\Domain\Deliveries\DeliverySplit;
 use App\Domain\Shared\Money;
 use App\Models\Delivery;
 use PhpOffice\PhpWord\Element\Section;
@@ -91,6 +92,16 @@ class DeliveryDocumentBuilder
             $customerWillGiveChange,
         );
 
+        $split = DeliverySplit::calculate(
+            (string) $delivery->prepared_return_amount,
+            (string) $delivery->requested_cash_amount,
+            (string) $delivery->cash_commission_percentage,
+        );
+        // What the customer receives in total: the transfer plus the adjusted cash (SPEC 28).
+        $receivedAmount = Money::fromDecimal($split->transferAmount)
+            ->add(Money::fromDecimal($documentReturnAmount))
+            ->toDecimal();
+
         $phpWord = new PhpWord;
         $phpWord->setDefaultFontName(self::FONT);
         $phpWord->setDefaultFontSize(self::FONT_SIZE);
@@ -116,8 +127,8 @@ class DeliveryDocumentBuilder
                 'Mediante la presente hago constar que recibí por parte del C. %s, la cantidad de %s (%s) '
                 .'por concepto del uso de la terminal bancaria, correspondiente a la semana del %s',
                 mb_strtoupper($delivery->delivered_by_name),
-                $this->money($documentReturnAmount),
-                $this->moneyToWords->convert($documentReturnAmount),
+                $this->money($receivedAmount),
+                $this->moneyToWords->convert($receivedAmount),
                 $this->dates->weekRange($record->week_start_date, $record->week_end_date),
             ),
             [],
@@ -137,30 +148,73 @@ class DeliveryDocumentBuilder
             ['spaceBefore' => 240, 'spaceAfter' => 120],
         );
 
-        $this->addCashTable($section, $denominations->all());
+        $this->addReturnSplitTable($section, $delivery, $split);
 
-        $section->addText(
-            'Efectivo bruto: '.$this->money($cashTotal),
-            ['bold' => true],
-            ['alignment' => Jc::END, 'spaceBefore' => 60],
-        );
-        $section->addText(
-            'Importe de entrega: '.$this->money($documentReturnAmount),
-            ['bold' => true],
-            ['alignment' => Jc::END],
-        );
+        // Without cash to deliver there is no breakdown, gross cash, document amount or change to print.
+        if ($split->hasCash()) {
+            $section->addTextBreak();
+            $this->addCashTable($section, $denominations->all());
 
-        if ($reconciliation['change_amount'] !== null) {
             $section->addText(
-                'Cambio que dará el cliente: '.$this->money($reconciliation['change_amount']),
+                'Efectivo bruto: '.$this->money($cashTotal),
+                ['bold' => true],
+                ['alignment' => Jc::END, 'spaceBefore' => 60],
+            );
+            $section->addText(
+                'Importe de entrega: '.$this->money($documentReturnAmount),
                 ['bold' => true],
                 ['alignment' => Jc::END],
             );
+
+            if ($reconciliation['change_amount'] !== null) {
+                $section->addText(
+                    'Cambio que dará el cliente: '.$this->money($reconciliation['change_amount']),
+                    ['bold' => true],
+                    ['alignment' => Jc::END],
+                );
+            }
         }
 
         $this->addSignatures($section, $delivery);
 
         return $phpWord;
+    }
+
+    /**
+     * TIPO | COMISIÓN | RETORNO, always with both rows. Only the extra cash
+     * commission is shown: the base commission is already out of the official return.
+     * The cash row shows the stored net cash; the adjusted amount is printed below.
+     */
+    private function addReturnSplitTable(Section $section, Delivery $delivery, DeliverySplit $split): void
+    {
+        $table = $section->addTable([
+            'borderSize' => 6,
+            'borderColor' => '000000',
+            'alignment' => Jc::CENTER,
+            'cellMargin' => 40,
+        ]);
+
+        $header = ['bold' => true];
+        $table->addRow();
+        $table->addCell(2800)->addText('TIPO', $header, ['alignment' => Jc::CENTER]);
+        $table->addCell(2400)->addText('COMISIÓN', $header, ['alignment' => Jc::CENTER]);
+        $table->addCell(2400)->addText('RETORNO', $header, ['alignment' => Jc::CENTER]);
+
+        $rows = [
+            ['Transferencia', $this->money('0.00'), $this->money($split->transferAmount)],
+            [
+                'Efectivo',
+                $split->cashCommissionPercentage.'% · '.$this->money((string) $delivery->cash_commission),
+                $this->money((string) $delivery->cash_amount),
+            ],
+        ];
+
+        foreach ($rows as [$type, $commission, $return]) {
+            $table->addRow();
+            $table->addCell(2800)->addText($type, [], ['alignment' => Jc::START]);
+            $table->addCell(2400)->addText($commission, [], ['alignment' => Jc::END]);
+            $table->addCell(2400)->addText($return, [], ['alignment' => Jc::END]);
+        }
     }
 
     /** @param  array<string, int>  $quantities  keyed by canonical denomination */

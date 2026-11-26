@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Documents\DeliveryDocumentBuilder;
+use App\Domain\Documents\MoneyToWordsService;
 use App\Models\Delivery;
 use App\Models\DeliveryCashDenomination;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,7 +50,7 @@ class DeliveryDocumentBuilderTest extends TestCase
     public function test_the_denomination_table_lists_all_eleven_rows_with_quantities_and_totals(): void
     {
         $path = $this->build($this->delivery(), $this->image('png'));
-        $rows = $this->tableRows($path, 0);
+        $rows = $this->tableRows($path, 1);
 
         $this->assertCount(12, $rows);
         $this->assertSame(['DENOMINACION', 'CANTIDAD', 'TOTAL'], $rows[0]);
@@ -80,7 +81,7 @@ class DeliveryDocumentBuilderTest extends TestCase
         $this->assertStringContainsString('Efectivo bruto: $920.00', $belowTable);
         $this->assertStringContainsString('Importe de entrega: $920.00', $belowTable);
 
-        $signatures = $this->tableRows($path, 1);
+        $signatures = $this->tableRows($path, 2);
         $this->assertSame(['ENTREGA', 'RECIBE'], $signatures[0]);
         $this->assertSame(['SOL QUEZAL FLORES GÓMEZ', 'JUAN PÉREZ'], $signatures[2]);
     }
@@ -108,7 +109,7 @@ class DeliveryDocumentBuilderTest extends TestCase
     {
         $path = $this->build($this->delivery(receivedBy: null), $this->image('jpeg'));
 
-        $this->assertSame(['SOL QUEZAL FLORES GÓMEZ', ''], $this->tableRows($path, 1)[2]);
+        $this->assertSame(['SOL QUEZAL FLORES GÓMEZ', ''], $this->tableRows($path, 2)[2]);
     }
 
     public function test_week_range_across_years_shows_both_years(): void
@@ -200,6 +201,64 @@ class DeliveryDocumentBuilderTest extends TestCase
         $this->assertSame(3, DeliveryCashDenomination::query()->count());
     }
 
+    public function test_the_return_split_table_comes_first_and_shows_only_the_extra_commission(): void
+    {
+        // Pre-SPEC 28 delivery: all cash, no extra commission.
+        $rows = $this->tableRows($this->build($this->delivery(), $this->image('jpeg')), 0);
+
+        $this->assertSame([
+            ['TIPO', 'COMISIÓN', 'RETORNO'],
+            ['Transferencia', '$0.00', '$0.00'],
+            ['Efectivo', '0.00% · $0.00', '$920.00'],
+        ], $rows);
+    }
+
+    public function test_mixed_split_prints_transfer_plus_document_amount_and_both_tables(): void
+    {
+        // 200.00 return, 100.00 requested at 10% → 100.00 transfer, 10.00 commission, 90.00 cash.
+        $delivery = $this->splitDelivery('100.00', '10.00', '10.00', '90.00', [['50.00', 1], ['20.00', 2]]);
+
+        $path = $this->build($delivery, $this->image('jpeg'), '90.00');
+        $text = $this->documentText($path);
+
+        $this->assertStringContainsString(
+            'la cantidad de $190.00 ('.app(MoneyToWordsService::class)->convert('190.00').')',
+            $text,
+        );
+        $this->assertSame([
+            ['TIPO', 'COMISIÓN', 'RETORNO'],
+            ['Transferencia', '$0.00', '$100.00'],
+            ['Efectivo', '10.00% · $10.00', '$90.00'],
+        ], $this->tableRows($path, 0));
+        $this->assertSame(['DENOMINACION', 'CANTIDAD', 'TOTAL'], $this->tableRows($path, 1)[0]);
+        $this->assertLessThan(strpos($text, 'DENOMINACION'), strpos($text, 'TIPO'));
+        $this->assertStringContainsString('Efectivo bruto: $90.00', $text);
+        $this->assertStringContainsString('Importe de entrega: $90.00', $text);
+    }
+
+    public function test_all_transfer_omits_the_cash_block(): void
+    {
+        $delivery = $this->splitDelivery('0.00', '10.00', '0.00', '0.00', []);
+
+        $path = $this->build($delivery, $this->image('jpeg'), '0.00');
+        $text = $this->documentText($path);
+
+        $this->assertStringContainsString(
+            'la cantidad de $200.00 ('.app(MoneyToWordsService::class)->convert('200.00').')',
+            $text,
+        );
+        $this->assertSame([
+            ['TIPO', 'COMISIÓN', 'RETORNO'],
+            ['Transferencia', '$0.00', '$200.00'],
+            ['Efectivo', '10.00% · $0.00', '$0.00'],
+        ], $this->tableRows($path, 0));
+        $this->assertStringNotContainsString('DENOMINACION', $text);
+        $this->assertStringNotContainsString('Efectivo bruto', $text);
+        $this->assertStringNotContainsString('Importe de entrega', $text);
+        $this->assertStringNotContainsString('Cambio que dará el cliente', $text);
+        $this->assertSame(['ENTREGA', 'RECIBE'], $this->tableRows($path, 1)[0]);
+    }
+
     private function delivery(
         string $deliveredBy = 'Sol Quezal Flores Gómez',
         ?string $receivedBy = 'Juan Pérez',
@@ -209,6 +268,40 @@ class DeliveryDocumentBuilderTest extends TestCase
         return $this->createDelivery(
             ['year' => 2026, 'week_start_date' => $weekStart, 'week_end_date' => $weekEnd],
             ['delivery_date' => '2026-07-08', 'delivered_by_name' => $deliveredBy, 'received_by_name' => $receivedBy],
+        );
+    }
+
+    /**
+     * A 200.00-return Delivery with the given split.
+     *
+     * @param  list<array{0: string, 1: int}>  $denominations
+     */
+    private function splitDelivery(
+        string $requestedCash,
+        string $percentage,
+        string $commission,
+        string $cash,
+        array $denominations,
+    ): Delivery {
+        return $this->createDelivery(
+            [
+                'year' => 2026,
+                'week_start_date' => '2026-09-07',
+                'week_end_date' => '2026-09-13',
+                'commission' => '0.00',
+                'return_amount' => '200.00',
+            ],
+            [
+                'delivery_date' => '2026-07-08',
+                'delivered_by_name' => 'Sol Quezal Flores Gómez',
+                'received_by_name' => 'Juan Pérez',
+                'prepared_return_amount' => '200.00',
+                'requested_cash_amount' => $requestedCash,
+                'cash_commission_percentage' => $percentage,
+                'cash_commission' => $commission,
+                'cash_amount' => $cash,
+            ],
+            $denominations,
         );
     }
 
