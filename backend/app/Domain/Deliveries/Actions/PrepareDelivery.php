@@ -12,6 +12,7 @@ use App\Enums\RecordStatus;
 use App\Models\Delivery;
 use App\Models\Record;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Create or replace the delivery of a CONFIRMED record, snapshotting its current
@@ -58,6 +59,13 @@ class PrepareDelivery
                 $requestedCashAmount,
                 (string) $validated['cash_commission_percentage'],
             );
+
+            // Without cash to deliver the breakdown must be empty: the Word would not show that cash.
+            if (! $split->hasCash() && $denominations !== []) {
+                throw ValidationException::withMessages([
+                    'denominations' => ['The cash breakdown must be empty when there is no cash to deliver.'],
+                ]);
+            }
 
             // An empty breakdown stays valid only when there is no cash to deliver.
             $mismatch = $this->cash->preparationCashShortfall($split->cashAmount, $denominations);

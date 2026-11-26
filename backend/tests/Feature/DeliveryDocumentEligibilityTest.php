@@ -121,7 +121,7 @@ class DeliveryDocumentEligibilityTest extends TestCase
         Image::factory()->create(['record_id' => $delivery->record_id, 'file_path' => 'sample.jpg']);
         $this->assertBlocked(DocumentGenerationBlockedException::STALE_DELIVERY, $delivery->fresh());
 
-        $delivery->update(['prepared_return_amount' => '920.00']);
+        $delivery->update(['prepared_return_amount' => '920.00', 'requested_cash_amount' => '920.00', 'cash_amount' => '920.00']);
         $this->assertBlocked(
             DocumentGenerationBlockedException::CASH_MISMATCH,
             $delivery->fresh(),
@@ -149,6 +149,43 @@ class DeliveryDocumentEligibilityTest extends TestCase
 
         $this->assertEquals($updatedAt, $delivery->fresh()->updated_at);
         $this->assertSame(3, DeliveryCashDenomination::query()->count());
+    }
+
+    public function test_document_options_come_from_the_cash_to_deliver_not_the_official_return(): void
+    {
+        // Return 200.00; 100.05 requested at 6.50% → 6.50 commission, 93.55 to deliver; cash 93.50.
+        $delivery = $this->splitDelivery('100.05', '6.50', '6.50', '93.55', [
+            ['50.00', 1], ['20.00', 2], ['2.00', 1], ['1.00', 1], ['0.50', 1],
+        ]);
+
+        foreach (['93.00', '93.50', '94.00'] as $option) {
+            $this->eligibility()->check($delivery, $delivery->record, $option, false);
+        }
+
+        foreach (['200.00', '199.50', '201.00'] as $officialReturnOption) {
+            try {
+                $this->eligibility()->check($delivery, $delivery->record, $officialReturnOption, false);
+                $this->fail("Expected {$officialReturnOption}, an option of the official return, to be rejected.");
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('document_return_amount', $exception->errors());
+            }
+        }
+    }
+
+    public function test_without_cash_only_a_zero_document_amount_is_accepted(): void
+    {
+        $delivery = $this->splitDelivery('0.00', '10.00', '0.00', '0.00', []);
+
+        $this->eligibility()->check($delivery, $delivery->record, '0.00', false);
+
+        foreach (['0.50', '1.00', '200.00'] as $amount) {
+            try {
+                $this->eligibility()->check($delivery, $delivery->record, $amount, false);
+                $this->fail("Expected {$amount} to be rejected without cash.");
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('document_return_amount', $exception->errors());
+            }
+        }
     }
 
     private function assertBlocked(
@@ -197,6 +234,36 @@ class DeliveryDocumentEligibilityTest extends TestCase
                 Storage::disk('record_images')->put('sample.jpg', 'image-bytes');
             }
         }
+
+        return $delivery;
+    }
+
+    /**
+     * A CONFIRMED 200.00-return Delivery with the given split and an image.
+     *
+     * @param  list<array{0: string, 1: int}>  $denominations
+     */
+    private function splitDelivery(
+        string $requestedCash,
+        string $percentage,
+        string $commission,
+        string $cash,
+        array $denominations,
+    ): Delivery {
+        $delivery = $this->createDelivery(
+            ['commission' => '0.00', 'return_amount' => '200.00'],
+            [
+                'prepared_return_amount' => '200.00',
+                'requested_cash_amount' => $requestedCash,
+                'cash_commission_percentage' => $percentage,
+                'cash_commission' => $commission,
+                'cash_amount' => $cash,
+            ],
+            $denominations,
+        );
+
+        Image::factory()->create(['record_id' => $delivery->record_id, 'file_path' => 'sample.jpg']);
+        Storage::disk('record_images')->put('sample.jpg', 'image-bytes');
 
         return $delivery;
     }

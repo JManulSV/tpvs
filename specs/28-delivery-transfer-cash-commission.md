@@ -92,6 +92,7 @@ Casos:
 
 - Al guardar, la suma de denominaciones puede quedar hasta `$1.00` por debajo de `cash_amount` o cualquier monto arriba. Un faltante mayor bloquea el guardado con el `CASH_MISMATCH` actual.
 - Un desglose vacío es válido solo cuando `cash_amount` es `0.00`.
+- Con `cash_amount = 0.00` el desglose debe quedar vacío. Un desglose con efectivo responde `422` en `denominations`, porque el Word no mostraría ese efectivo.
 - Con `cash_amount > 0`, las tres opciones documentales de SPEC 14 se calculan desde `cash_amount`.
 - Con `cash_amount = 0.00`, el único importe documental válido es `0.00` y no hay cambio del cliente.
 - El cambio del cliente es efectivo bruto menos importe documental, igual que en SPEC 14.
@@ -131,6 +132,7 @@ Campos auditados nuevos, con dos decimales y las razones existentes (`Preparaci�
 - `cash_commission_percentage` es obligatorio, entre `0` y `100`, con máximo dos decimales. `0` es válido (`422`).
 - Se rechazan con `422` (`prohibited`): `transfer_amount`, `cash_commission`, `cash_amount` y `prepared_return_amount`.
 - Un `requested_cash_amount` mayor que el retorno oficial actual responde `409 DELIVERY_PREPARATION_BLOCKED` con `reason=CASH_REQUEST_EXCEEDS_RETURN`. Se valida bajo el bloqueo existente de `Record` y `Delivery`, como `CASH_MISMATCH`.
+- Con `cash_amount = 0.00`, un desglose no vacío responde `422` en `denominations`.
 - Un faltante mayor a `$1.00` contra `cash_amount` responde el `CASH_MISMATCH` actual. `details.expected_amount` es `cash_amount`.
 
 ### `GET /api/records/{record}/delivery`
@@ -226,6 +228,7 @@ Referencia visual: `DeliveryPrepare.dc.html`, `DeliveryPrepareMobile.dc.html` y 
 - [ ] Con retorno oficial `200.00`, `requested_cash_amount=100.00` y `cash_commission_percentage=10.00`, el `PUT` guarda `cash_commission=10.00` y `cash_amount=90.00`. El `GET` devuelve `transfer_amount=100.00`.
 - [ ] Con `requested_cash_amount=200.00` y `10.00%`, se guarda `cash_amount=180.00` y `transfer_amount=0.00`.
 - [ ] Con `requested_cash_amount=0.00`, `cash_amount=0.00` y un desglose vacío se guarda.
+- [ ] Con `cash_amount=0.00` (todo por transferencia o `100%`), un desglose con efectivo responde `422` en `denominations` y no escribe `Delivery` ni `History`.
 - [ ] `requested_cash_amount` mayor que el retorno oficial responde `409` con `reason=CASH_REQUEST_EXCEEDS_RETURN` y no escribe `Delivery` ni `History`.
 - [ ] Un `PUT` sin `requested_cash_amount` o sin `cash_commission_percentage` responde `422`. Un porcentaje fuera de `0–100` o con tres decimales responde `422`.
 - [ ] Un `PUT` con `transfer_amount`, `cash_commission`, `cash_amount` o `prepared_return_amount` responde `422`.
@@ -264,6 +267,7 @@ Referencia visual: `DeliveryPrepare.dc.html`, `DeliveryPrepareMobile.dc.html` y 
 - **No:** prorratear la comisión base entre transferencia y efectivo. Ya está descontada en el retorno oficial.
 - **Sí:** la frase del Word usa transferencia + importe documental. Es lo que recibe el cliente en total, y con todo por transferencia no dice `$0.00`. Decisión del usuario.
 - **Sí:** sin efectivo, se omite la tabla de denominaciones del Word. Decisión del usuario.
+- **Sí:** sin efectivo, el `PUT` rechaza un desglose no vacío (`422`). Así nunca se guarda efectivo que el Word no muestra. Decisión del usuario durante la implementación.
 - **No:** otros cambios al Word. Decisión del usuario: solo la tabla extra.
 - **No:** afectar reportes, Excel o dashboard. El usuario lo limitó a la entrega «por el momento».
 - **No:** datos bancarios de la transferencia. Decisión del usuario: solo el monto.

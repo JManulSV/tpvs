@@ -77,6 +77,22 @@ class DeliveryReturnPolicyTest extends TestCase
         $this->assertTrue($returnPolicy->isStale('9800.00', '10000.00'));
     }
 
+    public function test_document_options_follow_the_cash_to_deliver(): void
+    {
+        // SPEC 28: 100.05 requested at 6.50% leaves 93.55 to deliver.
+        $this->assertSame(['93.00', '93.50', '94.00'], $this->returnPolicy()->documentReturnOptions('93.55'));
+    }
+
+    public function test_without_cash_the_only_document_option_is_zero(): void
+    {
+        $returnPolicy = $this->returnPolicy();
+
+        $this->assertSame(['0.00'], $returnPolicy->documentReturnOptions('0.00'));
+        $this->assertTrue($returnPolicy->isDocumentReturnOption('0.00', '0'));
+        $this->assertFalse($returnPolicy->isDocumentReturnOption('0.00', '0.50'));
+        $this->assertFalse($returnPolicy->isDocumentReturnOption('0.00', '1.00'));
+    }
+
     private function returnPolicy(): DeliveryReturnPolicy
     {
         return new DeliveryReturnPolicy;

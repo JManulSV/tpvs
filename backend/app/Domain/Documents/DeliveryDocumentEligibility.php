@@ -60,8 +60,9 @@ class DeliveryDocumentEligibility
             ->map(fn ($row): array => ['value' => (string) $row->value, 'quantity' => (int) $row->quantity])
             ->all();
 
+        // Options and reconciliation follow the cash to deliver, never the official return (SPEC 28).
         $this->cash->validateDocumentCashReconciliation(
-            $currentAmount,
+            (string) $delivery->cash_amount,
             $documentReturnAmount,
             $denominations,
             $customerWillGiveChange,

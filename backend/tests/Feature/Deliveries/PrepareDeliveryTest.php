@@ -506,4 +506,37 @@ class PrepareDeliveryTest extends TestCase
 
         $this->assertDatabaseHas('deliveries', ['record_id' => $record->id, 'cash_amount' => '90.00']);
     }
+
+    public function test_without_cash_to_deliver_the_breakdown_must_be_empty(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('200.00');
+
+        foreach ([
+            'all transfer' => ['requested_cash_amount' => '0.00', 'cash_commission_percentage' => '10.00'],
+            'one hundred percent' => ['requested_cash_amount' => '200.00', 'cash_commission_percentage' => '100.00'],
+        ] as $split) {
+            $this->actingAs($editor, 'web')
+                ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                    ...$split,
+                    'denominations' => [['value' => '50.00', 'quantity' => 1]],
+                ]))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(['denominations']);
+        }
+
+        $this->assertDatabaseCount('deliveries', 0);
+        $this->assertDatabaseCount('delivery_cash_denominations', 0);
+        $this->assertDatabaseCount('histories', 0);
+
+        // Zero quantities are discarded first, so they still count as an empty breakdown.
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '0.00',
+                'cash_commission_percentage' => '10.00',
+                'denominations' => [['value' => '50.00', 'quantity' => 0]],
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.denominations', []);
+    }
 }

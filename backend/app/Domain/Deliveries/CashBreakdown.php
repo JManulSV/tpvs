@@ -128,20 +128,21 @@ class CashBreakdown
 
     /**
      * @param  array<int, array{value?: mixed, quantity?: mixed}>  $denominations
+     * @param  string  $cashAmount  the Delivery's cash to deliver, the base of the document options (SPEC 28)
      * @return array{expected_amount: string, cash_amount: string, difference: string, change_amount: ?string}
      *
      * @throws ValidationException when the document amount is not an allowed option
      * @throws DocumentGenerationBlockedException when the cash does not reconcile
      */
     public function validateDocumentCashReconciliation(
-        string $officialReturnAmount,
+        string $cashAmount,
         string $documentReturnAmount,
         array $denominations,
         bool $customerWillGiveChange,
     ): array {
-        if (! $this->returnPolicy->isDocumentReturnOption($officialReturnAmount, $documentReturnAmount)) {
+        if (! $this->returnPolicy->isDocumentReturnOption($cashAmount, $documentReturnAmount)) {
             throw ValidationException::withMessages([
-                'document_return_amount' => ['The document return amount is not an allowed adjustment for the current return.'],
+                'document_return_amount' => ['The document return amount is not an allowed adjustment for the cash to deliver.'],
             ]);
         }
 

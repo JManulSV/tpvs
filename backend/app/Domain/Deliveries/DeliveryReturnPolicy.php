@@ -6,7 +6,7 @@ use App\Domain\Shared\Money;
 use App\Models\Record;
 use InvalidArgumentException;
 
-/** The official return of a record and the amounts a delivery document may print. */
+/** The official return of a record and the amounts a delivery document may print for its cash. */
 class DeliveryReturnPolicy
 {
     public function __construct(
@@ -26,22 +26,27 @@ class DeliveryReturnPolicy
     }
 
     /**
-     * The document amount choices are the current whole peso, the same peso
-     * plus fifty cents, and the next whole peso.
+     * The document amount choices, derived from the cash to deliver (SPEC 28):
+     * the current whole peso, the same peso plus fifty cents, and the next
+     * whole peso. Without cash the only valid document amount is 0.00.
      *
-     * @return array{string, string, string}
+     * @return list<string>
      *
      * @throws InvalidArgumentException
      */
-    public function documentReturnOptions(string $officialReturnAmount): array
+    public function documentReturnOptions(string $cashAmount): array
     {
-        $officialReturn = $this->normalizer->money($officialReturnAmount);
+        $cash = $this->normalizer->money($cashAmount);
 
-        if ($officialReturn->isNegative()) {
-            throw new InvalidArgumentException('The official return amount must not be negative.');
+        if ($cash->isNegative()) {
+            throw new InvalidArgumentException('The cash amount must not be negative.');
         }
 
-        $wholePeso = $officialReturn->floorToWholePeso();
+        if ($cash->compare(Money::zero()) === 0) {
+            return [Money::zero()->toDecimal()];
+        }
+
+        $wholePeso = $cash->floorToWholePeso();
 
         return [
             $wholePeso->toDecimal(),
@@ -50,7 +55,7 @@ class DeliveryReturnPolicy
         ];
     }
 
-    public function isDocumentReturnOption(string $officialReturnAmount, string $documentReturnAmount): bool
+    public function isDocumentReturnOption(string $cashAmount, string $documentReturnAmount): bool
     {
         try {
             $canonicalDocumentAmount = $this->normalizer->canonicalAmount($documentReturnAmount);
@@ -60,7 +65,7 @@ class DeliveryReturnPolicy
 
             return in_array(
                 $canonicalDocumentAmount,
-                $this->documentReturnOptions($officialReturnAmount),
+                $this->documentReturnOptions($cashAmount),
                 true,
             );
         } catch (InvalidArgumentException) {
