@@ -19,6 +19,10 @@ return new class extends Migration
             $table->string('delivered_by_name');
             $table->string('received_by_name')->nullable();
             $table->decimal('prepared_return_amount', 12, 2);
+            $table->decimal('requested_cash_amount', 12, 2);
+            $table->decimal('cash_commission_percentage', 5, 2);
+            $table->decimal('cash_commission', 12, 2);
+            $table->decimal('cash_amount', 12, 2);
             $table->timestamps();
         });
 
@@ -41,6 +45,33 @@ return new class extends Migration
             ALTER TABLE deliveries
             ADD CONSTRAINT deliveries_prepared_return_amount_check
             CHECK (prepared_return_amount >= 0)
+        SQL);
+
+        DB::statement(<<<'SQL'
+            ALTER TABLE deliveries
+            ADD CONSTRAINT deliveries_requested_cash_amount_check
+            CHECK (
+                requested_cash_amount >= 0
+                AND requested_cash_amount <= prepared_return_amount
+            )
+        SQL);
+
+        DB::statement(<<<'SQL'
+            ALTER TABLE deliveries
+            ADD CONSTRAINT deliveries_cash_commission_percentage_check
+            CHECK (cash_commission_percentage >= 0 AND cash_commission_percentage <= 100)
+        SQL);
+
+        DB::statement(<<<'SQL'
+            ALTER TABLE deliveries
+            ADD CONSTRAINT deliveries_cash_commission_check
+            CHECK (cash_commission >= 0)
+        SQL);
+
+        DB::statement(<<<'SQL'
+            ALTER TABLE deliveries
+            ADD CONSTRAINT deliveries_cash_amount_check
+            CHECK (cash_amount >= 0)
         SQL);
     }
 

@@ -128,4 +128,43 @@ class DatabaseSchemaTest extends TestCase
 
         Record::factory()->create(['return_amount' => '-0.01']);
     }
+
+    public function test_delivery_requested_cash_amount_cannot_exceed_the_prepared_return(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Delivery::factory()->create([
+            'prepared_return_amount' => '200.00',
+            'requested_cash_amount' => '200.01',
+            'cash_amount' => '200.01',
+        ]);
+    }
+
+    public function test_delivery_requested_cash_amount_cannot_be_negative(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Delivery::factory()->create(['requested_cash_amount' => '-0.01', 'cash_amount' => '0.00']);
+    }
+
+    public function test_delivery_cash_commission_percentage_must_be_between_zero_and_one_hundred(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Delivery::factory()->create(['cash_commission_percentage' => '100.01']);
+    }
+
+    public function test_delivery_cash_commission_cannot_be_negative(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Delivery::factory()->create(['cash_commission' => '-0.01']);
+    }
+
+    public function test_delivery_cash_amount_cannot_be_negative(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Delivery::factory()->create(['cash_amount' => '-0.01']);
+    }
 }

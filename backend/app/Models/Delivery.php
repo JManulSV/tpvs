@@ -17,6 +17,10 @@ class Delivery extends Model
         'delivered_by_name',
         'received_by_name',
         'prepared_return_amount',
+        'requested_cash_amount',
+        'cash_commission_percentage',
+        'cash_commission',
+        'cash_amount',
     ];
 
     protected function casts(): array
@@ -24,6 +28,10 @@ class Delivery extends Model
         return [
             'delivery_date' => 'date',
             'prepared_return_amount' => 'decimal:2',
+            'requested_cash_amount' => 'decimal:2',
+            'cash_commission_percentage' => 'decimal:2',
+            'cash_commission' => 'decimal:2',
+            'cash_amount' => 'decimal:2',
         ];
     }
 
