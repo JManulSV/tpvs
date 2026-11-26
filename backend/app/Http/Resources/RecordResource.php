@@ -48,7 +48,7 @@ class RecordResource extends JsonResource
                     'model' => $processing->model,
                     'started_at' => $processing->started_at?->toISOString(),
                     'completed_at' => $processing->completed_at?->toISOString(),
-                    'normalized_extraction' => $result['normalized_extraction'] ?? null,
+                    'normalized_extraction' => self::publicExtraction($result['normalized_extraction'] ?? null),
                     'issues' => $result['issues'] ?? [],
                     'unconvertible_numeric_count' => $result['unconvertible_numeric_count'] ?? 0,
                 ];
@@ -59,5 +59,21 @@ class RecordResource extends JsonResource
             'return_total' => $this->when($this->return_amount !== null, fn (): string => (string) $this->return_amount),
             'details' => RecordDetailResource::collection($this->whenLoaded('details')),
         ];
+    }
+
+    /**
+     * The header number and completion date are kept in AIProcessing.result for a
+     * future spec, but are not exposed yet (SPEC 27).
+     *
+     * @param  array<string, mixed>|null  $extraction
+     * @return array<string, mixed>|null
+     */
+    private static function publicExtraction(?array $extraction): ?array
+    {
+        if (is_array($extraction['record'] ?? null)) {
+            unset($extraction['record']['document_number'], $extraction['record']['completion_date']);
+        }
+
+        return $extraction;
     }
 }
