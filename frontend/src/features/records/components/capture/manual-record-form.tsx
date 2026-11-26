@@ -8,6 +8,7 @@ import { useFieldArray, useForm, useWatch, type FieldPath } from "react-hook-for
 import { FormField, fieldErrorProps } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { useCompanies } from "@/features/companies/hooks/use-companies";
+import { formatMoney } from "@/lib/format";
 import { cardSurface, fieldControl } from "@/lib/styles";
 import { cn } from "@/lib/utils";
 import { recordKeys, useCreateRecord, useUpdateRecord } from "../../hooks/use-records";
@@ -15,13 +16,7 @@ import { manualRecordFormSchema, type ManualRecordFormValues } from "../../schem
 import { RecordsApiError, type RecordDetailView } from "../../types";
 import { getDirtyCount, getSaveBarState } from "../../utils/capture";
 import { getReportMonthName } from "../../utils/detail";
-import {
-  commissionModesFor,
-  emptyMovement,
-  initialManualRecordValues,
-  toRecordDetailInputs,
-  type CommissionMode,
-} from "../../utils/manual-form";
+import { emptyMovement, initialManualRecordValues, toRecordDetailInputs } from "../../utils/manual-form";
 import { CorrectionSaveBar } from "./correction-save-bar";
 import { ManualRecordSummary } from "./manual-record-summary";
 import { MovementFieldset } from "./movement-fieldset";
@@ -40,7 +35,7 @@ type ManualRecordFormProps =
       onDirtyChange?: (dirtyCount: number) => void;
     };
 
-type PeriodField = "company_id" | "year" | "week" | "week_start_date" | "week_end_date";
+type PeriodField = "company_id" | "year" | "week" | "week_start_date" | "week_end_date" | "commission_percentage";
 
 const cardClass = cn(cardSurface, "space-y-4 p-5");
 
@@ -59,9 +54,6 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
     defaultValues: initialManualRecordValues(editRecord ?? undefined),
   });
   const movements = useFieldArray({ control: form.control, name: "details" });
-  const [commissionModes, setCommissionModes] = useState<CommissionMode[]>(() =>
-    editRecord ? commissionModesFor(editRecord) : ["percentage"],
-  );
   const [serverDetailErrors, setServerDetailErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [createdRecord, setCreatedRecord] = useState<RecordDetailView | null>(null);
@@ -100,9 +92,8 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
   }
 
   function discardChanges() {
-    if (!initialEditValues || !editRecord) return;
+    if (!initialEditValues) return;
     form.reset(initialEditValues);
-    setCommissionModes(commissionModesFor(editRecord));
     setEditReason("");
     resetMessages();
   }
@@ -110,7 +101,6 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
   function startNewRecord() {
     form.reset(initialManualRecordValues());
     movements.replace([emptyMovement()]);
-    setCommissionModes(["percentage"]);
     setEditReason("");
     setFormError(null);
     setCreatedRecord(null);
@@ -119,16 +109,10 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
 
   function addMovement() {
     movements.append(emptyMovement());
-    setCommissionModes((current) => [...current, "percentage"]);
   }
 
   function removeMovement(index: number) {
     movements.remove(index);
-    setCommissionModes((current) => current.filter((_, itemIndex) => itemIndex !== index));
-  }
-
-  function setMovementMode(index: number, mode: CommissionMode) {
-    setCommissionModes((current) => current.map((item, itemIndex) => (itemIndex === index ? mode : item)));
   }
 
   function showSaveError(error: unknown) {
@@ -165,7 +149,7 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
       return;
     }
 
-    const payload = { ...values, details: toRecordDetailInputs(values.details, commissionModes) };
+    const payload = { ...values, details: toRecordDetailInputs(values.details) };
 
     try {
       if (props.mode === "edit") {
@@ -208,8 +192,11 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
         >
           <div className="space-y-6">
             <fieldset className={cardClass} disabled={isSubmitting}>
-              <legend className="sr-only">Empresa y periodo</legend>
-              <SectionHeading subtitle="La semana se identifica por semana y año." title="Empresa y periodo" />
+              <legend className="sr-only">Empresa, periodo y comisión</legend>
+              <SectionHeading
+                subtitle="La semana se identifica por semana y año. La comisión es un solo porcentaje para todo el registro."
+                title="Empresa, periodo y comisión"
+              />
               <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
                 <FormField error={periodError("company_id")} id="manual-record-company" label="Empresa">
                   <select
@@ -267,7 +254,23 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
                     {...form.register("week_end_date")}
                   />
                 </FormField>
+                <FormField error={periodError("commission_percentage")} id="manual-record-commission-percentage" label="Comisión %">
+                  <input
+                    {...fieldErrorProps("manual-record-commission-percentage", periodError("commission_percentage"))}
+                    className={fieldControl}
+                    id="manual-record-commission-percentage"
+                    inputMode="decimal"
+                    placeholder="0–100"
+                    {...form.register("commission_percentage")}
+                  />
+                </FormField>
               </div>
+              {editRecord !== null && (
+                <dl className="grid grid-cols-2 gap-4 rounded-md bg-muted/40 p-3 text-sm">
+                  <ServerAmount label="Comisión" value={editRecord.commission_total} />
+                  <ServerAmount label="Retorno" value={editRecord.return_total} />
+                </dl>
+              )}
               <p className="text-xs/4 text-muted-foreground">
                 {reportMonth !== null && (
                   <>
@@ -281,7 +284,7 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
             <section aria-labelledby="movements-heading" className={cn(cardClass, "@container")}>
               <SectionHeading
                 id="movements-heading"
-                subtitle="Captura el ingreso y el porcentaje; la comisión y el retorno los calcula el servidor."
+                subtitle="Captura afiliación, banco e ingreso. La comisión y el retorno los calcula el servidor sobre el ingreso total."
                 title="Movimientos"
               />
 
@@ -292,10 +295,7 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
                   form={form}
                   index={index}
                   key={field.id}
-                  mode={commissionModes[index] ?? "percentage"}
-                  onModeChange={(mode) => setMovementMode(index, mode)}
                   onRemove={() => removeMovement(index)}
-                  serverDetail={editRecord?.details[index]}
                   serverErrors={serverDetailErrors}
                 />
               ))}
@@ -359,7 +359,8 @@ export function ManualRecordForm(props: ManualRecordFormProps) {
               <li>Empresa, semana, año y fechas completos.</li>
               <li>La fecha de fin no puede ser anterior a la de inicio.</li>
               <li>Al menos un movimiento completo.</li>
-              <li>La comisión y el retorno los calcula el servidor.</li>
+              <li>Un porcentaje de comisión entre 0 y 100 para todo el registro.</li>
+              <li>La comisión y el retorno los calcula el servidor una sola vez sobre el ingreso total.</li>
             </ul>
           </aside>
         </form>
@@ -374,6 +375,16 @@ function formIntro(record: RecordDetailView | null): string {
   return record.status === "CONFIRMED"
     ? "Este registro está confirmado. Al guardar los cambios se reabrirá para revisión, deberás capturar un motivo y confirmarlo nuevamente. Los importes oficiales los calcula el servidor."
     : "Corrige los datos y guarda con un motivo. Los importes oficiales los calcula el servidor y el estado no cambia.";
+}
+
+/** Amounts last calculated by the server; they refresh after saving. */
+function ServerAmount({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold text-muted-foreground">{label} (servidor)</dt>
+      <dd className="font-medium tabular-nums">{value == null ? "—" : formatMoney(value)}</dd>
+    </div>
+  );
 }
 
 function SectionHeading({ id, title, subtitle }: { id?: string; title: string; subtitle: string }) {
