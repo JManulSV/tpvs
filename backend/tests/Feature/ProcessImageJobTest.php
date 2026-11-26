@@ -41,10 +41,21 @@ class ProcessImageJobTest extends TestCase
             app(RecordExtractionService::class),
         );
 
-        $this->assertSame(RecordStatus::NEEDS_REVIEW, $record->fresh()->status);
-        $this->assertSame($company->id, $record->fresh()->company_id);
+        $fresh = $record->fresh()->load('details');
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $fresh->status);
+        $this->assertSame($company->id, $fresh->company_id);
+        $this->assertSame([2026, 38, '2026-09-14', '2026-09-20'], [$fresh->year, $fresh->week, $fresh->week_start_date->toDateString(), $fresh->week_end_date->toDateString()]);
+        $this->assertSame(['2.00', '200.00', '9800.00'], [$fresh->commission_percentage, $fresh->commission, $fresh->return_amount]);
+        $this->assertSame([['affiliation' => 'AFF-123', 'bank' => 'LUUM', 'income' => '10000.00']], $fresh->details->map->only(['affiliation', 'bank', 'income'])->all());
         $this->assertSame(AiProcessingStatus::COMPLETED, $processing->fresh()->status);
         $this->assertSame($extraction, $processing->fresh()->result['normalized_extraction']);
+        $this->assertSame([], $processing->fresh()->result['issues']);
+
+        // The header fields live only in AIProcessing.result, never on the Record.
+        $this->assertSame('18006', $processing->fresh()->result['normalized_extraction']['record']['document_number']['value']);
+        $this->assertSame('2026-09-21', $processing->fresh()->result['normalized_extraction']['record']['completion_date']['value']);
+        $this->assertArrayNotHasKey('document_number', $fresh->getAttributes());
+        $this->assertArrayNotHasKey('completion_date', $fresh->getAttributes());
         $this->assertSame('private provider response', $processing->fresh()->result['raw_response']);
         $this->assertDatabaseCount('histories', 0);
 
@@ -102,7 +113,7 @@ class ProcessImageJobTest extends TestCase
         Storage::fake('record_images');
         [$record, $image, $processing] = $this->aggregate();
         $extraction = $this->extraction('Example Co');
-        $extraction['details'][0]['source_commission']['value'] = '1,200';
+        $extraction['record']['commission_percentage']['value'] = '1,200';
         $extraction['source_totals']['income']['value'] = '1,200';
         $extraction['source_totals']['commission']['value'] = '1.200';
         $extraction['source_totals']['return_amount']['value'] = '1,200';
@@ -118,13 +129,58 @@ class ProcessImageJobTest extends TestCase
         $this->assertSame('10000.00', $record->fresh()->details()->firstOrFail()->income);
     }
 
+    public function test_an_extraction_without_percentage_leaves_the_totals_null_without_using_the_printed_commission(): void
+    {
+        Storage::fake('record_images');
+        [$record, $image, $processing] = $this->aggregate();
+        $extraction = $this->extraction('Example Co');
+        $extraction['record']['commission_percentage'] = ['value' => null, 'confidence' => 0];
+        $this->mock(AIService::class, function ($mock) use ($extraction): void {
+            $mock->shouldReceive('extract')->once()->andReturn($this->makeResult($extraction));
+        });
+
+        $this->runJob($processing->id);
+
+        $fresh = $record->fresh();
+        $this->assertSame(RecordStatus::NEEDS_REVIEW, $fresh->status);
+        $this->assertNull($fresh->commission_percentage);
+        $this->assertNull($fresh->commission, 'The printed commission (200.00) is never a fallback.');
+        $this->assertNull($fresh->return_amount);
+        $this->assertSame('10000.00', $fresh->details()->firstOrFail()->income);
+        $this->assertContains(
+            ['path' => 'record.commission_percentage', 'code' => 'MISSING_VALUE'],
+            array_map(static fn (array $issue): array => ['path' => $issue['path'], 'code' => $issue['code']], $processing->fresh()->result['issues']),
+        );
+    }
+
+    public function test_a_printed_commission_different_from_the_calculated_one_is_a_discrepancy(): void
+    {
+        Storage::fake('record_images');
+        [$record, $image, $processing] = $this->aggregate();
+        $extraction = $this->extraction('Example Co');
+        $extraction['source_totals']['commission']['value'] = '199.00';
+        $extraction['source_totals']['return_amount']['value'] = '9801.00';
+        $this->mock(AIService::class, function ($mock) use ($extraction): void {
+            $mock->shouldReceive('extract')->once()->andReturn($this->makeResult($extraction));
+        });
+
+        $this->runJob($processing->id);
+
+        $this->assertSame(['200.00', '9800.00'], [$record->fresh()->commission, $record->fresh()->return_amount]);
+        $mismatches = array_values(array_filter(
+            $processing->fresh()->result['issues'],
+            static fn (array $issue): bool => $issue['code'] === 'SOURCE_TOTAL_MISMATCH',
+        ));
+        $this->assertSame(['source_totals.commission', 'source_totals.return_amount'], array_column($mismatches, 'path'));
+    }
+
     public function test_five_unconvertible_numeric_values_fail_without_applying_any_detail(): void
     {
         Storage::fake('record_images');
         [$record, $image, $processing] = $this->aggregate();
         $extraction = $this->extraction('Example Co');
         $extraction['details'][0]['income']['value'] = '55.963.03';
-        $extraction['details'][0]['source_commission']['value'] = '1,200';
+        $extraction['record']['commission_percentage']['value'] = '1,200';
         $extraction['source_totals']['income']['value'] = '1,200';
         $extraction['source_totals']['commission']['value'] = '1.200';
         $extraction['source_totals']['return_amount']['value'] = '1,200';
@@ -149,7 +205,7 @@ class ProcessImageJobTest extends TestCase
             'AI_PROVIDER_CONNECTION_FAILED',
             'The AI provider could not be reached or timed out.',
             true,
-            promptVersion: 'v5',
+            promptVersion: 'v6',
         ));
         $this->app->instance(AIService::class, $service);
 
@@ -179,7 +235,7 @@ class ProcessImageJobTest extends TestCase
             'The AI provider returned a server error.',
             true,
             rawResponse: 'provider error body',
-            promptVersion: 'v5',
+            promptVersion: 'v6',
             httpStatus: 503,
         ));
         $this->app->instance(AIService::class, $provider);
@@ -257,7 +313,7 @@ class ProcessImageJobTest extends TestCase
     {
         $responseText ??= json_encode($extraction, JSON_THROW_ON_ERROR);
 
-        return new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v5', 'private provider response', $responseText, $extraction);
+        return new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v6', 'private provider response', $responseText, $extraction);
     }
 
     private function runJob(int $processingId): void
@@ -269,23 +325,29 @@ class ProcessImageJobTest extends TestCase
         );
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * A complete v6 extraction whose values are already canonical, so the
+     * normalized result equals the provider result.
+     *
+     * @return array<string, mixed>
+     */
     private function extraction(string $companyName): array
     {
         return [
             'record' => [
                 'company_name' => ['value' => $companyName, 'confidence' => 0.95],
+                'document_number' => ['value' => '18006', 'confidence' => 0.95],
+                'completion_date' => ['value' => '2026-09-21', 'confidence' => 0.95],
                 'year' => ['value' => 2026, 'confidence' => 0.95],
                 'week' => ['value' => 38, 'confidence' => 0.95],
                 'week_start_date' => ['value' => '2026-09-14', 'confidence' => 0.95],
                 'week_end_date' => ['value' => '2026-09-20', 'confidence' => 0.95],
+                'commission_percentage' => ['value' => '2.00', 'confidence' => 0.95],
             ],
             'details' => [[
                 'affiliation' => ['value' => 'AFF-123', 'confidence' => 0.95],
-                'branch' => ['value' => 'Main', 'confidence' => 0.95],
+                'bank' => ['value' => 'LUUM', 'confidence' => 0.95],
                 'income' => ['value' => '10000.00', 'confidence' => 0.95],
-                'commission_percentage' => ['value' => '2.00', 'confidence' => 0.95],
-                'source_commission' => ['value' => '200.00', 'confidence' => 0.95],
             ]],
             'source_totals' => [
                 'income' => ['value' => '10000.00', 'confidence' => 0.95],

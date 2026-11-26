@@ -13,57 +13,6 @@ class BusinessValidator
     public const MAX_RECORD_TOTAL_CENTS = 999_999_999_999;
 
     /**
-     * Calculate IMAGE proposal amounts with the same decimal rules used by manual records.
-     * Missing source values remain provisional nulls and must be resolved during review.
-     *
-     * @return array{commission: string|null, return_amount: string|null, issues: list<array{code: string, message: string}>}
-     */
-    public function calculateProvisionalImageAmounts(?string $income, ?string $percentage, ?string $sourceCommission): array
-    {
-        if ($income === null) {
-            return ['commission' => null, 'return_amount' => null, 'issues' => []];
-        }
-
-        $incomeAmount = Money::fromDecimal($income);
-        if ($percentage !== null) {
-            $commission = $incomeAmount->applyPercentage($percentage);
-
-            if ($commission->compare($incomeAmount) > 0) {
-                return [
-                    'commission' => null,
-                    'return_amount' => null,
-                    'issues' => [['code' => 'CALCULATED_COMMISSION_OUT_OF_RANGE', 'message' => 'The calculated commission violates financial limits.']],
-                ];
-            }
-
-            return [
-                'commission' => $commission->toDecimal(),
-                'return_amount' => $incomeAmount->subtract($commission)->toDecimal(),
-                'issues' => [],
-            ];
-        }
-
-        if ($sourceCommission === null) {
-            return ['commission' => null, 'return_amount' => null, 'issues' => []];
-        }
-
-        $commission = Money::fromDecimal($sourceCommission);
-        if ($commission->compare($incomeAmount) > 0) {
-            return [
-                'commission' => null,
-                'return_amount' => null,
-                'issues' => [['code' => 'FIXED_COMMISSION_EXCEEDS_INCOME', 'message' => 'The source commission exceeds income and cannot be used as a provisional fixed commission.']],
-            ];
-        }
-
-        return [
-            'commission' => $sourceCommission,
-            'return_amount' => $incomeAmount->subtract($commission)->toDecimal(),
-            'issues' => [],
-        ];
-    }
-
-    /**
      * Validate the record's business invariants and canonicalize its movements.
      * The global commission percentage is mandatory; the commission and return
      * are derived from it with RecordFinancials.

@@ -2,44 +2,52 @@
 
 namespace App\Domain\AI;
 
-use App\Domain\AI\DTO\ExtractedDetailFinancialValues;
+use App\Domain\AI\DTO\ExtractedRecordFinancials;
 use App\Domain\AI\DTO\ExtractionIssue;
 use App\Domain\Records\BusinessValidator;
+use App\Domain\Records\RecordFinancials;
 use App\Domain\Shared\Money;
 
+/**
+ * Guard the normalized extraction against the database ranges and calculate the
+ * provisional commission and return once over the total income with
+ * RecordFinancials (SPEC 27). The printed commission is never used as a fallback.
+ */
 class ExtractionFinancialCalculator
 {
     private const MAX_MONEY_CENTS = 999_999_999_999;
 
     private const MAX_PERCENTAGE_HUNDREDTHS = 10_000;
 
-    public function __construct(private readonly BusinessValidator $businessValidator = new BusinessValidator) {}
-
     /**
-     * Calculate official provisional financial values from normalized evidence.
-     * Per-movement returns are derived by the backend and never taken from the document.
-     *
-     * @param  array<string, mixed>  $detail
+     * @param  array<string, mixed>  $extraction  the normalized v6 extraction
      */
-    public function calculate(array $detail, int $index): ExtractedDetailFinancialValues
+    public function calculate(array $extraction): ExtractedRecordFinancials
     {
         $issues = [];
-        $income = $this->money($this->value($detail, 'income'), "details.{$index}.income", $issues);
-        $percentage = $this->percentage($this->value($detail, 'commission_percentage'), "details.{$index}.commission_percentage", $issues);
-        $sourceCommission = $this->money($this->value($detail, 'source_commission'), "details.{$index}.source_commission", $issues);
 
-        $calculated = $this->businessValidator->calculateProvisionalImageAmounts($income, $percentage, $sourceCommission);
-        $commission = $calculated['commission'];
-        $returnAmount = $calculated['return_amount'];
-        foreach ($calculated['issues'] as $calculationIssue) {
-            $issues[] = ExtractionIssue::review("details.{$index}.commission", $calculationIssue['code'], $calculationIssue['message'])->toArray();
+        $incomes = [];
+        foreach ($extraction['details'] as $index => $detail) {
+            $incomes[] = $this->money($this->value($detail, 'income'), "details.{$index}.income", $issues);
         }
 
-        if ($commission !== null && $sourceCommission !== null && $commission !== $sourceCommission) {
-            $issues[] = ExtractionIssue::review("details.{$index}.source_commission", 'SOURCE_COMMISSION_MISMATCH', 'The printed commission differs from the backend-calculated commission.')->withValue($sourceCommission)->toArray();
+        $percentage = $this->percentage(
+            $this->value($extraction['record'], 'commission_percentage'),
+            'record.commission_percentage',
+            $issues,
+        );
+
+        $financials = RecordFinancials::calculate($incomes, $percentage);
+
+        // Each movement fits its own column, but the record's return is stored in one decimal(12,2).
+        if ($financials !== null && Money::fromDecimal($financials->incomeTotal)->cents > BusinessValidator::MAX_RECORD_TOTAL_CENTS) {
+            $issues[] = ExtractionIssue::review('details', 'RECORD_TOTAL_OUT_OF_RANGE', 'The total income of the record exceeds the supported database range.')
+                ->withValue($financials->incomeTotal)
+                ->toArray();
+            $financials = null;
         }
 
-        return new ExtractedDetailFinancialValues($income, $percentage, $commission, $returnAmount, $issues);
+        return new ExtractedRecordFinancials($incomes, $percentage, $financials, $issues);
     }
 
     private function money(mixed $value, string $path, array &$issues): ?string
@@ -72,10 +80,10 @@ class ExtractionFinancialCalculator
         return $value;
     }
 
-    /** @param array<string, mixed> $detail */
-    private function value(array $detail, string $field): mixed
+    /** @param array<string, mixed> $fields */
+    private function value(array $fields, string $field): mixed
     {
-        $fieldValue = $detail[$field] ?? null;
+        $fieldValue = $fields[$field] ?? null;
 
         return is_array($fieldValue) ? ($fieldValue['value'] ?? null) : null;
     }

@@ -12,8 +12,8 @@ class ExtractionValidatorTest extends TestCase
     {
         $extraction = $this->extraction();
         $extraction['details'][0]['income']['value'] = '$1,234.56';
-        $extraction['details'][0]['commission_percentage']['value'] = '5%';
-        $extraction['details'][0]['source_commission']['value'] = '1.234,56';
+        $extraction['record']['commission_percentage']['value'] = '6.5%';
+        $extraction['source_totals']['commission']['value'] = '1.234,56';
         $rawResponse = json_encode($extraction, JSON_THROW_ON_ERROR);
 
         $result = $this->validator()->validate($this->makeResult($extraction, $rawResponse));
@@ -21,8 +21,8 @@ class ExtractionValidatorTest extends TestCase
         $this->assertTrue($result->isUsable());
         $this->assertSame(0, $result->unconvertibleNumericCount);
         $this->assertSame('1234.56', $result->normalizedExtraction['details'][0]['income']['value']);
-        $this->assertSame('5.00', $result->normalizedExtraction['details'][0]['commission_percentage']['value']);
-        $this->assertSame('1234.56', $result->normalizedExtraction['details'][0]['source_commission']['value']);
+        $this->assertSame('6.50', $result->normalizedExtraction['record']['commission_percentage']['value']);
+        $this->assertSame('1234.56', $result->normalizedExtraction['source_totals']['commission']['value']);
         $this->assertSame('$1,234.56', $extraction['details'][0]['income']['value']);
         $this->assertSame($rawResponse, $this->makeResult($extraction, $rawResponse)->rawResponse);
     }
@@ -31,14 +31,14 @@ class ExtractionValidatorTest extends TestCase
     {
         $extraction = $this->extraction();
         $extraction['details'][0]['income']['value'] = '1,200';
-        $extraction['details'][0]['source_commission']['value'] = '1.200';
+        $extraction['record']['commission_percentage']['value'] = '1.200';
 
         $result = $this->validator()->validate($this->makeResult($extraction));
 
         $this->assertSame(2, $result->unconvertibleNumericCount);
         $this->assertTrue($result->isUsable());
         $this->assertNull($result->normalizedExtraction['details'][0]['income']['value']);
-        $this->assertNull($result->normalizedExtraction['details'][0]['source_commission']['value']);
+        $this->assertNull($result->normalizedExtraction['record']['commission_percentage']['value']);
         $this->assertSame(['UNCONVERTIBLE_NUMERIC', 'UNCONVERTIBLE_NUMERIC'], array_column($result->issues, 'code'));
     }
 
@@ -46,7 +46,7 @@ class ExtractionValidatorTest extends TestCase
     {
         $four = $this->extraction();
         $four['details'][0]['income']['value'] = '55.963.03';
-        $four['details'][0]['source_commission']['value'] = '1,200';
+        $four['record']['commission_percentage']['value'] = '1,200';
         $four['source_totals']['income']['value'] = '1,200';
         $four['source_totals']['commission']['value'] = '1.200';
 
@@ -56,7 +56,7 @@ class ExtractionValidatorTest extends TestCase
 
         $five = $this->extraction();
         $five['details'][0]['income']['value'] = '55.963.03';
-        $five['details'][0]['source_commission']['value'] = '1.200';
+        $five['record']['commission_percentage']['value'] = '1.200';
         $five['source_totals']['income']['value'] = '1,200';
         $five['source_totals']['commission']['value'] = '1.200';
         $five['source_totals']['return_amount']['value'] = '1,200';
@@ -70,7 +70,7 @@ class ExtractionValidatorTest extends TestCase
     {
         $extraction = $this->extraction();
         $extraction['record']['company_name'] = ['value' => null, 'confidence' => 0];
-        $extraction['details'][0]['branch']['confidence'] = 0.5;
+        $extraction['details'][0]['bank']['confidence'] = 0.5;
 
         $result = $this->validator()->validate($this->makeResult($extraction));
 
@@ -83,24 +83,66 @@ class ExtractionValidatorTest extends TestCase
 
     public function test_it_rejects_non_iso_or_impossible_dates_as_review_issues(): void
     {
-        foreach (['09/14/2026', '2026-02-30'] as $invalidDate) {
+        foreach (['week_start_date', 'completion_date'] as $field) {
+            foreach (['23/11/2026', '2026-02-30'] as $invalidDate) {
+                $extraction = $this->extraction();
+                $extraction['record'][$field]['value'] = $invalidDate;
+
+                $result = $this->validator()->validate($this->makeResult($extraction));
+
+                $this->assertTrue($result->isUsable());
+                $this->assertNull($result->normalizedExtraction['record'][$field]['value']);
+                $this->assertContains(
+                    $invalidDate === '23/11/2026' ? 'INVALID_DATE_FORMAT' : 'INVALID_DATE',
+                    array_column($result->issues, 'code'),
+                );
+            }
+        }
+    }
+
+    public function test_it_keeps_the_v6_header_fields_in_the_normalized_extraction(): void
+    {
+        $result = $this->validator()->validate($this->makeResult($this->extraction()));
+
+        $this->assertTrue($result->isUsable());
+        $this->assertSame([], $result->issues);
+        $this->assertSame(['value' => '18006', 'confidence' => 0.95], $result->normalizedExtraction['record']['document_number']);
+        $this->assertSame(['value' => '2026-11-23', 'confidence' => 0.9], $result->normalizedExtraction['record']['completion_date']);
+        $this->assertSame(['value' => '6.50', 'confidence' => 0.9], $result->normalizedExtraction['record']['commission_percentage']);
+        $this->assertSame(
+            ['affiliation' => ['value' => '8889067', 'confidence' => 0.95], 'bank' => ['value' => 'LUUM', 'confidence' => 0.95], 'income' => ['value' => '236741.30', 'confidence' => 0.95]],
+            $result->normalizedExtraction['details'][0],
+        );
+    }
+
+    public function test_the_document_number_must_be_a_string(): void
+    {
+        $extraction = $this->extraction();
+        $extraction['record']['document_number']['value'] = 18006;
+
+        $result = $this->validator()->validate($this->makeResult($extraction));
+
+        $this->assertTrue($result->isUsable());
+        $this->assertNull($result->normalizedExtraction['record']['document_number']['value']);
+        $this->assertContains('INVALID_VALUE_TYPE', array_column($result->issues, 'code'));
+    }
+
+    public function test_the_v5_movement_fields_are_rejected_as_unexpected(): void
+    {
+        foreach (['branch', 'commission_percentage', 'source_commission'] as $legacyField) {
             $extraction = $this->extraction();
-            $extraction['record']['week_start_date']['value'] = $invalidDate;
+            $extraction['details'][0][$legacyField] = ['value' => 'x', 'confidence' => 0.9];
 
             $result = $this->validator()->validate($this->makeResult($extraction));
 
-            $this->assertTrue($result->isUsable());
-            $this->assertNull($result->normalizedExtraction['record']['week_start_date']['value']);
-            $this->assertContains(
-                $invalidDate === '09/14/2026' ? 'INVALID_DATE_FORMAT' : 'INVALID_DATE',
-                array_column($result->issues, 'code'),
-            );
+            $this->assertFalse($result->structurallyValid, $legacyField);
+            $this->assertContains("details.0.{$legacyField}", array_column($result->issues, 'path'));
         }
     }
 
     public function test_it_treats_invalid_json_missing_properties_wrappers_and_confidence_as_structural_errors(): void
     {
-        $invalidJson = new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v5', '{', '{', null);
+        $invalidJson = new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v6', '{', '{', null);
         $invalidJsonResult = $this->validator()->validate($invalidJson);
         $this->assertFalse($invalidJsonResult->structurallyValid);
         $this->assertSame(0, $invalidJsonResult->unconvertibleNumericCount);
@@ -143,31 +185,33 @@ class ExtractionValidatorTest extends TestCase
     {
         $rawResponse ??= json_encode($extraction, JSON_THROW_ON_ERROR);
 
-        return new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v5', $rawResponse, $rawResponse, $extraction);
+        return new AiExtractionResult('ollama', 'qwen2.5vl:3b', 'v6', $rawResponse, $rawResponse, $extraction);
     }
 
     /** @return array<string, mixed> */
     private function extraction(): array
     {
         return [
+            // The v6 contract, with the values of test-images/nuevo-formato.png.
             'record' => [
-                'company_name' => ['value' => 'Example Co', 'confidence' => 0.95],
+                'company_name' => ['value' => 'Villaseñor', 'confidence' => 0.95],
+                'document_number' => ['value' => '18006', 'confidence' => 0.95],
+                'completion_date' => ['value' => '2026-11-23', 'confidence' => 0.9],
                 'year' => ['value' => 2026, 'confidence' => 0.95],
-                'week' => ['value' => 38, 'confidence' => 0.95],
-                'week_start_date' => ['value' => '2026-09-14', 'confidence' => 0.95],
-                'week_end_date' => ['value' => '2026-09-20', 'confidence' => 0.95],
+                'week' => ['value' => 46, 'confidence' => 0.95],
+                'week_start_date' => ['value' => '2026-11-16', 'confidence' => 0.9],
+                'week_end_date' => ['value' => '2026-11-22', 'confidence' => 0.9],
+                'commission_percentage' => ['value' => '6.5%', 'confidence' => 0.9],
             ],
             'details' => [[
-                'affiliation' => ['value' => 'AFF-123', 'confidence' => 0.95],
-                'branch' => ['value' => 'Main', 'confidence' => 0.95],
-                'income' => ['value' => '10000.00', 'confidence' => 0.95],
-                'commission_percentage' => ['value' => '2.00', 'confidence' => 0.95],
-                'source_commission' => ['value' => '200.00', 'confidence' => 0.95],
+                'affiliation' => ['value' => '8889067', 'confidence' => 0.95],
+                'bank' => ['value' => 'LUUM', 'confidence' => 0.95],
+                'income' => ['value' => '$ 236,741.30', 'confidence' => 0.95],
             ]],
             'source_totals' => [
-                'income' => ['value' => '10000.00', 'confidence' => 0.95],
-                'commission' => ['value' => '200.00', 'confidence' => 0.95],
-                'return_amount' => ['value' => '9800.00', 'confidence' => 0.95],
+                'income' => ['value' => '$ 236,741.30', 'confidence' => 0.95],
+                'commission' => ['value' => '$ 15,388.18', 'confidence' => 0.95],
+                'return_amount' => ['value' => '$ 221,353.12', 'confidence' => 0.95],
             ],
         ];
     }
