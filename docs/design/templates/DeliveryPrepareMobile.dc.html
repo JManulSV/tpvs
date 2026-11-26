@@ -129,6 +129,44 @@ body{margin:0}
 .bstat{display:flex;align-items:center;gap:8px;min-width:0;font:500 13px/20px var(--font-sans);color:var(--ink-muted)}
 .bstat.ok{color:var(--status-confirmed);font-weight:600}
 .rbtns{display:flex;flex-wrap:wrap;gap:8px}
+.s-review{background:var(--status-needs-review-bg);color:var(--status-needs-review)}
+.bn-info{background:var(--accent-soft);color:var(--accent-soft-ink)}
+.banner.inl{padding:10px 12px;gap:10px}
+.banner.inl .ic{width:18px;height:18px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;align-items:start}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.chipbtn{height:32px;padding:0 14px;border:1px solid var(--border-strong);border-radius:var(--radius-pill);background:var(--surface);color:var(--ink);font:600 13px/16px var(--font-sans);cursor:pointer;transition:background-color .15s ease}
+.chipbtn:hover{background:var(--surface-muted)}
+.chipbtn:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.chipbtn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-soft-ink);border-color:var(--accent-soft-ink)}
+.money{position:relative;display:block}
+.money>span{position:absolute;left:12px;top:0;height:40px;display:grid;place-items:center;color:var(--ink-muted);font:600 14px/20px var(--font-sans);pointer-events:none}
+.money .inp{padding-left:26px;font-variant-numeric:tabular-nums}
+.money.sfx>span{left:auto;right:12px}
+.money.sfx .inp{padding-left:12px;padding-right:28px}
+.inp.bad{border-color:var(--status-error);box-shadow:0 0 0 1px var(--status-error)}
+.hint{margin:0;font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+.split-bar{display:block;width:100%;height:12px;border:0;border-radius:var(--radius-pill);overflow:hidden;appearance:none;-webkit-appearance:none;background:var(--primary)}
+.split-bar::-webkit-progress-bar{background:var(--primary)}
+.split-bar::-webkit-progress-value{background:var(--brand-sky)}
+.split-bar::-moz-progress-bar{background:var(--brand-sky)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:var(--radius-pill)}
+.ledger{margin:16px 0 0;display:flex;flex-direction:column}
+.ledger>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-top:1px solid var(--border)}
+.ledger>div:first-child{border-top:0}
+.ledger dt{font:500 13px/20px var(--font-sans);color:var(--ink-muted)}
+.ledger dd{margin:0;font:600 14px/20px var(--font-sans);font-variant-numeric:tabular-nums}
+.ledger .final{margin-top:4px;padding:12px 14px;border:0;border-radius:var(--radius-md);background:var(--accent-soft)}
+.ledger .final dt{color:var(--accent-soft-ink);font-weight:600}
+.ledger .final dd{color:var(--accent-soft-ink);font:700 16px/24px var(--font-sans)}
+.guide{position:sticky;top:12px;z-index:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:12px 16px;margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);box-shadow:var(--shadow-card)}
+.guide .gl{display:block;font:600 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+.guide .gv{display:block;font:700 18px/24px var(--font-sans);font-variant-numeric:tabular-nums}
+.guide.st-ok .gd .gv{color:var(--status-confirmed)}
+.guide.st-bad .gd .gv{color:var(--status-error)}
+.guide.st-rev .gd .gv{color:var(--status-needs-review)}
+.stack{display:flex;flex-direction:column;gap:12px}
 @media (max-width:1359px){
 .content{display:flex;flex-direction:column;gap:24px}
 .col-main,.col-rail{display:contents}
@@ -168,6 +206,8 @@ body{margin:0}
 .stepper{gap:4px}
 .stepper button{width:44px;height:44px}
 .stepper input{width:44px;height:44px}
+.guide{top:8px;gap:8px;padding:10px 12px}
+.guide .gv{font:700 15px/20px var(--font-sans)}
 .bar{bottom:80px;padding:12px 16px}
 .bar .rbtns{width:100%}
 .bar .rbtns .btn{flex:1 1 auto;height:44px}
@@ -241,7 +281,7 @@ body{margin:0}
               <div><dt>Retorno actual</dt><dd>{{ stale.current }}</dd></div>
               <div><dt>Entrega preparada</dt><dd>{{ stale.prepared }}</dd></div>
             </dl>
-            <span>Ajusta el efectivo al retorno actual y guarda: se actualiza la misma entrega.</span>
+            <span>{{ stale.note }}</span>
           </div>
         </div>
       </sc-if>
@@ -266,11 +306,11 @@ body{margin:0}
             <div>
               <span class="hl">Retorno oficial</span>
               <span class="hv">{{ m.ret }}</span>
-              <span class="hs">Es el monto con el que se verifica el efectivo al guardar.</span>
+              <span class="hs">Se reparte entre transferencia y efectivo. La transferencia lleva solo la comisión base.</span>
             </div>
             <dl class="hero-side">
-              <div><dt>Documento</dt><dd>{{ m.doc }}</dd></div>
-              <div><dt>Efectivo</dt><dd>{{ m.cash }}</dd></div>
+              <div><dt>Transferencia</dt><dd>{{ m.transfer }}</dd></div>
+              <div><dt>Efectivo a entregar</dt><dd>{{ m.net }}</dd></div>
             </dl>
             <div class="vcheck {{ m.checkCls }}" role="status">
               <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="{{ m.checkIcon }}"></path></svg>
@@ -282,7 +322,7 @@ body{margin:0}
             <div class="ch">
               <div>
                 <h2 id="h-datos">Datos de la entrega</h2>
-                <span class="sub">Quién entrega el efectivo y quién lo recibe.</span>
+                <span class="sub">Quién entrega y quién recibe.</span>
               </div>
             </div>
             <div class="cb">
@@ -294,31 +334,113 @@ body{margin:0}
             </div>
           </section>
 
-          <section class="card" style="order: 3" aria-labelledby="h-doc">
+          <section class="card" style="order: 3" aria-labelledby="h-split">
             <div class="ch">
               <div>
-                <h2 id="h-doc">Monto del documento</h2>
-                <span class="sub">Es el monto que imprime el recibo de Word.</span>
+                <h2 id="h-split">Forma de retorno</h2>
+                <span class="sub">Indica cuánto se entrega por transferencia y cuánto en efectivo. Los dos campos se ajustan entre sí.</span>
+              </div>
+              <div class="presets" role="group" aria-label="Atajos de reparto">
+                <button type="button" class="chipbtn" aria-pressed="{{ sp.pAllTr }}" onClick="{{ sp.allTr }}">Todo por transferencia</button>
+                <button type="button" class="chipbtn" aria-pressed="{{ sp.pAllCa }}" onClick="{{ sp.allCa }}">Todo en efectivo</button>
               </div>
             </div>
             <div class="cb">
+              <div class="sgrid">
+                <div class="stack">
+                  <div class="f">
+                    <label class="fl" for="s-tr">Por transferencia<span class="mini s-confirmed">Solo comisión base</span></label>
+                    <span class="money"><span aria-hidden="true">$</span><input id="s-tr" class="inp {{ sp.trCls }}" inputmode="decimal" value="{{ sp.tr }}" aria-invalid="{{ sp.trBad }}" onChange="{{ sp.onTr }}"></span>
+                  </div>
+                  <div class="f">
+                    <label class="fl" for="s-ca">En efectivo, lo que pide el cliente<span class="mini s-review">Comisión extra</span></label>
+                    <span class="money"><span aria-hidden="true">$</span><input id="s-ca" class="inp {{ sp.caCls }}" inputmode="decimal" value="{{ sp.ca }}" aria-invalid="{{ sp.caBad }}" onChange="{{ sp.onCa }}"></span>
+                  </div>
+                  <div class="f">
+                    <label class="fl" for="s-pct">Comisión extra por efectivo</label>
+                    <span class="money sfx"><input id="s-pct" class="inp {{ sp.pctCls }}" inputmode="decimal" value="{{ sp.pct }}" aria-invalid="{{ sp.pctBad }}" onChange="{{ sp.onPct }}"><span aria-hidden="true">%</span></span>
+                    <p class="hint">Cambia según el caso. Solo se cobra sobre lo que se entrega en efectivo.</p>
+                  </div>
+                  <sc-if value="{{ sp.hasErr }}" hint-placeholder-val="{{ false }}">
+                    <div class="banner bn-error inl" role="alert">
+                      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg>
+                      <ul class="blist {{ sp.errCls }}">
+                        <sc-for list="{{ sp.errs }}" as="e" hint-placeholder-count="1">
+                          <li><strong style="display: inline; font-weight: 700">{{ e.text }}</strong><br><code class="code">{{ e.code }}</code></li>
+                        </sc-for>
+                      </ul>
+                    </div>
+                  </sc-if>
+                </div>
+                <div>
+                  <progress class="split-bar" max="100" value="{{ sp.trPct }}" aria-label="Proporción por transferencia"></progress>
+                  <div class="legend"><span><i style="background: var(--brand-sky)"></i>Transferencia {{ sp.trPctLabel }}</span><span><i style="background: var(--primary)"></i>Efectivo {{ sp.caPctLabel }}</span></div>
+                  <dl class="ledger">
+                    <div><dt>Retorno oficial</dt><dd>{{ m.ret }}</dd></div>
+                    <div><dt>Por transferencia</dt><dd>− {{ m.transfer }}</dd></div>
+                    <div><dt>Efectivo que pide el cliente</dt><dd>{{ sp.ca2 }}</dd></div>
+                    <div><dt>Comisión extra · {{ sp.pctShown }}</dt><dd>− {{ m.extra }}</dd></div>
+                    <div class="final"><dt>Efectivo a entregar</dt><dd>{{ m.net }}</dd></div>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" style="order: 4" aria-labelledby="h-doc">
+            <div class="ch">
+              <div>
+                <h2 id="h-doc">Monto del documento</h2>
+                <span class="sub">Es el monto en efectivo que imprime el recibo de Word.</span>
+              </div>
+            </div>
+            <div class="cb">
+              <sc-if value="{{ cashOn }}" hint-placeholder-val="{{ true }}">
               <div class="seg" role="radiogroup" aria-label="Monto del documento">
                 <sc-for list="{{ opts }}" as="o" hint-placeholder-count="3">
                   <button type="button" role="radio" aria-checked="{{ o.checked }}" onClick="{{ o.pick }}">{{ o.label }}</button>
                 </sc-for>
               </div>
               <p class="note">Es un valor de esta solicitud: no se guarda y el retorno oficial no cambia.</p>
+              </sc-if>
+              <sc-if value="{{ cashOff }}" hint-placeholder-val="{{ false }}">
+                <p class="note" style="margin: 0">No aplica: todo el retorno se entrega por transferencia y no hay efectivo que imprimir.</p>
+              </sc-if>
             </div>
           </section>
 
-          <section class="card" style="order: 4" aria-labelledby="h-cash">
+          <section class="card" style="order: 5" aria-labelledby="h-cash">
             <div class="ch">
               <div>
                 <h2 id="h-cash">Desglose de efectivo</h2>
-                <span class="sub">Efectivo bruto. Solo se guardan las denominaciones con cantidad mayor a cero.</span>
+                <span class="sub">Efectivo bruto que se entrega. Solo se guardan las denominaciones con cantidad mayor a cero.</span>
               </div>
             </div>
             <div class="cb">
+              <sc-if value="{{ cashOn }}" hint-placeholder-val="{{ true }}">
+              <div class="guide {{ cg.cls }}" role="status" aria-live="polite">
+                <div><span class="gl">Debes entregar</span><span class="gv">{{ m.net }}</span></div>
+                <div><span class="gl">Llevas</span><span class="gv">{{ m.cash }}</span></div>
+                <div class="gd"><span class="gl">{{ cg.label }}</span><span class="gv">{{ cg.diff }}</span></div>
+              </div>
+              <sc-if value="{{ al.short }}" hint-placeholder-val="{{ false }}">
+                <div class="banner bn-error inl" role="alert" style="margin-bottom: 16px">
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg>
+                  <div><strong>Faltan {{ al.shortAmt }} en efectivo.</strong>Agrega billetes o monedas hasta cubrir {{ m.net }}. Puedes quedar hasta $1.00 por debajo.<br><code class="code">CASH_MISMATCH</code></div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ al.docShort }}" hint-placeholder-val="{{ false }}">
+                <div class="banner bn-review inl" role="alert" style="margin-bottom: 16px">
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                  <div><strong>Faltan {{ al.docShortAmt }} frente al monto del documento ({{ m.doc }}).</strong>Puedes guardar, pero para el Word agrega efectivo o elige un monto del documento menor.<br><code class="code">CASH_MISMATCH</code></div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ al.tol }}" hint-placeholder-val="{{ false }}">
+                <div class="banner bn-info inl" style="margin-bottom: 16px">
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+                  <div><strong>Faltan {{ al.tolAmt }}, dentro de la tolerancia de $1.00.</strong>Se puede guardar la entrega con esta diferencia.</div>
+                </div>
+              </sc-if>
               <div class="cgroup">
                 <div class="cgh"><span>Billetes</span><span>{{ cashx.billsSub }}</span></div>
                 <sc-for list="{{ rows }}" as="d" hint-placeholder-count="6">
@@ -368,12 +490,19 @@ body{margin:0}
                 </div>
                 <label class="check" style="margin-top: 16px"><input type="checkbox" checked="{{ chg.checked }}" onChange="{{ chg.toggle }}">El cliente dará cambio · <span style="font-variant-numeric: tabular-nums">{{ chg.excess }}</span> (calculado)</label>
               </sc-if>
+              </sc-if>
+              <sc-if value="{{ cashOff }}" hint-placeholder-val="{{ false }}">
+                <div class="empty">
+                  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 24px; height: 24px"><path d="M17 3 21 7l-4 4"></path><path d="M3 7h18"></path><path d="m7 21-4-4 4-4"></path><path d="M21 17H3"></path></svg>
+                  <span><strong style="color: var(--ink)">No hay entrega en efectivo.</strong> Todo el retorno se entrega por transferencia. Si el cliente pide efectivo, indícalo en «Forma de retorno».</span>
+                </div>
+              </sc-if>
             </div>
           </section>
         </div>
 
         <div class="col-rail">
-          <section class="card" style="order: 5" aria-labelledby="h-img">
+          <section class="card" style="order: 6" aria-labelledby="h-img">
             <div class="ch"><h2 id="h-img">Documento asociado</h2></div>
             <div class="cb" style="display: flex; flex-direction: column; gap: 16px">
               <sc-if value="{{ img.has }}" hint-placeholder-val="{{ true }}">
@@ -404,7 +533,7 @@ body{margin:0}
             </div>
           </section>
 
-          <section class="card" style="order: 6" aria-labelledby="h-req">
+          <section class="card" style="order: 7" aria-labelledby="h-req">
             <div class="ch">
               <div>
                 <h2 id="h-req">Para generar el recibo</h2>
@@ -463,29 +592,35 @@ body{margin:0}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"modo":{"editor":"enum","options":["nueva","actualizar"],"default":"nueva","section":"Vista"},"imagen":{"editor":"enum","options":["con","sin"],"default":"con","section":"Vista"},"escenario":{"editor":"enum","options":["coincide","cambio","faltante"],"default":"coincide","section":"Vista"},"$preview":{"width":390,"height":3900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"modo":{"editor":"enum","options":["nueva","actualizar"],"default":"nueva","section":"Vista"},"imagen":{"editor":"enum","options":["con","sin"],"default":"con","section":"Vista"},"retorno":{"editor":"enum","options":["mixto","efectivo","transferencia"],"default":"mixto","section":"Vista"},"escenario":{"editor":"enum","options":["coincide","cambio","faltante"],"default":"faltante","section":"Vista"},"$preview":{"width":390,"height":4600}}'>
 const DEN = [
   { v: 100000, l: '$1,000' }, { v: 50000, l: '$500' }, { v: 20000, l: '$200' }, { v: 10000, l: '$100' },
   { v: 5000, l: '$50' }, { v: 2000, l: '$20' }, { v: 1000, l: '$10' }, { v: 500, l: '$5' },
   { v: 200, l: '$2' }, { v: 100, l: '$1' }, { v: 50, l: '$0.50' }
 ];
-const SCEN = {
-  coincide: [5, 5, 10, 3, 0, 0, 0, 0, 0, 0, 0],
-  cambio: [5, 5, 10, 3, 0, 1, 1, 0, 0, 0, 0],
-  faltante: [5, 5, 9, 3, 1, 1, 1, 0, 0, 0, 0]
-};
 const PREPARED = 980000;
-const money = (c) => '$' + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const PCT0 = 1;
+const money = (c) => (c < 0 ? '−' : '') + '$' + (Math.abs(c) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const plain = (c) => (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const toCents = (v) => { const n = parseFloat(String(v).replace(/[^0-9.]/g, '')); return isNaN(n) ? 0 : Math.round(n * 100); };
+const greedy = (c) => { let r = Math.max(0, c); return DEN.map((d) => { const n = Math.floor(r / d.v); r -= n * d.v; return n; }); };
+const extraOf = (creq, pct) => (creq > 0 && pct >= 0 && pct <= 100 ? Math.round(creq * pct / 100) : 0);
 const initState = (P) => {
   const upd = (P.modo ?? 'nueva') === 'actualizar';
-  const key = P.escenario ?? 'cambio';
+  const R = upd ? 999600 : 980000;
+  const ret = P.retorno ?? 'mixto';
+  const creq = ret === 'efectivo' ? R : ret === 'transferencia' ? 0 : 500000;
+  const net = Math.max(0, creq - extraOf(creq, PCT0));
+  const key = upd ? 'coincide' : (P.escenario ?? 'faltante');
+  const target = key === 'cambio' ? net + 5000 : key === 'faltante' ? net - 10000 : net;
   return {
-    qty: (upd ? SCEN.coincide : (SCEN[key] || SCEN.cambio)).slice(),
+    qty: greedy(net > 0 ? target : 0),
+    creq: creq, pct: PCT0,
     doc: 0, decl: false, date: '18/09/2026', by: 'María López', to: 'Juan Pérez',
     saved: null, attached: false, done: false
   };
 };
-const sigOf = (s) => JSON.stringify([s.date.trim(), s.by.trim(), s.to.trim(), s.qty]);
+const sigOf = (s) => JSON.stringify([s.date.trim(), s.by.trim(), s.to.trim(), s.qty, s.creq, s.pct]);
 const CHECK = 'm9 12 2 2 4-4';
 const WARN = 'M12 8v4M12 16h.01';
 
@@ -496,7 +631,7 @@ class Component extends DCLogic {
   }
   componentDidUpdate(prev) {
     const a = this.props;
-    if (a.modo !== prev.modo || a.escenario !== prev.escenario || a.imagen !== prev.imagen) {
+    if (a.modo !== prev.modo || a.escenario !== prev.escenario || a.imagen !== prev.imagen || a.retorno !== prev.retorno) {
       this.setState(initState(a));
     }
   }
@@ -515,79 +650,117 @@ class Component extends DCLogic {
     const R = upd ? 999600 : 980000;
     const manual = (P.imagen ?? 'con') === 'sin';
     const hasImage = !manual || s.attached;
-    const total = DEN.reduce((a, d, i) => a + d.v * s.qty[i], 0);
-    const pcs = s.qty.reduce((a, n) => a + n, 0);
-    const base = Math.floor(R / 100) * 100;
+
+    // Reparto entre transferencia y efectivo
+    const creq = s.creq;
+    const pctOk = s.pct >= 0 && s.pct <= 100;
+    const trExceeds = creq < 0;
+    const caExceeds = creq > R;
+    const splitErr = trExceeds || caExceeds || !pctOk;
+    const T = R - creq;
+    const extra = extraOf(creq, s.pct);
+    const net = Math.max(0, creq - extra);
+    const cashOn = net > 0 && !splitErr;
+    const cashOff = !cashOn && !splitErr;
+    const errs = [];
+    if (trExceeds) errs.push({ text: 'La transferencia supera el retorno oficial por ' + money(-creq) + '. Reduce la transferencia.', code: 'TRANSFER_EXCEEDS_RETURN' });
+    if (caExceeds) errs.push({ text: 'El efectivo supera el retorno oficial por ' + money(creq - R) + '. Reduce el efectivo; el resto va por transferencia.', code: 'CASH_REQUEST_EXCEEDS_RETURN' });
+    if (!pctOk) errs.push({ text: 'La comisión extra debe estar entre 0.00% y 100.00%.', code: 'EXTRA_COMMISSION_INVALID' });
+
+    const total = cashOn ? DEN.reduce((a, d, i) => a + d.v * s.qty[i], 0) : 0;
+    const pcs = cashOn ? s.qty.reduce((a, n) => a + n, 0) : 0;
+    const base = Math.floor(net / 100) * 100;
     const optsC = [base, base + 50, base + 100];
-    const D = optsC[s.doc];
-    const shortOfficial = R - total > 100 ? R - total : 0;
-    const shortDoc = D - total > 100 ? D - total : 0;
-    const excess = total - D > 100 ? total - D : 0;
+    const D = cashOn ? optsC[s.doc] : 0;
+    const shortNet = cashOn && net - total > 100 ? net - total : 0;
+    const gap = cashOn ? net - total : 0;
+    const shortDoc = cashOn && !shortNet && D - total > 100 ? D - total : 0;
+    const excess = cashOn && total - D > 100 ? total - D : 0;
     const declOk = excess > 0 ? s.decl : true;
     const sig = sigOf(s);
     const clean = s.saved !== null && s.saved === sig;
     const missingData = !s.date.trim() || !s.by.trim();
-    const saveBlocked = shortOfficial > 0 || missingData;
-    const canReceipt = clean && hasImage && shortDoc === 0 && declOk;
+    const saveBlocked = splitErr || shortNet > 0 || missingData;
+    const canReceipt = clean && hasImage && shortDoc === 0 && declOk && !splitErr;
 
     const items = [];
-    if (shortOfficial) {
-      items.push({ text: 'Faltan ' + money(shortOfficial) + ' en efectivo frente al retorno oficial. Ajusta las denominaciones.', hasCode: true, code: 'CASH_MISMATCH' });
-    } else if (shortDoc) {
-      items.push({ text: 'Faltan ' + money(shortDoc) + ' en efectivo frente al monto del documento. Ajusta las denominaciones o elige otro monto del documento.', hasCode: true, code: 'CASH_MISMATCH' });
-    }
-    if (!hasImage) {
-      items.push({ text: 'Adjunta la imagen del registro para generar el Word.', hasCode: false, code: '' });
-    }
+    if (!hasImage) items.push({ text: 'Adjunta la imagen del registro para generar el Word.', hasCode: false, code: '' });
 
     let checkCls = 'vc-ok';
-    let checkLabel = 'Coincide con el monto del documento';
+    let checkLabel = 'El efectivo cuadra con lo que se entrega';
     let checkIcon = CHECK;
-    if (shortDoc) {
-      checkCls = 'vc-bad';
+    if (splitErr) {
+      checkCls = 'vc-bad'; checkIcon = WARN;
+      checkLabel = 'El reparto no es válido · corrígelo en «Forma de retorno»';
+    } else if (!cashOn) {
+      checkLabel = 'Todo el retorno va por transferencia';
+    } else if (shortNet) {
+      checkCls = 'vc-bad'; checkIcon = WARN;
+      checkLabel = 'Faltan ' + money(shortNet) + ' en efectivo para cubrir ' + money(net);
+    } else if (shortDoc) {
+      checkCls = 'vc-bad'; checkIcon = WARN;
       checkLabel = 'Faltan ' + money(shortDoc) + ' frente al monto del documento';
-      checkIcon = WARN;
     } else if (excess) {
-      checkCls = 'vc-rev';
+      checkCls = 'vc-rev'; checkIcon = WARN;
       checkLabel = 'Excede por ' + money(excess) + ' · requiere declarar cambio';
-      checkIcon = WARN;
     }
 
     const checks = [
       { label: 'Imagen asociada', ok: hasImage },
-      { label: 'Efectivo conciliado con el retorno oficial', ok: shortOfficial === 0 },
-      { label: 'Efectivo conciliado con el monto del documento', ok: shortDoc === 0 }
+      { label: 'Reparto válido: transferencia + efectivo', ok: !splitErr }
     ];
+    if (cashOn) {
+      checks.push({ label: 'Efectivo conciliado con lo que se entrega', ok: shortNet === 0 });
+      checks.push({ label: 'Efectivo conciliado con el monto del documento', ok: shortNet === 0 && shortDoc === 0 });
+    }
     if (excess > 0) checks.push({ label: 'Cambio al cliente declarado', ok: s.decl });
     checks.push({ label: 'Entrega guardada', ok: clean });
 
     let hint = '';
     let statCls = '';
-    if (s.done && canReceipt) {
-      hint = 'Recibo generado.';
-      statCls = 'ok';
-    } else if (missingData) {
-      hint = 'Completa la fecha de entrega y quién entrega.';
-    } else if (shortOfficial) {
-      hint = 'Ajusta el efectivo para poder guardar la entrega.';
-    } else if (!clean) {
-      hint = 'Guarda la entrega para poder generar el recibo.';
-    } else if (!hasImage) {
-      hint = 'Falta la imagen para generar el Word.';
-    } else if (shortDoc) {
-      hint = 'El efectivo no coincide con el monto del documento.';
-    } else if (!declOk) {
-      hint = 'Indica que el cliente dará cambio.';
-    } else {
-      hint = 'Todo listo para generar el recibo.';
-      statCls = 'ok';
-    }
+    if (s.done && canReceipt) { hint = 'Recibo generado.'; statCls = 'ok'; }
+    else if (missingData) hint = 'Completa la fecha de entrega y quién entrega.';
+    else if (splitErr) hint = 'Corrige el reparto entre transferencia y efectivo.';
+    else if (shortNet) hint = 'Ajusta el efectivo para poder guardar la entrega.';
+    else if (!clean) hint = 'Guarda la entrega para poder generar el recibo.';
+    else if (!hasImage) hint = 'Falta la imagen para generar el Word.';
+    else if (shortDoc) hint = 'El efectivo no coincide con el monto del documento.';
+    else if (!declOk) hint = 'Indica que el cliente dará cambio.';
+    else { hint = 'Todo listo para generar el recibo.'; statCls = 'ok'; }
+
+    let gCls = 'st-ok', gLabel = 'Cuadra', gDiff = money(0);
+    if (shortNet || shortDoc) { gCls = 'st-bad'; gLabel = 'Faltan'; gDiff = money(shortNet || shortDoc); }
+    else if (gap > 0) { gCls = 'st-rev'; gLabel = 'Faltan'; gDiff = money(gap); }
+    else if (excess) { gCls = 'st-rev'; gLabel = 'Sobran'; gDiff = money(excess); }
+
+    const trPct = R > 0 ? Math.max(0, Math.min(100, Math.round(T / R * 100))) : 0;
+    const stalNote = 'El efectivo solicitado se mantiene en ' + money(Math.max(0, creq)) + ' y la transferencia pasa a ' + money(T) + '. Revisa el reparto y guarda: se actualiza la misma entrega.';
 
     return {
       head: { title: upd ? 'Preparar nueva entrega' : 'Preparar entrega', source: manual ? 'Manual' : 'Imagen' },
-      stale: { show: upd, current: money(R), prepared: money(PREPARED) },
+      stale: { show: upd, current: money(R), prepared: money(PREPARED), note: stalNote },
       blk: { show: items.length > 0, items: items, cls: items.length > 1 ? 'multi' : '' },
-      m: { ret: money(R), doc: money(D), cash: money(total), checkCls: checkCls, checkLabel: checkLabel, checkIcon: checkIcon },
+      m: { ret: money(R), doc: money(D), cash: money(total), transfer: money(Math.max(0, T)), net: money(net), extra: money(extra), checkCls: checkCls, checkLabel: checkLabel, checkIcon: checkIcon },
+      cashOn: cashOn, cashOff: cashOff,
+      sp: {
+        tr: plain(T), ca: plain(creq), ca2: money(creq), pct: s.pct.toFixed(2), pctShown: (pctOk ? s.pct.toFixed(2) : '—') + '%',
+        trCls: trExceeds ? 'bad' : '', caCls: caExceeds ? 'bad' : '', pctCls: pctOk ? '' : 'bad',
+        trBad: trExceeds ? 'true' : 'false', caBad: caExceeds ? 'true' : 'false', pctBad: pctOk ? 'false' : 'true',
+        onTr: (e) => this.patch({ creq: R - toCents(e.target.value) }),
+        onCa: (e) => this.patch({ creq: toCents(e.target.value) }),
+        onPct: (e) => { const n = parseFloat(String(e.target.value).replace(/[^0-9.]/g, '')); this.patch({ pct: isNaN(n) ? 0 : n }); },
+        allTr: () => this.patch({ creq: 0, qty: DEN.map(() => 0) }),
+        allCa: () => this.patch({ creq: R }),
+        pAllTr: creq === 0 ? 'true' : 'false', pAllCa: creq === R ? 'true' : 'false',
+        hasErr: splitErr, errs: errs, errCls: errs.length > 1 ? 'multi' : '',
+        trPct: trPct, trPctLabel: trPct + '%', caPctLabel: (100 - trPct) + '%'
+      },
+      cg: { cls: gCls, label: gLabel, diff: gDiff },
+      al: {
+        short: shortNet > 0, shortAmt: money(shortNet),
+        docShort: shortDoc > 0, docShortAmt: money(shortDoc),
+        tol: cashOn && gap > 0 && gap <= 100, tolAmt: money(gap)
+      },
       f: {
         date: s.date, by: s.by, to: s.to,
         onDate: (e) => this.patch({ date: e.target.value }),
