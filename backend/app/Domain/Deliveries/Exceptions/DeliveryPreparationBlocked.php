@@ -30,7 +30,7 @@ final class DeliveryPreparationBlocked extends DomainRuleException
     public static function cashMismatch(string $expectedAmount, string $cashAmount, string $difference): self
     {
         return new self(
-            'The cash breakdown is more than one peso below the current return amount.',
+            'The cash breakdown is more than one peso below the cash to deliver.',
             self::CODE,
             'CASH_MISMATCH',
             409,

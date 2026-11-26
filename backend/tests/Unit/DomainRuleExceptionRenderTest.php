@@ -30,7 +30,7 @@ class DomainRuleExceptionRenderTest extends TestCase
 
         $this->assertSame(409, $response->getStatusCode());
         $this->assertSame([
-            'message' => 'The cash breakdown is more than one peso below the current return amount.',
+            'message' => 'The cash breakdown is more than one peso below the cash to deliver.',
             'code' => 'DELIVERY_PREPARATION_BLOCKED',
             'details' => [
                 'reason' => 'CASH_MISMATCH',

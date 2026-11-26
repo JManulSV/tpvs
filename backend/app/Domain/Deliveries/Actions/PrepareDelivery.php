@@ -6,6 +6,7 @@ use App\Domain\Deliveries\CashBreakdown;
 use App\Domain\Deliveries\DeliveryHistoryService;
 use App\Domain\Deliveries\DeliveryInputNormalizer;
 use App\Domain\Deliveries\DeliveryReturnPolicy;
+use App\Domain\Deliveries\DeliverySplit;
 use App\Domain\Deliveries\Exceptions\DeliveryPreparationBlocked;
 use App\Enums\RecordStatus;
 use App\Models\Delivery;
@@ -14,7 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Create or replace the delivery of a CONFIRMED record, snapshotting its current
- * return. An unchanged resubmission writes nothing.
+ * return and splitting it between transfer and cash (SPEC 28). The breakdown
+ * reconciles against the cash to deliver. An unchanged resubmission writes nothing.
  */
 class PrepareDelivery
 {
@@ -45,7 +47,20 @@ class PrepareDelivery
                 ->first();
 
             $currentReturnAmount = $this->returnPolicy->currentReturnAmount($record);
-            $mismatch = $this->cash->preparationCashShortfall($currentReturnAmount, $denominations);
+            $requestedCashAmount = (string) $this->normalizer->canonicalAmount($validated['requested_cash_amount']);
+
+            if ($this->normalizer->money($requestedCashAmount)->compare($this->normalizer->money($currentReturnAmount)) > 0) {
+                throw DeliveryPreparationBlocked::cashRequestExceedsReturn($requestedCashAmount, $currentReturnAmount);
+            }
+
+            $split = DeliverySplit::calculate(
+                $currentReturnAmount,
+                $requestedCashAmount,
+                (string) $validated['cash_commission_percentage'],
+            );
+
+            // An empty breakdown stays valid only when there is no cash to deliver.
+            $mismatch = $this->cash->preparationCashShortfall($split->cashAmount, $denominations);
 
             if ($mismatch !== null) {
                 throw DeliveryPreparationBlocked::cashMismatch(
@@ -60,6 +75,7 @@ class PrepareDelivery
                 'delivered_by_name' => $this->normalizer->canonicalName($validated['delivered_by_name']),
                 'received_by_name' => $this->normalizer->canonicalName($validated['received_by_name'] ?? null),
                 'prepared_return_amount' => $currentReturnAmount,
+                ...$split->attributes(),
             ];
 
             if ($delivery === null) {

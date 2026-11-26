@@ -133,6 +133,7 @@ class PrepareDeliveryTest extends TestCase
 
         $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '120.00',
                 'denominations' => [
                     ['value' => '100.00', 'quantity' => 1],
                     ['value' => '10.00', 'quantity' => 1],
@@ -167,6 +168,7 @@ class PrepareDeliveryTest extends TestCase
 
         $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '120.00',
                 'denominations' => [
                     ['value' => '100.00', 'quantity' => 1],
                     ['value' => '10.00', 'quantity' => 1],
@@ -195,6 +197,7 @@ class PrepareDeliveryTest extends TestCase
 
         $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '120.00',
                 'denominations' => [
                     ['value' => '100.00', 'quantity' => 1],
                     ['value' => '50.00', 'quantity' => 1],
@@ -219,7 +222,7 @@ class PrepareDeliveryTest extends TestCase
         ]);
     }
 
-    public function test_zero_quantities_are_ignored_and_empty_breakdown_requires_zero_return(): void
+    public function test_zero_quantities_are_ignored_and_empty_breakdown_requires_zero_cash(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $zeroRecord = $this->createRecordWithReturn('0.00');
@@ -230,6 +233,7 @@ class PrepareDeliveryTest extends TestCase
 
         $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$zeroRecord->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '0.00',
                 'denominations' => $zeroDenominations,
             ]))
             ->assertOk()
@@ -261,6 +265,7 @@ class PrepareDeliveryTest extends TestCase
 
         $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '1000.00',
                 'denominations' => [
                     ['value' => '1000.00', 'quantity' => 1],
                     ['value' => '1000.00', 'quantity' => 0],
@@ -349,5 +354,149 @@ class PrepareDeliveryTest extends TestCase
         }
 
         $this->assertDatabaseCount('deliveries', 0);
+    }
+
+    public function test_mixed_split_persists_the_extra_commission_and_cash_to_deliver(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('200.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '100.00',
+                'cash_commission_percentage' => '10.00',
+                'denominations' => [
+                    ['value' => '50.00', 'quantity' => 1],
+                    ['value' => '20.00', 'quantity' => 2],
+                ],
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.prepared_return_amount', '200.00');
+
+        $this->assertDatabaseHas('deliveries', [
+            'record_id' => $record->id,
+            'prepared_return_amount' => '200.00',
+            'requested_cash_amount' => '100.00',
+            'cash_commission_percentage' => '10.00',
+            'cash_commission' => '10.00',
+            'cash_amount' => '90.00',
+        ]);
+    }
+
+    public function test_all_cash_split_delivers_the_return_minus_the_extra_commission(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('200.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '200.00',
+                'cash_commission_percentage' => '10.00',
+                'denominations' => [
+                    ['value' => '100.00', 'quantity' => 1],
+                    ['value' => '50.00', 'quantity' => 1],
+                    ['value' => '20.00', 'quantity' => 1],
+                    ['value' => '10.00', 'quantity' => 1],
+                ],
+            ]))
+            ->assertOk();
+
+        $this->assertDatabaseHas('deliveries', [
+            'record_id' => $record->id,
+            'requested_cash_amount' => '200.00',
+            'cash_commission' => '20.00',
+            'cash_amount' => '180.00',
+        ]);
+    }
+
+    public function test_all_transfer_split_saves_an_empty_breakdown(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('200.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '0.00',
+                'cash_commission_percentage' => '10.00',
+                'denominations' => [],
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.prepared_return_amount', '200.00')
+            ->assertJsonPath('data.denominations', []);
+
+        $this->assertDatabaseHas('deliveries', [
+            'record_id' => $record->id,
+            'requested_cash_amount' => '0.00',
+            'cash_commission' => '0.00',
+            'cash_amount' => '0.00',
+        ]);
+        $this->assertDatabaseCount('delivery_cash_denominations', 0);
+    }
+
+    public function test_requested_cash_above_the_current_return_is_blocked_without_writes(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('200.00');
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                'requested_cash_amount' => '200.01',
+                'cash_commission_percentage' => '10.00',
+            ]))
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'DELIVERY_PREPARATION_BLOCKED')
+            ->assertJsonPath('details.reason', 'CASH_REQUEST_EXCEEDS_RETURN')
+            ->assertJsonPath('details.requested_cash_amount', '200.01')
+            ->assertJsonPath('details.current_return_amount', '200.00');
+
+        $this->assertDatabaseCount('deliveries', 0);
+        $this->assertDatabaseCount('delivery_cash_denominations', 0);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_the_breakdown_reconciles_against_the_cash_to_deliver(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithReturn('200.00');
+        $split = ['requested_cash_amount' => '100.00', 'cash_commission_percentage' => '10.00'];
+
+        // 88.99 is 1.01 below the 90.00 to deliver (the official return is 200.00).
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                ...$split,
+                'denominations' => [
+                    ['value' => '50.00', 'quantity' => 1],
+                    ['value' => '20.00', 'quantity' => 1],
+                    ['value' => '10.00', 'quantity' => 1],
+                    ['value' => '5.00', 'quantity' => 1],
+                    ['value' => '2.00', 'quantity' => 1],
+                    ['value' => '1.00', 'quantity' => 1],
+                    ['value' => '0.50', 'quantity' => 1],
+                ],
+            ]))
+            ->assertStatus(409)
+            ->assertJsonPath('details.reason', 'CASH_MISMATCH')
+            ->assertJsonPath('details.expected_amount', '90.00')
+            ->assertJsonPath('details.cash_amount', '88.50')
+            ->assertJsonPath('details.difference', '-1.50');
+
+        $this->assertDatabaseCount('deliveries', 0);
+
+        // 89.00 is exactly one peso below: accepted.
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
+                ...$split,
+                'denominations' => [
+                    ['value' => '50.00', 'quantity' => 1],
+                    ['value' => '20.00', 'quantity' => 1],
+                    ['value' => '10.00', 'quantity' => 1],
+                    ['value' => '5.00', 'quantity' => 1],
+                    ['value' => '2.00', 'quantity' => 2],
+                ],
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.prepared_return_amount', '200.00');
+
+        $this->assertDatabaseHas('deliveries', ['record_id' => $record->id, 'cash_amount' => '90.00']);
     }
 }
