@@ -29,6 +29,11 @@ const delivery: Delivery = {
   prepared_return_amount: "9800.00",
   current_return_amount: "10000.00",
   is_stale: true,
+  requested_cash_amount: "9800.00",
+  transfer_amount: "0.00",
+  cash_commission_percentage: "0.00",
+  cash_commission: "0.00",
+  cash_amount: "9800.00",
   denominations: [
     { value: "1000.00", quantity: 5 },
     { value: "500.00", quantity: 5 },
@@ -43,6 +48,8 @@ const upsertInput: UpsertDeliveryInput = {
   delivery_date: "2026-09-18",
   delivered_by_name: "Maria Lopez",
   received_by_name: null,
+  requested_cash_amount: "10000.00",
+  cash_commission_percentage: "0.00",
   denominations: [{ value: "1000.00", quantity: 10 }],
 };
 
@@ -189,6 +196,8 @@ describe("deliveryFormSchema", () => {
     delivery_date: "2026-09-18",
     delivered_by_name: "  Maria Lopez  ",
     received_by_name: "",
+    requested_cash_amount: "0.00",
+    cash_commission_percentage: "10",
     denominations: officialDenominationValues.map((value) => ({ value, quantity: "0" })),
   };
 

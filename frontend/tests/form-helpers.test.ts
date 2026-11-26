@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Delivery } from "@/features/deliveries/types";
 import {
   buildDeliveryFormValues,
+  deliverySplitPreview,
   getCashCheck,
   getDeliveryBlocks,
   isDeliveryFormField,
@@ -15,12 +16,14 @@ const savedDelivery = {
   delivery_date: "2026-09-15",
   delivered_by_name: "Ana",
   received_by_name: null,
+  requested_cash_amount: "1000.00",
+  cash_commission_percentage: "0.00",
   denominations: [{ value: "500.00", quantity: 2 }],
 } as unknown as Delivery;
 
 describe("buildDeliveryFormValues", () => {
   it("starts a new delivery today, delivered by the current user, with every denomination at zero", () => {
-    const values = buildDeliveryFormValues(null, "Luis");
+    const values = buildDeliveryFormValues(null, "Luis", "1000.00");
 
     expect(values.delivered_by_name).toBe("Luis");
     expect(values.delivery_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -28,7 +31,7 @@ describe("buildDeliveryFormValues", () => {
   });
 
   it("loads the saved delivery", () => {
-    const values = buildDeliveryFormValues(savedDelivery, "Luis");
+    const values = buildDeliveryFormValues(savedDelivery, "Luis", "1000.00");
 
     expect(values).toMatchObject({ delivery_date: "2026-09-15", delivered_by_name: "Ana", received_by_name: "" });
     expect(values.denominations.find((row) => row.value === "500.00")?.quantity).toBe("2");
@@ -41,6 +44,8 @@ describe("toUpsertDeliveryInput", () => {
       delivery_date: "2026-09-15",
       delivered_by_name: "  Ana ",
       received_by_name: "  ",
+      requested_cash_amount: "1500",
+      cash_commission_percentage: "0",
       denominations: [{ value: "500.00", quantity: "3" }, { value: "0.50", quantity: "" }],
     });
 
@@ -48,6 +53,8 @@ describe("toUpsertDeliveryInput", () => {
       delivery_date: "2026-09-15",
       delivered_by_name: "Ana",
       received_by_name: null,
+      requested_cash_amount: "1500.00",
+      cash_commission_percentage: "0.00",
       denominations: [{ value: "500.00", quantity: 3 }, { value: "0.50", quantity: 0 }],
     });
   });
@@ -57,23 +64,27 @@ describe("isDeliveryFormField", () => {
   it("accepts visible fields and denomination quantities only", () => {
     expect(isDeliveryFormField("delivered_by_name")).toBe(true);
     expect(isDeliveryFormField("denominations.3.quantity")).toBe(true);
+    expect(isDeliveryFormField("requested_cash_amount")).toBe(true);
+    expect(isDeliveryFormField("cash_commission_percentage")).toBe(true);
     expect(isDeliveryFormField("denominations")).toBe(false);
     expect(isDeliveryFormField("record")).toBe(false);
   });
 });
 
 describe("getDeliveryBlocks", () => {
-  const cashOk = getCashCheck({ officialAmount: "0.00", documentAmount: "0.00", denominations: [] });
+  const split = (amount: string) =>
+    deliverySplitPreview({ returnAmount: amount, requestedCashAmount: amount, cashCommissionPercentage: "0" });
+  const cashOk = getCashCheck({ split: split("0.00"), documentAmount: "0.00", denominations: [] });
 
   it("is empty when nothing blocks", () => {
     expect(getDeliveryBlocks({ cash: cashOk, hasImage: true, mismatch: null, errors: [null, null] })).toEqual([]);
   });
 
-  it("reports cash short of the official return before the document amount", () => {
-    const cash = getCashCheck({ officialAmount: "500.00", documentAmount: "500.00", denominations: [] });
+  it("reports cash short of the cash to deliver before the document amount", () => {
+    const cash = getCashCheck({ split: split("500.00"), documentAmount: "500.00", denominations: [] });
     const [first] = getDeliveryBlocks({ cash, hasImage: true, mismatch: null, errors: [] });
 
-    expect(first.text).toContain("frente al retorno oficial");
+    expect(first.text).toContain("frente al efectivo a entregar");
     expect(first.code).toBe("CASH_MISMATCH");
   });
 

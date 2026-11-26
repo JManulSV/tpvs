@@ -35,6 +35,12 @@ export type Delivery = {
   prepared_return_amount: string;
   current_return_amount: string;
   is_stale: boolean;
+  /** The split (SPEC 28): Laravel derives the transfer, the extra commission and the cash to deliver. */
+  requested_cash_amount: string;
+  transfer_amount: string;
+  cash_commission_percentage: string;
+  cash_commission: string;
+  cash_amount: string;
   denominations: DeliveryDenomination[];
   created_at: string | null;
   updated_at: string | null;
@@ -48,6 +54,9 @@ export type UpsertDeliveryInput = {
   delivery_date: string;
   delivered_by_name: string;
   received_by_name: string | null;
+  /** Only the requested cash is sent: the transfer and the derived amounts are calculated by Laravel. */
+  requested_cash_amount: string;
+  cash_commission_percentage: string;
   denominations: DeliveryDenomination[];
 };
 
@@ -60,6 +69,8 @@ export type DeliveryErrorDetails = {
   difference?: string;
   prepared_amount?: string;
   current_amount?: string;
+  requested_cash_amount?: string;
+  current_return_amount?: string;
 };
 
 export type DeliveryDocument = {

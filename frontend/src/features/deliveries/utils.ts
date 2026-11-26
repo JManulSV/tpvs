@@ -47,14 +47,112 @@ export function denominationsTotalCents(
   }, 0);
 }
 
-export function documentReturnOptions(officialReturnAmount: string): [string, string, string] {
-  const wholePesoCents = Math.floor(Math.max(toCents(officialReturnAmount), 0) / 100) * 100;
+/**
+ * The three document amounts of SPEC 14, from the cash to deliver (SPEC 28).
+ * Without cash the only document amount is 0.00. Laravel validates the choice.
+ */
+export function documentReturnOptions(cashAmount: string): string[] {
+  const cashCents = Math.max(toCents(cashAmount), 0);
+
+  if (cashCents === 0) return [centsToAmount(0)];
+
+  const wholePesoCents = Math.floor(cashCents / 100) * 100;
 
   return [
     centsToAmount(wholePesoCents),
     centsToAmount(wholePesoCents + 50),
     centsToAmount(wholePesoCents + 100),
   ];
+}
+
+export type SplitErrorCode = "TRANSFER_EXCEEDS_RETURN" | "CASH_REQUEST_EXCEEDS_RETURN" | "EXTRA_COMMISSION_INVALID";
+
+export type SplitError = { code: SplitErrorCode; text: string };
+
+export type DeliverySplitPreview = {
+  returnCents: number;
+  requestedCashCents: number;
+  transferCents: number;
+  /** Canonical "10.00", or null when the percentage is empty or invalid. */
+  percentage: string | null;
+  commissionCents: number;
+  cashCents: number;
+  errors: SplitError[];
+  valid: boolean;
+  /** True when the split is valid and there is cash to deliver. */
+  hasCash: boolean;
+};
+
+const PERCENTAGE_PATTERN = /^\d{1,3}(?:\.\d{1,2})?$/;
+
+/**
+ * Half-up to the cent, the same integer formula as Laravel's Money::applyPercentage:
+ * (cents × hundredths + 5000) / 10000. BigInt keeps large amounts exact.
+ */
+export function applyPercentageCents(cents: number, percentage: string): number {
+  const result = (BigInt(cents) * BigInt(toCents(percentage)) + BigInt(5000)) / BigInt(10000);
+
+  return Number(result);
+}
+
+/**
+ * Preview of the split while the Editor types. Laravel recalculates, validates and stores it;
+ * after saving, the screen shows the amounts of the response.
+ *
+ *   transfer = return − requested cash
+ *   commission = requested cash × percentage (half-up)
+ *   cash to deliver = requested cash − commission
+ */
+export function deliverySplitPreview({
+  returnAmount,
+  requestedCashAmount,
+  cashCommissionPercentage,
+}: {
+  returnAmount: string;
+  requestedCashAmount: string;
+  cashCommissionPercentage: string;
+}): DeliverySplitPreview {
+  const returnCents = Math.max(toCents(returnAmount), 0);
+  const requestedCashCents = toCents(requestedCashAmount.trim());
+  const transferCents = returnCents - requestedCashCents;
+  const rawPercentage = cashCommissionPercentage.trim();
+  const percentageValid = PERCENTAGE_PATTERN.test(rawPercentage) && toCents(rawPercentage) <= 10000;
+  const percentage = percentageValid ? centsToAmount(toCents(rawPercentage)) : null;
+
+  const errors: SplitError[] = [];
+  if (requestedCashCents < 0) {
+    errors.push({
+      code: "TRANSFER_EXCEEDS_RETURN",
+      text: `La transferencia supera el retorno oficial por ${formatCents(-requestedCashCents)}. Reduce la transferencia.`,
+    });
+  }
+  if (requestedCashCents > returnCents) {
+    errors.push({
+      code: "CASH_REQUEST_EXCEEDS_RETURN",
+      text: `El efectivo supera el retorno oficial por ${formatCents(requestedCashCents - returnCents)}. Reduce el efectivo; el resto va por transferencia.`,
+    });
+  }
+  if (percentage === null) {
+    errors.push({ code: "EXTRA_COMMISSION_INVALID", text: "La comisión extra debe estar entre 0.00% y 100.00%." });
+  }
+
+  const commissionCents = percentage !== null && requestedCashCents > 0
+    ? applyPercentageCents(requestedCashCents, percentage)
+    : 0;
+  const cashCents = Math.max(requestedCashCents - commissionCents, 0);
+  const valid = errors.length === 0;
+
+  return {
+    returnCents,
+    requestedCashCents,
+    transferCents,
+    percentage,
+    commissionCents,
+    cashCents,
+    errors,
+    valid,
+    hasCash: valid && cashCents > 0,
+  };
 }
 
 export function denominationBreakdownKey(
@@ -87,7 +185,8 @@ export function parseQuantityInput(raw: string): string {
 
 export type CashCheck = {
   cashCents: number;
-  shortOfficialCents: number;
+  /** Missing cash beyond the tolerance against the cash to deliver; blocks saving. */
+  shortCashCents: number;
   shortDocumentCents: number;
   excessCents: number;
   tone: "ok" | "short" | "excess";
@@ -102,20 +201,46 @@ function formatCents(cents: number): string {
   return formatMoney(centsToAmount(cents));
 }
 
+/**
+ * The breakdown against the cash to deliver and the document amount. Without a valid
+ * split or without cash there is nothing to reconcile: the breakdown is hidden and counts 0.
+ */
 export function getCashCheck({
-  officialAmount,
+  split,
   documentAmount,
   denominations,
 }: {
-  officialAmount: string;
+  split: DeliverySplitPreview;
   documentAmount: string;
   denominations: Array<{ value: string; quantity: number | string }>;
 }): CashCheck {
+  if (!split.hasCash) {
+    return {
+      cashCents: 0,
+      shortCashCents: 0,
+      shortDocumentCents: 0,
+      excessCents: 0,
+      tone: split.valid ? "ok" : "short",
+      label: split.valid
+        ? "Todo el retorno va por transferencia"
+        : "El reparto no es válido · corrígelo en «Forma de retorno»",
+    };
+  }
+
   const cashCents = denominationsTotalCents(denominations);
-  const shortOfficialCents = beyondTolerance(toCents(officialAmount) - cashCents);
-  const shortDocumentCents = beyondTolerance(toCents(documentAmount) - cashCents);
+  const shortCashCents = beyondTolerance(split.cashCents - cashCents);
+  // Like the template, the document shortfall only counts once the cash to deliver is covered.
+  const shortDocumentCents = shortCashCents > 0 ? 0 : beyondTolerance(toCents(documentAmount) - cashCents);
   const excessCents = beyondTolerance(cashCents - toCents(documentAmount));
-  const base = { cashCents, shortOfficialCents, shortDocumentCents, excessCents };
+  const base = { cashCents, shortCashCents, shortDocumentCents, excessCents };
+
+  if (shortCashCents > 0) {
+    return {
+      ...base,
+      tone: "short",
+      label: `Faltan ${formatCents(shortCashCents)} en efectivo para cubrir ${formatCents(split.cashCents)}`,
+    };
+  }
 
   if (shortDocumentCents > 0) {
     return { ...base, tone: "short", label: `Faltan ${formatCents(shortDocumentCents)} frente al monto del documento` };
@@ -125,7 +250,14 @@ export function getCashCheck({
     return { ...base, tone: "excess", label: `Excede por ${formatCents(excessCents)} · requiere declarar cambio` };
   }
 
-  return { ...base, tone: "ok", label: "Coincide con el monto del documento" };
+  return { ...base, tone: "ok", label: "El efectivo cuadra con lo que se entrega" };
+}
+
+/** "100.5" → "100.50"; anything that is not a two-decimal amount stays as typed. */
+function canonicalAmountInput(raw: string): string {
+  const trimmed = raw.trim();
+
+  return /^-?\d+(?:\.\d{1,2})?$/.test(trimmed) ? centsToAmount(toCents(trimmed)) : trimmed;
 }
 
 export function isDeliveryClean(delivery: Delivery | null, values: DeliveryFormValues): boolean {
@@ -134,11 +266,13 @@ export function isDeliveryClean(delivery: Delivery | null, values: DeliveryFormV
   return delivery.delivery_date === values.delivery_date
     && delivery.delivered_by_name.trim() === values.delivered_by_name.trim()
     && (delivery.received_by_name ?? "").trim() === values.received_by_name.trim()
+    && canonicalAmountInput(values.requested_cash_amount) === delivery.requested_cash_amount
+    && canonicalAmountInput(values.cash_commission_percentage) === delivery.cash_commission_percentage
     && denominationBreakdownKey(delivery.denominations) === denominationBreakdownKey(values.denominations);
 }
 
 export type ReadinessCheck = {
-  id: "image" | "official" | "document" | "change" | "saved";
+  id: "image" | "split" | "cash" | "document" | "change" | "saved";
   label: string;
   ok: boolean;
 };
@@ -153,6 +287,7 @@ export type DeliveryReadiness = {
 
 export function getDeliveryReadiness({
   hasImage,
+  split,
   cash,
   changeDeclared,
   clean,
@@ -160,6 +295,7 @@ export function getDeliveryReadiness({
   generated,
 }: {
   hasImage: boolean;
+  split: DeliverySplitPreview;
   cash: CashCheck;
   changeDeclared: boolean;
   clean: boolean;
@@ -169,18 +305,29 @@ export function getDeliveryReadiness({
   const hasExcess = cash.excessCents > 0;
   const checks: ReadinessCheck[] = [
     { id: "image", label: "Imagen asociada", ok: hasImage },
-    { id: "official", label: "Efectivo conciliado con el retorno oficial", ok: cash.shortOfficialCents === 0 },
-    { id: "document", label: "Efectivo conciliado con el monto del documento", ok: cash.shortDocumentCents === 0 },
+    { id: "split", label: "Reparto válido: transferencia + efectivo", ok: split.valid },
+    ...(split.hasCash
+      ? [
+        { id: "cash" as const, label: "Efectivo conciliado con lo que se entrega", ok: cash.shortCashCents === 0 },
+        {
+          id: "document" as const,
+          label: "Efectivo conciliado con el monto del documento",
+          ok: cash.shortCashCents === 0 && cash.shortDocumentCents === 0,
+        },
+      ]
+      : []),
     ...(hasExcess ? [{ id: "change" as const, label: "Cambio al cliente declarado", ok: changeDeclared }] : []),
     { id: "saved", label: "Entrega guardada", ok: clean },
   ];
-  const canSave = !missingData && cash.shortOfficialCents === 0 && !clean;
-  const canGenerate = clean && hasImage && cash.shortDocumentCents === 0 && (!hasExcess || changeDeclared);
+  const canSave = !missingData && split.valid && cash.shortCashCents === 0 && !clean;
+  const canGenerate = clean && hasImage && split.valid && cash.shortDocumentCents === 0
+    && (!hasExcess || changeDeclared);
 
   const [hint, hintTone]: [string, DeliveryReadiness["hintTone"]] =
     generated && canGenerate ? ["Recibo generado.", "ok"]
     : missingData ? ["Completa la fecha de entrega y quién entrega.", "neutral"]
-    : cash.shortOfficialCents > 0 ? ["Ajusta el efectivo para poder guardar la entrega.", "neutral"]
+    : !split.valid ? ["Corrige el reparto entre transferencia y efectivo.", "neutral"]
+    : cash.shortCashCents > 0 ? ["Ajusta el efectivo para poder guardar la entrega.", "neutral"]
     : !clean ? ["Guarda la entrega para poder generar el recibo.", "neutral"]
     : !hasImage ? ["Falta la imagen para generar el Word.", "neutral"]
     : cash.shortDocumentCents > 0 ? ["El efectivo no coincide con el monto del documento.", "neutral"]
@@ -208,8 +355,16 @@ function todayIsoDate(): string {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
-/** Form values from the saved delivery; a new one starts today, delivered by the current user. */
-export function buildDeliveryFormValues(delivery: Delivery | null, userName: string): DeliveryFormValues {
+/**
+ * Form values from the saved delivery; a new one starts today, delivered by the current user,
+ * all in cash and with the extra commission empty. A stale delivery keeps its requested cash,
+ * so the transfer absorbs the new return.
+ */
+export function buildDeliveryFormValues(
+  delivery: Delivery | null,
+  userName: string,
+  currentReturnAmount: string,
+): DeliveryFormValues {
   const quantities = new Map(
     (delivery?.denominations ?? []).map((denomination) => [denomination.value, denomination.quantity]),
   );
@@ -218,6 +373,8 @@ export function buildDeliveryFormValues(delivery: Delivery | null, userName: str
     delivery_date: delivery?.delivery_date ?? todayIsoDate(),
     delivered_by_name: delivery?.delivered_by_name ?? userName,
     received_by_name: delivery?.received_by_name ?? "",
+    requested_cash_amount: delivery?.requested_cash_amount ?? currentReturnAmount,
+    cash_commission_percentage: delivery?.cash_commission_percentage ?? "",
     denominations: officialDenominationValues.map((value) => ({
       value,
       quantity: String(quantities.get(value) ?? 0),
@@ -232,6 +389,8 @@ export function toUpsertDeliveryInput(values: DeliveryFormValues): UpsertDeliver
     delivery_date: values.delivery_date,
     delivered_by_name: values.delivered_by_name.trim(),
     received_by_name: received === "" ? null : received,
+    requested_cash_amount: canonicalAmountInput(values.requested_cash_amount),
+    cash_commission_percentage: canonicalAmountInput(values.cash_commission_percentage),
     denominations: values.denominations.map((denomination) => ({
       value: denomination.value,
       quantity: Math.trunc(Number(denomination.quantity) || 0),
@@ -239,7 +398,13 @@ export function toUpsertDeliveryInput(values: DeliveryFormValues): UpsertDeliver
   };
 }
 
-const formFields = new Set(["delivery_date", "delivered_by_name", "received_by_name"]);
+const formFields = new Set([
+  "delivery_date",
+  "delivered_by_name",
+  "received_by_name",
+  "requested_cash_amount",
+  "cash_commission_percentage",
+]);
 
 /** True when a `422` field has a visible control, so its message goes next to it. */
 export function isDeliveryFormField(field: string): boolean {
@@ -262,9 +427,9 @@ export function getDeliveryBlocks({
 }): DeliveryBlock[] {
   const blocks: DeliveryBlock[] = [];
 
-  if (cash.shortOfficialCents > 0) {
+  if (cash.shortCashCents > 0) {
     blocks.push({
-      text: `Faltan ${formatCents(cash.shortOfficialCents)} en efectivo frente al retorno oficial. Ajusta las denominaciones.`,
+      text: `Faltan ${formatCents(cash.shortCashCents)} en efectivo frente al efectivo a entregar. Ajusta las denominaciones.`,
       code: "CASH_MISMATCH",
     });
   } else if (cash.shortDocumentCents > 0) {

@@ -26,6 +26,9 @@ export const deliveryFormSchema = z.object({
     .string()
     .trim()
     .max(255, "El nombre no puede superar los 255 caracteres."),
+  // Free text while typing: deliverySplitPreview checks them against the official return.
+  requested_cash_amount: z.string().trim(),
+  cash_commission_percentage: z.string().trim(),
   denominations: z
     .array(denominationSchema)
     .length(officialDenominationValues.length, "El desglose debe incluir las denominaciones oficiales."),

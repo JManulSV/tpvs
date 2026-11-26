@@ -12,6 +12,8 @@ import { deliveryFormSchema, type DeliveryFormValues } from "../schemas/delivery
 import { DeliveryApiError, documentBlockedMessages, type Delivery, type DeliveryErrorDetails } from "../types";
 import {
   buildDeliveryFormValues,
+  centsToAmount,
+  deliverySplitPreview,
   denominationBreakdownKey,
   documentReturnOptions,
   getCashCheck,
@@ -59,7 +61,7 @@ export function DeliveryForm({
 }: DeliveryFormProps) {
   const upsert = useUpsertDelivery();
   const generate = useGenerateDeliveryDocument();
-  const [defaultValues] = useState(() => buildDeliveryFormValues(delivery, userName));
+  const [defaultValues] = useState(() => buildDeliveryFormValues(delivery, userName, currentReturnAmount));
   const form = useForm<DeliveryFormValues>({ resolver: zodResolver(deliveryFormSchema), defaultValues });
   const [saveError, setSaveError] = useState<string | null>(null);
   const [mismatch, setMismatch] = useState<DeliveryErrorDetails | null>(null);
@@ -73,22 +75,48 @@ export function DeliveryForm({
     setGenerateError(null);
   });
 
-  const [deliveryDate, deliveredByName, receivedByName, watchedDenominations] = useWatch({
+  const [
+    deliveryDate,
+    deliveredByName,
+    receivedByName,
+    requestedCashAmount,
+    cashCommissionPercentage,
+    watchedDenominations,
+  ] = useWatch({
     control: form.control,
-    name: ["delivery_date", "delivered_by_name", "received_by_name", "denominations"],
+    name: [
+      "delivery_date",
+      "delivered_by_name",
+      "received_by_name",
+      "requested_cash_amount",
+      "cash_commission_percentage",
+      "denominations",
+    ],
   });
   const values: DeliveryFormValues = {
     delivery_date: deliveryDate ?? "",
     delivered_by_name: deliveredByName ?? "",
     received_by_name: receivedByName ?? "",
+    requested_cash_amount: requestedCashAmount ?? "",
+    cash_commission_percentage: cashCommissionPercentage ?? "",
     denominations: watchedDenominations ?? defaultValues.denominations,
   };
+  // Preview only: Laravel recalculates the split when saving.
+  const split = deliverySplitPreview({
+    returnAmount: currentReturnAmount,
+    requestedCashAmount: values.requested_cash_amount,
+    cashCommissionPercentage: values.cash_commission_percentage,
+  });
+  const documentAmountOptions = documentReturnOptions(centsToAmount(split.cashCents));
+  const documentAmount = documentAmountOptions.includes(documentReturnAmount)
+    ? documentReturnAmount
+    : documentAmountOptions[0];
 
   const hasImage = record.image !== null;
   const isSaving = form.formState.isSubmitting || upsert.isPending;
   const cash = getCashCheck({
-    officialAmount: currentReturnAmount,
-    documentAmount: documentReturnAmount,
+    split,
+    documentAmount,
     denominations: values.denominations,
   });
   const clean = isDeliveryClean(delivery, values);
@@ -97,12 +125,15 @@ export function DeliveryForm({
     values.delivery_date,
     values.delivered_by_name,
     values.received_by_name,
+    values.requested_cash_amount,
+    values.cash_commission_percentage,
     denominationBreakdownKey(values.denominations),
-    documentReturnAmount,
+    documentAmount,
     String(customerWillGiveChange),
   ].join("~");
   const readiness = getDeliveryReadiness({
     hasImage,
+    split,
     cash,
     changeDeclared: customerWillGiveChange,
     clean,
@@ -177,7 +208,7 @@ export function DeliveryForm({
         deliveryId: delivery.id,
         recordId: record.id,
         input: {
-          document_return_amount: documentReturnAmount,
+          document_return_amount: documentAmount,
           customer_will_give_change: customerWillGiveChange,
         },
       },
@@ -205,7 +236,7 @@ export function DeliveryForm({
           <div className="flex min-w-0 flex-col gap-6">
             <DeliveryAmountsHero
               cash={cash}
-              documentReturnAmount={documentReturnAmount}
+              documentReturnAmount={documentAmount}
               officialAmount={currentReturnAmount}
             />
 
@@ -269,8 +300,8 @@ export function DeliveryForm({
                   disabled={isSaving}
                   labelledBy={DOCUMENT_AMOUNT_HEADING_ID}
                   onChange={handleDocumentAmountChange}
-                  options={documentReturnOptions(currentReturnAmount)}
-                  value={documentReturnAmount}
+                  options={documentAmountOptions}
+                  value={documentAmount}
                 />
                 <p className="mt-3 text-xs/4 font-medium text-muted-foreground">
                   Es un valor de esta solicitud: no se guarda y el retorno oficial no cambia.
