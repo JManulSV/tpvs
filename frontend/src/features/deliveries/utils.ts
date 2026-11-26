@@ -155,6 +155,14 @@ export function deliverySplitPreview({
   };
 }
 
+/** Digits and one dot with up to two decimals; no sign. */
+export function sanitizeAmountInput(raw: string): string {
+  const cleaned = raw.replace(/[^\d.]/g, "");
+  const [whole, ...rest] = cleaned.split(".");
+
+  return rest.length === 0 ? whole : `${whole}.${rest.join("").slice(0, 2)}`;
+}
+
 export function denominationBreakdownKey(
   denominations: Array<{ value: string; quantity: number | string }>,
 ): string {

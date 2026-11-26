@@ -6,6 +6,7 @@ import { useForm, useWatch, type FieldPath } from "react-hook-form";
 import { FormField, fieldErrorProps } from "@/components/form-field";
 import type { RecordDetailView } from "@/features/records/types";
 import { useResetOnHide } from "@/hooks/use-reset-on-hide";
+import { formatMoney } from "@/lib/format";
 import { cardSurface, fieldControl } from "@/lib/styles";
 import { useGenerateDeliveryDocument, useUpsertDelivery } from "../hooks/use-deliveries";
 import { deliveryFormSchema, type DeliveryFormValues } from "../schemas/delivery.schema";
@@ -23,6 +24,7 @@ import {
   isDeliveryClean,
   isDeliveryFormField,
   toUpsertDeliveryInput,
+  type SplitError,
 } from "../utils";
 import { DeliveryActionBar } from "./delivery-action-bar";
 import { DeliveryAmountsHero } from "./delivery-amounts-hero";
@@ -30,6 +32,7 @@ import { DeliveryBlocksBanner } from "./delivery-blocks-banner";
 import { DeliveryCashBreakdown } from "./delivery-cash-breakdown";
 import { DeliveryImageCard } from "./delivery-image-card";
 import { DeliveryReadinessCard } from "./delivery-readiness-card";
+import { DeliveryReturnSplit, type SplitAmounts } from "./delivery-return-split";
 import { DeliverySectionHeader } from "./delivery-section-header";
 import { DocumentAmountGroup } from "./document-amount-group";
 
@@ -65,6 +68,7 @@ export function DeliveryForm({
   const form = useForm<DeliveryFormValues>({ resolver: zodResolver(deliveryFormSchema), defaultValues });
   const [saveError, setSaveError] = useState<string | null>(null);
   const [mismatch, setMismatch] = useState<DeliveryErrorDetails | null>(null);
+  const [splitServerError, setSplitServerError] = useState<SplitError | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
@@ -72,6 +76,7 @@ export function DeliveryForm({
   useResetOnHide(() => {
     setSaveError(null);
     setMismatch(null);
+    setSplitServerError(null);
     setGenerateError(null);
   });
 
@@ -120,6 +125,18 @@ export function DeliveryForm({
     denominations: values.denominations,
   });
   const clean = isDeliveryClean(delivery, values);
+  // Once saved, the screen shows Laravel's amounts; the preview only covers unsaved edits.
+  const splitAmounts: SplitAmounts = clean && delivery !== null
+    ? {
+      transferAmount: delivery.transfer_amount,
+      cashCommission: delivery.cash_commission,
+      cashAmount: delivery.cash_amount,
+    }
+    : {
+      transferAmount: centsToAmount(Math.max(split.transferCents, 0)),
+      cashCommission: centsToAmount(split.commissionCents),
+      cashAmount: centsToAmount(split.cashCents),
+    };
   // A generated document only counts while nothing that feeds it has changed.
   const stateKey = [
     values.delivery_date,
@@ -148,6 +165,24 @@ export function DeliveryForm({
     onCustomerWillGiveChangeChange(false);
   }
 
+  function handleRequestedCashChange(amount: string) {
+    form.setValue("requested_cash_amount", amount, { shouldDirty: true });
+    setSplitServerError(null);
+    onCustomerWillGiveChangeChange(false);
+  }
+
+  function handlePercentageChange(percentage: string) {
+    form.setValue("cash_commission_percentage", percentage, { shouldDirty: true });
+    onCustomerWillGiveChangeChange(false);
+  }
+
+  function handleAllTransfer() {
+    handleRequestedCashChange("0.00");
+    values.denominations.forEach((_, index) => {
+      form.setValue(`denominations.${index}.quantity`, "0", { shouldDirty: true });
+    });
+  }
+
   function handleDocumentAmountChange(amount: string) {
     onDocumentReturnAmountChange(amount);
     onCustomerWillGiveChangeChange(false);
@@ -161,6 +196,16 @@ export function DeliveryForm({
 
     if (error.status === 409 && error.reason === "CASH_MISMATCH") {
       setMismatch(error.details);
+      return;
+    }
+
+    if (error.status === 409 && error.reason === "CASH_REQUEST_EXCEEDS_RETURN") {
+      // The return changed under the Editor: reload it and explain the rejection in «Forma de retorno».
+      setSplitServerError({
+        code: "CASH_REQUEST_EXCEEDS_RETURN",
+        text: `El efectivo supera el retorno oficial actual (${formatMoney(error.details.current_return_amount)}). Reduce el efectivo; el resto va por transferencia.`,
+      });
+      onInvalidRecordState();
       return;
     }
 
@@ -188,8 +233,11 @@ export function DeliveryForm({
   async function onSubmit(submitted: DeliveryFormValues) {
     setSaveError(null);
     setMismatch(null);
+    setSplitServerError(null);
     setGenerateError(null);
     form.clearErrors();
+
+    if (!split.valid) return;
 
     try {
       await upsert.mutateAsync({ recordId: record.id, input: toUpsertDeliveryInput(submitted) });
@@ -236,8 +284,9 @@ export function DeliveryForm({
           <div className="flex min-w-0 flex-col gap-6">
             <DeliveryAmountsHero
               cash={cash}
-              documentReturnAmount={documentAmount}
+              cashAmount={splitAmounts.cashAmount}
               officialAmount={currentReturnAmount}
+              transferAmount={splitAmounts.transferAmount}
             />
 
             <section aria-labelledby="delivery-data-heading" className={cardSurface}>
@@ -288,6 +337,19 @@ export function DeliveryForm({
                 </FormField>
               </fieldset>
             </section>
+
+            <DeliveryReturnSplit
+              amounts={splitAmounts}
+              cashCommissionPercentage={values.cash_commission_percentage}
+              disabled={isSaving}
+              officialAmount={currentReturnAmount}
+              onAllTransfer={handleAllTransfer}
+              onPercentageChange={handlePercentageChange}
+              onRequestedCashChange={handleRequestedCashChange}
+              requestedCashAmount={values.requested_cash_amount}
+              serverError={splitServerError}
+              split={split}
+            />
 
             <section aria-labelledby={DOCUMENT_AMOUNT_HEADING_ID} className={cardSurface}>
               <DeliverySectionHeader

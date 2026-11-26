@@ -13,6 +13,7 @@ import {
   getDeliveryReadiness,
   isDeliveryClean,
   parseQuantityInput,
+  sanitizeAmountInput,
   stepQuantity,
   toCents,
   toUpsertDeliveryInput,
@@ -476,5 +477,19 @@ describe("toUpsertDeliveryInput", () => {
       "received_by_name",
       "requested_cash_amount",
     ]);
+  });
+});
+
+describe("sanitizeAmountInput", () => {
+  it.each([
+    ["100", "100"],
+    ["1,250.50", "1250.50"],
+    ["$90.999", "90.99"],
+    ["-50", "50"],
+    ["6.5.5", "6.55"],
+    ["", ""],
+    [".5", ".5"],
+  ])("%j → %j", (raw, expected) => {
+    expect(sanitizeAmountInput(raw)).toBe(expected);
   });
 });

@@ -14,7 +14,7 @@ import { getRecordPeriodLine } from "@/features/records/utils/detail";
 import type { RecordListItem } from "@/features/records/types";
 import { useDelivery } from "../hooks/use-deliveries";
 import type { Delivery } from "../types";
-import { documentReturnOptions, getDeliveryHeading } from "../utils";
+import { getDeliveryHeading } from "../utils";
 import { DeliveryForm } from "./delivery-form";
 import { DeliveryReadOnly } from "./delivery-read-only";
 
@@ -32,16 +32,12 @@ export function DeliveryScreen({
   const deliveryQuery = useDelivery(recordId);
   const record = recordQuery.data;
   const delivery = deliveryQuery.data ?? null;
-  const [selectedDocumentReturnAmount, setSelectedDocumentReturnAmount] = useState<string | null>(null);
+  // The form falls back to the first option derived from the cash to deliver.
+  const [selectedDocumentReturnAmount, setSelectedDocumentReturnAmount] = useState<string>("");
   const [customerWillGiveChange, setCustomerWillGiveChange] = useState(false);
   // The official return is calculated and stored by Laravel on the record (SPEC 27).
   const currentReturnAmount = record?.return_total ?? "0.00";
 
-  const documentAmountOptions = documentReturnOptions(currentReturnAmount);
-  const documentReturnAmount = selectedDocumentReturnAmount !== null
-    && documentAmountOptions.includes(selectedDocumentReturnAmount)
-    ? selectedDocumentReturnAmount
-    : documentAmountOptions[0];
 
   if (recordQuery.isPending) {
     return <DeliverySkeleton label="Cargando registro…" />;
@@ -112,7 +108,7 @@ export function DeliveryScreen({
           currentReturnAmount={currentReturnAmount}
           customerWillGiveChange={customerWillGiveChange}
           delivery={delivery}
-          documentReturnAmount={documentReturnAmount}
+          documentReturnAmount={selectedDocumentReturnAmount}
           onCustomerWillGiveChangeChange={setCustomerWillGiveChange}
           onDocumentReturnAmountChange={setSelectedDocumentReturnAmount}
           onInvalidRecordState={handleInvalidRecordState}

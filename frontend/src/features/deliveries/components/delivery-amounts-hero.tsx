@@ -1,7 +1,7 @@
 import { CircleAlert, CircleCheck, CircleX } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { centsToAmount, type CashCheck } from "../utils";
+import type { CashCheck } from "../utils";
 
 const toneIcon = { ok: CircleCheck, excess: CircleAlert, short: CircleX } as const;
 
@@ -15,11 +15,13 @@ const eyebrow = "text-[11px]/4 font-semibold tracking-[0.08em] text-on-hero/70 u
 
 type DeliveryAmountsHeroProps = {
   officialAmount: string;
-  documentReturnAmount: string;
+  transferAmount: string;
+  cashAmount: string;
   cash: CashCheck;
 };
 
-export function DeliveryAmountsHero({ officialAmount, documentReturnAmount, cash }: DeliveryAmountsHeroProps) {
+/** Official return, how it splits (SPEC 28) and whether the cash breakdown covers the cash to deliver. */
+export function DeliveryAmountsHero({ officialAmount, transferAmount, cashAmount, cash }: DeliveryAmountsHeroProps) {
   const CheckIcon = toneIcon[cash.tone];
 
   return (
@@ -33,12 +35,12 @@ export function DeliveryAmountsHero({ officialAmount, documentReturnAmount, cash
           {formatMoney(officialAmount)}
         </span>
         <span className="mt-1 block text-[13px]/5 font-medium text-on-hero/70">
-          Es el monto con el que se verifica el efectivo al guardar.
+          Se reparte entre transferencia y efectivo. La transferencia lleva solo la comisión base.
         </span>
       </div>
       <dl className="flex gap-6 md:gap-8">
-        <HeroFigure label="Documento" value={formatMoney(documentReturnAmount)} />
-        <HeroFigure label="Efectivo" value={formatMoney(centsToAmount(cash.cashCents))} />
+        <HeroFigure label="Transferencia" value={formatMoney(transferAmount)} />
+        <HeroFigure label="Efectivo a entregar" value={formatMoney(cashAmount)} />
       </dl>
       <div
         className={cn(
