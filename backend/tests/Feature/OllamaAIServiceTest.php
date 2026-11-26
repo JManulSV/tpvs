@@ -21,6 +21,28 @@ class OllamaAIServiceTest extends TestCase
         ]);
     }
 
+    public function test_the_only_prompt_is_v6_and_it_is_the_one_sent_to_ollama(): void
+    {
+        $this->assertSame('v6', OllamaAIService::PROMPT_VERSION);
+        $this->assertSame(['prompt-v6.txt'], array_values(array_map('basename', glob(resource_path('ai/prompt-*.txt')))));
+        $this->assertFileDoesNotExist(resource_path('ai/prompt-v5.txt'));
+
+        $imagePath = $this->temporaryImage('image-bytes');
+        Http::fake([
+            'ollama.test:11434/api/chat' => Http::response(json_encode([
+                'message' => ['content' => '{}'],
+                'done' => true,
+            ], JSON_THROW_ON_ERROR), 200),
+        ]);
+
+        app(OllamaAIService::class)->extract($imagePath);
+
+        Http::assertSent(static fn ($request): bool => $request->data()['messages'][0]['content']
+            === file_get_contents(resource_path('ai/prompt-v6.txt')));
+
+        unlink($imagePath);
+    }
+
     public function test_it_posts_image_prompt_and_schema_and_returns_raw_and_decoded_extraction(): void
     {
         $imagePath = $this->temporaryImage('image-bytes');
@@ -40,7 +62,7 @@ class OllamaAIServiceTest extends TestCase
 
         $this->assertSame('ollama', $result->provider);
         $this->assertSame('qwen2.5vl:3b', $result->model);
-        $this->assertSame('v5', $result->promptVersion);
+        $this->assertSame('v6', $result->promptVersion);
         $this->assertSame($rawProviderResponse, $result->rawResponse);
         $this->assertSame($content, $result->responseText);
         $this->assertSame($extraction, $result->decodedResponse);

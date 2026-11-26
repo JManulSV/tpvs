@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Http;
 
 class OllamaAIService implements AIService
 {
-    private const PROMPT_VERSION = 'v5';
+    /** The active prompt is resources/ai/prompt-{PROMPT_VERSION}.txt. There is only one. */
+    public const PROMPT_VERSION = 'v6';
 
     public function extract(string $imagePath): AiExtractionResult
     {
@@ -128,7 +129,7 @@ class OllamaAIService implements AIService
 
     private function prompt(): string
     {
-        $prompt = file_get_contents(resource_path('ai/prompt-v5.txt'));
+        $prompt = file_get_contents(resource_path('ai/prompt-'.self::PROMPT_VERSION.'.txt'));
 
         if (! is_string($prompt) || $prompt === '') {
             throw new AiProviderException(

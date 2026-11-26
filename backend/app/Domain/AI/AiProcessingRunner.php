@@ -84,7 +84,7 @@ class AiProcessingRunner
             }
 
             $result = $processing->result ?? [];
-            $result['prompt_version'] = $promptVersion ?? ($result['prompt_version'] ?? 'v5');
+            $result['prompt_version'] = $promptVersion ?? ($result['prompt_version'] ?? OllamaAIService::PROMPT_VERSION);
             if ($rawResponse !== null) {
                 $result['raw_response'] = $rawResponse;
             }
@@ -207,7 +207,7 @@ class AiProcessingRunner
             $processing->forceFill([
                 'result' => [
                     ...$previous,
-                    'prompt_version' => $exception->promptVersion ?? ($previous['prompt_version'] ?? 'v5'),
+                    'prompt_version' => $exception->promptVersion ?? ($previous['prompt_version'] ?? OllamaAIService::PROMPT_VERSION),
                     'raw_response' => $exception->rawResponse ?? ($previous['raw_response'] ?? null),
                     'issues' => [ExtractionIssue::error('$', $exception->errorCode, $exception->getMessage())->toArray()],
                 ],

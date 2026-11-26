@@ -46,7 +46,7 @@ class AiJobDispatcher
                 'error_message' => self::DISPATCH_FAILED,
                 'completed_at' => now(),
                 'result' => [
-                    'prompt_version' => 'v5',
+                    'prompt_version' => OllamaAIService::PROMPT_VERSION,
                     'normalized_extraction' => null,
                     'issues' => [ExtractionIssue::error('$', self::DISPATCH_FAILED, 'The extraction job could not be queued.')->toArray()],
                     'unconvertible_numeric_count' => 0,
