@@ -299,6 +299,31 @@ class PrepareDeliveryTest extends TestCase
                 ->assertUnprocessable();
         }
 
+        $invalidSplits = [
+            ['requested_cash_amount', null],
+            ['requested_cash_amount', '-1.00'],
+            ['requested_cash_amount', '100.005'],
+            ['cash_commission_percentage', null],
+            ['cash_commission_percentage', '100.01'],
+            ['cash_commission_percentage', '-1.00'],
+            ['cash_commission_percentage', '6.505'],
+        ];
+
+        foreach ($invalidSplits as [$field, $value]) {
+            $this->actingAs($editor, 'web')
+                ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([$field => $value]))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors([$field]);
+        }
+
+        $payloadWithoutSplit = $this->validPayload();
+        unset($payloadWithoutSplit['requested_cash_amount'], $payloadWithoutSplit['cash_commission_percentage']);
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id.'/delivery', $payloadWithoutSplit)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['requested_cash_amount', 'cash_commission_percentage']);
+
         $this->assertDatabaseCount('deliveries', 0);
         $this->assertDatabaseCount('delivery_cash_denominations', 0);
         $this->assertDatabaseCount('histories', 0);
@@ -309,12 +334,18 @@ class PrepareDeliveryTest extends TestCase
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $record = $this->createRecordWithReturn('9800.00');
 
-        foreach (['prepared_return_amount', 'record_id', 'status', 'source', 'reason', 'total', 'cash_total'] as $field) {
+        $fields = [
+            'prepared_return_amount', 'transfer_amount', 'cash_commission', 'cash_amount',
+            'record_id', 'status', 'source', 'reason', 'total', 'cash_total',
+        ];
+
+        foreach ($fields as $field) {
             $this->actingAs($editor, 'web')
                 ->putJson('/api/records/'.$record->id.'/delivery', $this->validPayload([
                     $field => 'anything',
                 ]))
-                ->assertUnprocessable();
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors([$field]);
         }
 
         $this->assertDatabaseCount('deliveries', 0);

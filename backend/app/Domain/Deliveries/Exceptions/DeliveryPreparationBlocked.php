@@ -13,6 +13,20 @@ final class DeliveryPreparationBlocked extends DomainRuleException
         return new self('The delivery cannot be prepared in the current record state.', self::CODE, 'INVALID_RECORD_STATE', 409);
     }
 
+    public static function cashRequestExceedsReturn(string $requestedCashAmount, string $currentReturnAmount): self
+    {
+        return new self(
+            'The requested cash is greater than the current return amount.',
+            self::CODE,
+            'CASH_REQUEST_EXCEEDS_RETURN',
+            409,
+            [
+                'requested_cash_amount' => $requestedCashAmount,
+                'current_return_amount' => $currentReturnAmount,
+            ],
+        );
+    }
+
     public static function cashMismatch(string $expectedAmount, string $cashAmount, string $difference): self
     {
         return new self(

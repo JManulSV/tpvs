@@ -40,6 +40,9 @@ trait BuildsDeliveryPayloads
             'delivery_date' => '2026-09-18',
             'delivered_by_name' => 'Maria Lopez',
             'received_by_name' => 'Juan Perez',
+            // All cash with no extra commission, so the breakdown below (9800.00) matches the cash to deliver.
+            'requested_cash_amount' => '9800.00',
+            'cash_commission_percentage' => '0.00',
             'denominations' => [
                 ['value' => '1000.00', 'quantity' => 5],
                 ['value' => '500.00', 'quantity' => 5],
