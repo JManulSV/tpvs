@@ -48,13 +48,12 @@ export type RecordNormalizedExtraction = {
     week: NormalizedValue<number>;
     week_start_date: NormalizedValue<string>;
     week_end_date: NormalizedValue<string>;
+    commission_percentage: NormalizedValue<string>;
   };
   details: Array<{
     affiliation: NormalizedValue<string>;
-    branch: NormalizedValue<string>;
+    bank: NormalizedValue<string>;
     income: NormalizedValue<string>;
-    commission_percentage: NormalizedValue<string>;
-    source_commission: NormalizedValue<string>;
   }>;
   source_totals: {
     income: NormalizedValue<string>;
@@ -74,25 +73,20 @@ export type RecordAiProcessing = {
   unconvertible_numeric_count: number;
 };
 
+/** A movement. Commission and return belong to the record (SPEC 27). */
 export type RecordDetail = {
   id: number;
   affiliation: string | null;
-  branch: string | null;
+  bank: string | null;
   income: string | null;
-  commission_percentage: string | null;
-  commission: string | null;
-  return_amount: string | null;
   order: number;
 };
 
 export type RecordDetailInput = {
   affiliation: string;
-  branch: string;
+  bank: string;
   income: string;
-} & (
-  | { commission_percentage: string; commission?: never }
-  | { commission: string; commission_percentage?: never }
-);
+};
 
 export type RecordListItem = {
   id: number;
@@ -103,9 +97,12 @@ export type RecordListItem = {
   week: number | null;
   week_start_date: string | null;
   week_end_date: string | null;
+  /** The global percentage. Null only on a provisional IMAGE record. */
+  commission_percentage: string | null;
   image: RecordImage | null;
   ai_processing: RecordAiProcessing | null;
   income_total?: string | null;
+  /** Calculated once by Laravel over income_total; absent when it cannot be calculated. */
   commission_total?: string | null;
   return_total?: string | null;
   details: RecordDetail[];
@@ -182,6 +179,7 @@ export type ManualRecordInput = {
   week: number;
   week_start_date: string;
   week_end_date: string;
+  commission_percentage: string;
   details: RecordDetailInput[];
 };
 

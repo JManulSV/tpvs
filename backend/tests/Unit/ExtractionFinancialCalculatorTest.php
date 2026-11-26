@@ -7,72 +7,80 @@ use Tests\TestCase;
 
 class ExtractionFinancialCalculatorTest extends TestCase
 {
-    public function test_it_calculates_commission_and_return_from_percentage(): void
+    public function test_it_calculates_the_global_commission_once_over_the_total_income(): void
     {
-        $result = (new ExtractionFinancialCalculator)->calculate($this->detail(
-            income: '1234.56',
-            percentage: '2.50',
-            sourceCommission: '30.86',
-        ), 0);
+        // test-images/nuevo-formato.png: 236741.30 × 6.5% = 15388.18; return 221353.12.
+        $result = (new ExtractionFinancialCalculator)->calculate($this->extraction(['236741.30'], '6.50'));
 
-        $this->assertSame('1234.56', $result->income);
-        $this->assertSame('2.50', $result->commissionPercentage);
-        $this->assertSame('30.86', $result->commission);
-        $this->assertSame('1203.70', $result->returnAmount);
+        $this->assertSame(['236741.30'], $result->incomes);
+        $this->assertSame('6.50', $result->commissionPercentage);
+        $this->assertSame('15388.18', $result->financials?->commission);
+        $this->assertSame('221353.12', $result->financials?->returnAmount);
         $this->assertSame([], $result->issues);
     }
 
-    public function test_it_uses_valid_source_commission_as_fixed_commission_when_percentage_is_missing(): void
+    public function test_several_movements_are_not_rounded_per_row(): void
     {
-        $result = (new ExtractionFinancialCalculator)->calculate($this->detail(
-            income: '1000.00',
-            percentage: null,
-            sourceCommission: '125.25',
-        ), 0);
+        // Per row: 3 × 6.51 = 19.53. Once over 300.30: 19.52.
+        $result = (new ExtractionFinancialCalculator)->calculate($this->extraction(['100.10', '100.10', '100.10'], '6.50'));
 
+        $this->assertSame('19.52', $result->financials?->commission);
+        $this->assertSame('280.78', $result->financials?->returnAmount);
+    }
+
+    public function test_without_a_percentage_nothing_is_calculated_and_there_is_no_fallback(): void
+    {
+        $result = (new ExtractionFinancialCalculator)->calculate($this->extraction(['1000.00'], null));
+
+        $this->assertSame(['1000.00'], $result->incomes);
         $this->assertNull($result->commissionPercentage);
-        $this->assertSame('125.25', $result->commission);
-        $this->assertSame('874.75', $result->returnAmount);
-        $this->assertSame([], $result->issues);
+        $this->assertNull($result->financials);
     }
 
-    public function test_it_reports_source_commission_discrepancies_without_changing_calculated_values(): void
+    public function test_a_missing_income_leaves_the_totals_uncalculated(): void
     {
-        $result = (new ExtractionFinancialCalculator)->calculate($this->detail(
-            income: '100.00',
-            percentage: '2.00',
-            sourceCommission: '1.00',
-        ), 3);
+        $result = (new ExtractionFinancialCalculator)->calculate($this->extraction(['1000.00', null], '6.50'));
 
-        $this->assertSame('2.00', $result->commission);
-        $this->assertSame('98.00', $result->returnAmount);
+        $this->assertSame(['1000.00', null], $result->incomes);
+        $this->assertSame('6.50', $result->commissionPercentage);
+        $this->assertNull($result->financials);
+    }
+
+    public function test_values_outside_the_database_ranges_become_null_with_issues(): void
+    {
+        $result = (new ExtractionFinancialCalculator)->calculate($this->extraction(['10000000000.00'], '101.00'));
+
+        $this->assertSame([null], $result->incomes);
+        $this->assertNull($result->commissionPercentage);
+        $this->assertNull($result->financials);
         $this->assertSame(
-            ['SOURCE_COMMISSION_MISMATCH'],
-            array_column($result->issues, 'code'),
+            [['details.0.income', 'MONEY_OUT_OF_RANGE'], ['record.commission_percentage', 'PERCENTAGE_OUT_OF_RANGE']],
+            array_map(static fn (array $issue): array => [$issue['path'], $issue['code']], $result->issues),
         );
     }
 
-    public function test_it_leaves_financial_values_null_when_source_values_violate_constraints(): void
+    public function test_a_total_income_that_does_not_fit_the_record_is_not_calculated(): void
     {
-        $result = (new ExtractionFinancialCalculator)->calculate($this->detail(
-            income: '100.00',
-            percentage: null,
-            sourceCommission: '101.00',
-        ), 0);
+        $result = (new ExtractionFinancialCalculator)->calculate($this->extraction(['9999999999.99', '0.01'], '0.00'));
 
-        $this->assertSame('100.00', $result->income);
-        $this->assertNull($result->commission);
-        $this->assertNull($result->returnAmount);
-        $this->assertContains('FIXED_COMMISSION_EXCEEDS_INCOME', array_column($result->issues, 'code'));
+        $this->assertSame(['9999999999.99', '0.01'], $result->incomes);
+        $this->assertNull($result->financials);
+        $this->assertSame(['RECORD_TOTAL_OUT_OF_RANGE'], array_column($result->issues, 'code'));
     }
 
-    /** @return array<string, mixed> */
-    private function detail(?string $income, ?string $percentage, ?string $sourceCommission): array
+    /**
+     * @param  list<string|null>  $incomes
+     * @return array<string, mixed>
+     */
+    private function extraction(array $incomes, ?string $percentage): array
     {
         return [
-            'income' => ['value' => $income, 'confidence' => $income === null ? 0 : 0.9],
-            'commission_percentage' => ['value' => $percentage, 'confidence' => $percentage === null ? 0 : 0.9],
-            'source_commission' => ['value' => $sourceCommission, 'confidence' => $sourceCommission === null ? 0 : 0.9],
+            'record' => [
+                'commission_percentage' => ['value' => $percentage, 'confidence' => $percentage === null ? 0 : 0.9],
+            ],
+            'details' => array_map(static fn (?string $income): array => [
+                'income' => ['value' => $income, 'confidence' => $income === null ? 0 : 0.9],
+            ], $incomes),
         ];
     }
 }

@@ -33,7 +33,7 @@ class ReportExcelApiTest extends TestCase
 
     public function test_editors_and_viewers_download_a_workbook_with_private_headers(): void
     {
-        $this->record(Company::factory()->create(['name' => 'Acme']), [], [['100.00', '10.00']]);
+        $this->record(Company::factory()->create(['name' => 'Acme']), [], ['100.00']);
 
         foreach ([UserRole::EDITOR, UserRole::VIEWER] as $role) {
             $response = $this->actingAs($this->user($role), 'web')->get('/api/documents/excel?year=2026&week=38');
@@ -100,11 +100,11 @@ class ReportExcelApiTest extends TestCase
     public function test_the_export_matches_the_report_totals_and_only_includes_confirmed_records(): void
     {
         $company = Company::factory()->create(['name' => 'Acme']);
-        $this->record($company, ['week' => 1], [['100.00', '10.00']]);
-        $this->record($company, ['week' => 2], [['200.00', '20.00'], ['50.00', '5.00']]);
+        $this->record($company, ['week' => 1], ['100.00']);
+        $this->record($company, ['week' => 2], ['200.00', '50.00']);
         foreach (RecordStatus::cases() as $status) {
             if ($status !== RecordStatus::CONFIRMED) {
-                $this->record($company, ['status' => $status], [['9999.00', '999.00']]);
+                $this->record($company, ['status' => $status], ['9999.00']);
             }
         }
 
@@ -126,7 +126,7 @@ class ReportExcelApiTest extends TestCase
     {
         $company = Company::factory()->create();
         foreach (range(1, 4) as $week) {
-            $this->record($company, ['week' => $week], [['10.00', '1.00']]);
+            $this->record($company, ['week' => $week], ['10.00']);
         }
 
         $spreadsheet = $this->spreadsheet(
@@ -177,7 +177,7 @@ class ReportExcelApiTest extends TestCase
 
     public function test_the_temporary_workbook_is_deleted_after_the_response_is_sent(): void
     {
-        $this->record(Company::factory()->create(), [], [['100.00', '10.00']]);
+        $this->record(Company::factory()->create(), [], ['100.00']);
         $before = $this->temporaryWorkbooks();
 
         $response = $this->actingAs($this->user(), 'web')->get('/api/documents/excel?year=2026');
@@ -207,7 +207,7 @@ class ReportExcelApiTest extends TestCase
 
     public function test_exporting_changes_no_data_and_writes_no_history(): void
     {
-        $record = $this->record(Company::factory()->create(), [], [['100.00', '10.00']]);
+        $record = $this->record(Company::factory()->create(), [], ['100.00']);
         Delivery::factory()->create(['record_id' => $record->getKey(), 'prepared_return_amount' => '90.00']);
         $histories = History::query()->count();
         $snapshot = json_encode(Record::query()->get()->toArray());

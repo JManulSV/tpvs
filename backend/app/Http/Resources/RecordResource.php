@@ -25,6 +25,7 @@ class RecordResource extends JsonResource
             'week' => $this->week,
             'week_start_date' => $this->week_start_date?->toDateString(),
             'week_end_date' => $this->week_end_date?->toDateString(),
+            'commission_percentage' => $this->commission_percentage,
             'image' => $this->whenLoaded('image', static fn (?Image $image): ?array => $image === null ? null : [
                 'id' => $image->getKey(),
                 'original_file_name' => $image->original_file_name,
@@ -47,15 +48,32 @@ class RecordResource extends JsonResource
                     'model' => $processing->model,
                     'started_at' => $processing->started_at?->toISOString(),
                     'completed_at' => $processing->completed_at?->toISOString(),
-                    'normalized_extraction' => $result['normalized_extraction'] ?? null,
+                    'normalized_extraction' => self::publicExtraction($result['normalized_extraction'] ?? null),
                     'issues' => $result['issues'] ?? [],
                     'unconvertible_numeric_count' => $result['unconvertible_numeric_count'] ?? 0,
                 ];
             }),
             'income_total' => $this->when(isset($this->income_total), fn (): string => (string) $this->income_total),
-            'commission_total' => $this->when(isset($this->commission_total), fn (): string => (string) $this->commission_total),
-            'return_total' => $this->when(isset($this->return_total), fn (): string => (string) $this->return_total),
+            // Stored on the Record by RecordFinancials (SPEC 27); the keys keep their names, but they are no longer sums.
+            'commission_total' => $this->when($this->commission !== null, fn (): string => (string) $this->commission),
+            'return_total' => $this->when($this->return_amount !== null, fn (): string => (string) $this->return_amount),
             'details' => RecordDetailResource::collection($this->whenLoaded('details')),
         ];
+    }
+
+    /**
+     * The header number and completion date are kept in AIProcessing.result for a
+     * future spec, but are not exposed yet (SPEC 27).
+     *
+     * @param  array<string, mixed>|null  $extraction
+     * @return array<string, mixed>|null
+     */
+    private static function publicExtraction(?array $extraction): ?array
+    {
+        if (is_array($extraction['record'] ?? null)) {
+            unset($extraction['record']['document_number'], $extraction['record']['completion_date']);
+        }
+
+        return $extraction;
     }
 }

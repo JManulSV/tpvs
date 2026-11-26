@@ -30,7 +30,7 @@ class ConfirmRecord
 
             $record->load('details');
             try {
-                $this->businessValidator->validatePersistedManualRecord($record);
+                $this->businessValidator->validatePersistedRecord($record);
             } catch (ValidationException) {
                 throw RecordConfirmationBlocked::businessValidationFailed();
             }
@@ -58,6 +58,9 @@ class ConfirmRecord
             || $record->week === null
             || $record->week_start_date === null
             || $record->week_end_date === null
+            || $record->commission_percentage === null
+            || $record->commission === null
+            || $record->return_amount === null
             || $record->image()->doesntExist()) {
             return false;
         }
@@ -69,10 +72,8 @@ class ConfirmRecord
 
         foreach ($record->details as $detail) {
             if ($detail->affiliation === null
-                || $detail->branch === null
-                || $detail->income === null
-                || $detail->commission === null
-                || $detail->return_amount === null) {
+                || $detail->bank === null
+                || $detail->income === null) {
                 return false;
             }
         }

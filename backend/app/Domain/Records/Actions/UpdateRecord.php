@@ -4,6 +4,7 @@ namespace App\Domain\Records\Actions;
 
 use App\Domain\Records\BusinessValidator;
 use App\Domain\Records\Exceptions\RecordUpdateBlocked;
+use App\Domain\Records\RecordFinancials;
 use App\Domain\Records\RecordHistoryService;
 use App\Enums\RecordStatus;
 use App\Models\Company;
@@ -37,7 +38,8 @@ class UpdateRecord
             $wasConfirmed = $record->status === RecordStatus::CONFIRMED;
             $before = $this->recordHistory->snapshot($record);
 
-            $details = $this->businessValidator->validateAndCalculateManualDetails($validated);
+            $details = $this->businessValidator->validateManualDetails($validated);
+            $financials = RecordFinancials::calculate(array_column($details, 'income'), $validated['commission_percentage']);
             $companyName = Company::query()->whereKey($validated['company_id'])->value('name');
             $after = $this->recordHistory->snapshotFromValidated($validated, $details, $companyName);
             $changes = $this->recordHistory->diff($before, $after);
@@ -52,6 +54,9 @@ class UpdateRecord
                 'week' => $validated['week'],
                 'week_start_date' => CarbonImmutable::parse($validated['week_start_date'])->toDateString(),
                 'week_end_date' => CarbonImmutable::parse($validated['week_end_date'])->toDateString(),
+                'commission_percentage' => $financials?->commissionPercentage,
+                // Derived in the same transaction as the movements they come from.
+                ...RecordFinancials::attributes($financials),
             ];
 
             if ($wasConfirmed) {

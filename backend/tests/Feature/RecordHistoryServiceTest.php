@@ -25,14 +25,14 @@ class RecordHistoryServiceTest extends TestCase
             'week' => 38,
             'week_start_date' => '2026-09-14',
             'week_end_date' => '2026-09-20',
-        ]);
-        $record->details()->create([
-            'affiliation' => ' AFF-123 ',
-            'branch' => ' Guadalajara ',
-            'income' => '100',
             'commission_percentage' => '5',
             'commission' => '5.00',
             'return_amount' => '95.00',
+        ]);
+        $record->details()->create([
+            'affiliation' => ' AFF-123 ',
+            'bank' => ' LUUM ',
+            'income' => '100',
             'order' => 1,
         ]);
 
@@ -45,11 +45,17 @@ class RecordHistoryServiceTest extends TestCase
         $this->assertSame('2026-09-20', $snapshot['week_end_date']);
         $this->assertSame('1', $snapshot['details[1].order']);
         $this->assertSame('AFF-123', $snapshot['details[1].affiliation']);
-        $this->assertSame('Guadalajara', $snapshot['details[1].branch']);
+        $this->assertSame('5.00', $snapshot['commission_percentage']);
+        $this->assertSame('LUUM', $snapshot['details[1].bank']);
         $this->assertSame('100.00', $snapshot['details[1].income']);
-        $this->assertSame('5.00', $snapshot['details[1].commission_percentage']);
-        $this->assertSame('5.00', $snapshot['details[1].commission']);
-        $this->assertSame('95.00', $snapshot['details[1].return_amount']);
+
+        // Derived values and removed movement fields are not part of the snapshot.
+        foreach ([
+            'commission', 'return_amount', 'details[1].branch', 'details[1].commission_percentage',
+            'details[1].commission', 'details[1].return_amount',
+        ] as $absent) {
+            $this->assertArrayNotHasKey($absent, $snapshot);
+        }
     }
 
     public function test_diff_compares_record_and_details_by_order(): void
@@ -61,13 +67,14 @@ class RecordHistoryServiceTest extends TestCase
             'week' => 38,
             'week_start_date' => '2026-09-14',
             'week_end_date' => '2026-09-20',
+            'commission_percentage' => '5.00',
+            'commission' => '5.00',
+            'return_amount' => '95.00',
         ]);
         $record->details()->create([
             'affiliation' => 'AFF-1',
-            'branch' => 'Guadalajara',
+            'bank' => 'LUUM',
             'income' => '100.00',
-            'commission' => '5.00',
-            'return_amount' => '95.00',
             'order' => 1,
         ]);
 
@@ -79,23 +86,22 @@ class RecordHistoryServiceTest extends TestCase
             'week' => 39,
             'week_start_date' => '2027-09-20',
             'week_end_date' => '2027-09-26',
+            'commission_percentage' => '6.50',
+            'commission' => '11.05',
+            'return_amount' => '158.95',
         ]);
         $record->details()->delete();
         $record->details()->createMany([
             [
                 'affiliation' => 'AFF-1',
-                'branch' => 'Guadalajara',
+                'bank' => 'BBVA',
                 'income' => '120.00',
-                'commission' => '6.00',
-                'return_amount' => '114.00',
                 'order' => 1,
             ],
             [
                 'affiliation' => 'AFF-2',
-                'branch' => 'Zapopan',
+                'bank' => 'LUUM',
                 'income' => '50.00',
-                'commission' => '2.50',
-                'return_amount' => '47.50',
                 'order' => 2,
             ],
         ]);
@@ -111,8 +117,12 @@ class RecordHistoryServiceTest extends TestCase
         $this->assertSame('2027-09-26', $changes['week_end_date']['new_value']);
         $this->assertSame('100.00', $changes['details[1].income']['previous_value']);
         $this->assertSame('120.00', $changes['details[1].income']['new_value']);
-        $this->assertSame('95.00', $changes['details[1].return_amount']['previous_value']);
-        $this->assertSame('114.00', $changes['details[1].return_amount']['new_value']);
+        $this->assertSame('5.00', $changes['commission_percentage']['previous_value']);
+        $this->assertSame('6.50', $changes['commission_percentage']['new_value']);
+        $this->assertSame('LUUM', $changes['details[1].bank']['previous_value']);
+        $this->assertSame('BBVA', $changes['details[1].bank']['new_value']);
+        $this->assertArrayNotHasKey('commission', $changes->all());
+        $this->assertArrayNotHasKey('return_amount', $changes->all());
         $this->assertNull($changes['details[2].order']['previous_value']);
         $this->assertSame('2', $changes['details[2].order']['new_value']);
         $this->assertNull($changes['details[2].income']['previous_value']);
@@ -125,18 +135,14 @@ class RecordHistoryServiceTest extends TestCase
         $record->details()->createMany([
             [
                 'affiliation' => 'AFF-1',
-                'branch' => 'Guadalajara',
+                'bank' => 'LUUM',
                 'income' => '100.00',
-                'commission' => '5.00',
-                'return_amount' => '95.00',
                 'order' => 1,
             ],
             [
                 'affiliation' => 'AFF-2',
-                'branch' => 'Zapopan',
+                'bank' => 'BBVA',
                 'income' => '50.00',
-                'commission' => '2.50',
-                'return_amount' => '47.50',
                 'order' => 2,
             ],
         ]);
@@ -151,6 +157,8 @@ class RecordHistoryServiceTest extends TestCase
         $this->assertNull($changes['details[2].income']['new_value']);
         $this->assertSame('2', $changes['details[2].order']['previous_value']);
         $this->assertNull($changes['details[2].order']['new_value']);
+        $this->assertSame('BBVA', $changes['details[2].bank']['previous_value']);
+        $this->assertNull($changes['details[2].bank']['new_value']);
         $this->assertArrayNotHasKey('details[1].income', $changes->all());
     }
 

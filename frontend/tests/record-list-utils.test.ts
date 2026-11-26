@@ -9,15 +9,12 @@ import {
 } from "@/features/records/utils/list";
 import { recordStatuses, type RecordListItem } from "@/features/records/types";
 
-function detail(id: number, affiliation: string | null, branch: string | null) {
+function detail(id: number, affiliation: string | null, bank: string | null) {
   return {
     id,
     affiliation,
-    branch,
+    bank,
     income: null,
-    commission_percentage: null,
-    commission: null,
-    return_amount: null,
     order: id,
   };
 }
@@ -32,6 +29,7 @@ function record(overrides: Partial<RecordListItem> = {}): RecordListItem {
     week: 38,
     week_start_date: "2026-08-28",
     week_end_date: "2026-09-15",
+    commission_percentage: "6.50",
     image: null,
     ai_processing: null,
     return_total: "9800.00",
@@ -64,20 +62,24 @@ describe("getRecordRowAction", () => {
 });
 
 describe("getRecordSubtitle", () => {
-  it("shows affiliation and branch for a single movement", () => {
-    const item = record({ details: [detail(1, "123456", "Guadalajara")] });
+  it("shows affiliation and bank for a single movement", () => {
+    const item = record({ details: [detail(1, "8889067", "LUUM")] });
 
-    expect(getRecordSubtitle(item)).toBe("Afil. 123456 · Guadalajara");
+    expect(getRecordSubtitle(item)).toBe("Afil. 8889067 · LUUM");
+  });
+
+  it("shows a dash when the bank was not read", () => {
+    expect(getRecordSubtitle(record({ details: [detail(1, "8889067", null)] }))).toBe("Afil. 8889067 · —");
   });
 
   it("counts extra movements with singular and plural", () => {
-    const one = record({ details: [detail(1, "123456", "Guadalajara"), detail(2, "999", "Zapopan")] });
+    const one = record({ details: [detail(1, "123456", "LUUM"), detail(2, "999", "BBVA")] });
     const many = record({
-      details: [detail(1, "123456", "Guadalajara"), detail(2, "999", "Zapopan"), detail(3, "777", "Tonalá")],
+      details: [detail(1, "123456", "LUUM"), detail(2, "999", "BBVA"), detail(3, "777", "Banorte")],
     });
 
-    expect(getRecordSubtitle(one)).toBe("Afil. 123456 · Guadalajara · +1 movimiento");
-    expect(getRecordSubtitle(many)).toBe("Afil. 123456 · Guadalajara · +2 movimientos");
+    expect(getRecordSubtitle(one)).toBe("Afil. 123456 · LUUM · +1 movimiento");
+    expect(getRecordSubtitle(many)).toBe("Afil. 123456 · LUUM · +2 movimientos");
   });
 
   it("uses a waiting text when there are no movements", () => {

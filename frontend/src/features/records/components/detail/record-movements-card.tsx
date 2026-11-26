@@ -7,14 +7,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { RecordDetail } from "../../types";
+import type { RecordListItem } from "../../types";
 
 const labelClass = "text-[11px]/4 font-semibold tracking-[0.08em] uppercase";
 const headClass = `${labelClass} h-auto px-4 py-3 text-muted-foreground`;
-
-function percentage(value: string | null): string {
-  return value === null ? "—" : `${value}%`;
-}
 
 function MovementField({ label, value }: { label: string; value: string }) {
   return (
@@ -25,7 +21,23 @@ function MovementField({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function RecordMovementsCard({ details }: { details: RecordDetail[] }) {
+function TotalField({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div>
+      <dt className={`${labelClass} text-muted-foreground`}>{label}</dt>
+      <dd className={`text-sm/5 tabular-nums ${strong ? "font-bold" : "font-medium"}`}>{value}</dd>
+    </div>
+  );
+}
+
+type RecordMovementsCardProps = {
+  record: Pick<RecordListItem, "details" | "commission_percentage" | "income_total" | "commission_total" | "return_total">;
+};
+
+/** Movements (affiliation, bank, income) and the record's global percentage and totals from the API. */
+export function RecordMovementsCard({ record }: RecordMovementsCardProps) {
+  const { details } = record;
+
   return (
     <section
       aria-labelledby="record-movements-heading"
@@ -33,7 +45,9 @@ export function RecordMovementsCard({ details }: { details: RecordDetail[] }) {
     >
       <div className="space-y-1 p-5">
         <h2 className="text-base/6 font-semibold" id="record-movements-heading">Movimientos</h2>
-        <p className="text-xs/4 text-muted-foreground">La comisión y el retorno los calcula el servidor.</p>
+        <p className="text-xs/4 text-muted-foreground">
+          La comisión es un solo porcentaje para todo el registro; el servidor la calcula sobre el ingreso total.
+        </p>
       </div>
 
       {details.length === 0 ? (
@@ -42,16 +56,13 @@ export function RecordMovementsCard({ details }: { details: RecordDetail[] }) {
         <>
           <div className="hidden @[45rem]:block">
             <Table>
-              <caption className="sr-only">Movimientos y cantidades calculadas por el servidor</caption>
+              <caption className="sr-only">Movimientos del registro</caption>
               <TableHeader className="bg-muted">
                 <TableRow>
                   <TableHead className={headClass} scope="col">#</TableHead>
                   <TableHead className={headClass} scope="col">Afiliación</TableHead>
-                  <TableHead className={headClass} scope="col">Sucursal</TableHead>
+                  <TableHead className={headClass} scope="col">Banco</TableHead>
                   <TableHead className={`${headClass} text-right`} scope="col">Ingreso</TableHead>
-                  <TableHead className={`${headClass} text-right`} scope="col">Com. %</TableHead>
-                  <TableHead className={`${headClass} text-right`} scope="col">Comisión</TableHead>
-                  <TableHead className={`${headClass} text-right`} scope="col">Retorno</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -63,11 +74,8 @@ export function RecordMovementsCard({ details }: { details: RecordDetail[] }) {
                       </span>
                     </TableCell>
                     <TableCell className="px-4 py-3">{detail.affiliation ?? "—"}</TableCell>
-                    <TableCell className="px-4 py-3">{detail.branch ?? "—"}</TableCell>
+                    <TableCell className="px-4 py-3">{detail.bank ?? "—"}</TableCell>
                     <TableCell className="px-4 py-3 text-right tabular-nums">{formatMoney(detail.income)}</TableCell>
-                    <TableCell className="px-4 py-3 text-right tabular-nums">{percentage(detail.commission_percentage)}</TableCell>
-                    <TableCell className="px-4 py-3 text-right tabular-nums">{formatMoney(detail.commission)}</TableCell>
-                    <TableCell className="px-4 py-3 text-right font-bold tabular-nums">{formatMoney(detail.return_amount)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -80,17 +88,24 @@ export function RecordMovementsCard({ details }: { details: RecordDetail[] }) {
                 <p className="font-bold">Movimiento {detail.order}</p>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <MovementField label="Afiliación" value={detail.affiliation ?? "—"} />
-                  <MovementField label="Sucursal" value={detail.branch ?? "—"} />
+                  <MovementField label="Banco" value={detail.bank ?? "—"} />
                   <MovementField label="Ingreso" value={formatMoney(detail.income)} />
-                  <MovementField label="Comisión %" value={percentage(detail.commission_percentage)} />
-                  <MovementField label="Comisión" value={formatMoney(detail.commission)} />
-                  <MovementField label="Retorno" value={formatMoney(detail.return_amount)} />
                 </dl>
               </li>
             ))}
           </ul>
         </>
       )}
+
+      <dl aria-label="Totales del registro" className="grid grid-cols-2 gap-4 border-t bg-muted/40 p-5 @[45rem]:grid-cols-4">
+        <TotalField label="Ingreso total" value={formatMoney(record.income_total ?? null)} />
+        <TotalField
+          label="Comisión %"
+          value={record.commission_percentage === null ? "—" : `${record.commission_percentage}%`}
+        />
+        <TotalField label="Comisión" value={formatMoney(record.commission_total ?? null)} />
+        <TotalField label="Retorno" strong value={formatMoney(record.return_total ?? null)} />
+      </dl>
     </section>
   );
 }

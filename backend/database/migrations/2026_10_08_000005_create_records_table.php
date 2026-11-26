@@ -21,6 +21,9 @@ return new class extends Migration
             $table->unsignedSmallInteger('year')->nullable();
             $table->date('week_start_date')->nullable();
             $table->date('week_end_date')->nullable();
+            $table->decimal('commission_percentage', 5, 2)->nullable();
+            $table->decimal('commission', 12, 2)->nullable();
+            $table->decimal('return_amount', 12, 2)->nullable();
             $table->timestamps();
 
             $table->index('status');
@@ -57,6 +60,27 @@ return new class extends Migration
             ALTER TABLE records
             ADD CONSTRAINT records_week_dates_check
             CHECK (week_end_date >= week_start_date)
+        SQL);
+
+        DB::statement(<<<'SQL'
+            ALTER TABLE records
+            ADD CONSTRAINT records_commission_percentage_check
+            CHECK (
+                commission_percentage IS NULL
+                OR commission_percentage BETWEEN 0 AND 100
+            )
+        SQL);
+
+        DB::statement(<<<'SQL'
+            ALTER TABLE records
+            ADD CONSTRAINT records_commission_check
+            CHECK (commission >= 0)
+        SQL);
+
+        DB::statement(<<<'SQL'
+            ALTER TABLE records
+            ADD CONSTRAINT records_return_amount_check
+            CHECK (return_amount >= 0)
         SQL);
     }
 

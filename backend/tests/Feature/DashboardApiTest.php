@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Records\RecordFinancials;
 use App\Enums\RecordStatus;
 use App\Enums\UserRole;
 use App\Models\Company;
@@ -43,7 +44,7 @@ class DashboardApiTest extends TestCase
             'week' => 45,
             'week_start_date' => '2026-11-02',
             'week_end_date' => '2026-11-08',
-        ], [['10000.00', '200.00']]);
+        ], ['10000.00']);
 
         $this->actingAs($this->user(UserRole::EDITOR), 'web')
             ->getJson('/api/dashboard')
@@ -123,12 +124,12 @@ class DashboardApiTest extends TestCase
             'week' => 44,
             'week_start_date' => '2026-10-27',
             'week_end_date' => '2026-11-02',
-        ], [['1000.00', '20.00']]);
+        ], ['1000.00']);
         $this->record($company, RecordStatus::CONFIRMED, [
             'week' => 43,
             'week_start_date' => '2026-10-20',
             'week_end_date' => '2026-10-26',
-        ], [['500.00', '10.00']]);
+        ], ['500.00']);
 
         $this->actingAs($this->user(UserRole::EDITOR), 'web')
             ->getJson('/api/dashboard')
@@ -172,18 +173,18 @@ class DashboardApiTest extends TestCase
     {
         $acme = Company::factory()->create(['name' => 'Acme']);
         $north = Company::factory()->create(['name' => 'North']);
-        $this->record($acme, RecordStatus::CONFIRMED, [], [['10000.00', '200.00'], ['333.33', '6.67']]);
+        $this->record($acme, RecordStatus::CONFIRMED, [], ['10000.00', '333.33']);
         $this->record($north, RecordStatus::CONFIRMED, [
             'week' => 46,
             'week_start_date' => '2026-11-09',
             'week_end_date' => '2026-11-15',
-        ], [['1234.56', '24.69']]);
-        $this->record($north, RecordStatus::NEEDS_REVIEW, [], [['999.00', '9.00']]);
+        ], ['1234.56']);
+        $this->record($north, RecordStatus::NEEDS_REVIEW, [], ['999.00']);
         $this->record($north, RecordStatus::CONFIRMED, [
             'week' => 40,
             'week_start_date' => '2026-09-28',
             'week_end_date' => '2026-10-04',
-        ], [['50.00', '1.00']]);
+        ], ['50.00']);
 
         $user = $this->user(UserRole::VIEWER);
         $report = $this->actingAs($user, 'web')
@@ -198,6 +199,19 @@ class DashboardApiTest extends TestCase
                 'return_total' => $report['return_total'],
             ])
             ->assertJsonPath('data.month_summary.return_total', '11336.53');
+    }
+
+    public function test_a_record_with_three_movements_counts_its_return_once(): void
+    {
+        // 3 × 100.10 = 300.30; 300.30 × 6.5% = 19.52; return 280.78 (not 3 × 280.78).
+        $this->record(Company::factory()->create(), RecordStatus::CONFIRMED, [
+            'commission_percentage' => '6.50',
+        ], ['100.10', '100.10', '100.10']);
+
+        $this->actingAs($this->user(UserRole::EDITOR), 'web')
+            ->getJson('/api/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.month_summary', ['confirmed_count' => 1, 'return_total' => '280.78']);
     }
 
     public function test_empty_month_returns_zero_totals(): void
@@ -248,11 +262,15 @@ class DashboardApiTest extends TestCase
     }
 
     /**
+     * A Record at a 2.00% global commission unless $attributes say otherwise.
+     *
      * @param  array<string, mixed>  $attributes
-     * @param  list<array{0: string, 1: string}>  $movements
+     * @param  list<string>  $incomes  one income per movement
      */
-    private function record(?Company $company, RecordStatus $status, array $attributes = [], array $movements = []): Record
+    private function record(?Company $company, RecordStatus $status, array $attributes = [], array $incomes = []): Record
     {
+        $percentage = $attributes['commission_percentage'] ?? '2.00';
+
         $record = Record::factory()->create(array_merge([
             'company_id' => $company?->getKey(),
             'status' => $status,
@@ -260,14 +278,14 @@ class DashboardApiTest extends TestCase
             'week' => 45,
             'week_start_date' => '2026-11-02',
             'week_end_date' => '2026-11-08',
+            'commission_percentage' => $percentage,
+            ...RecordFinancials::attributes(RecordFinancials::calculate($incomes, $percentage)),
         ], $attributes));
 
-        foreach ($movements as $index => [$income, $commission]) {
+        foreach ($incomes as $index => $income) {
             RecordDetail::factory()->create([
                 'record_id' => $record->getKey(),
                 'income' => $income,
-                'commission' => $commission,
-                'return_amount' => number_format((float) $income - (float) $commission, 2, '.', ''),
                 'order' => $index + 1,
             ]);
         }

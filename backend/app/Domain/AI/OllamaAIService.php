@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Http;
 
 class OllamaAIService implements AIService
 {
-    private const PROMPT_VERSION = 'v5';
+    /** The active prompt is resources/ai/prompt-{PROMPT_VERSION}.txt. There is only one. */
+    public const PROMPT_VERSION = 'v6';
 
     public function extract(string $imagePath): AiExtractionResult
     {
@@ -128,7 +129,7 @@ class OllamaAIService implements AIService
 
     private function prompt(): string
     {
-        $prompt = file_get_contents(resource_path('ai/prompt-v5.txt'));
+        $prompt = file_get_contents(resource_path('ai/prompt-'.self::PROMPT_VERSION.'.txt'));
 
         if (! is_string($prompt) || $prompt === '') {
             throw new AiProviderException(
@@ -164,12 +165,18 @@ class OllamaAIService implements AIService
                     'type' => 'object',
                     'properties' => [
                         'company_name' => $field(['string', 'null']),
+                        'document_number' => $field(['string', 'null']),
+                        'completion_date' => $field(['string', 'null']),
                         'year' => $field(['integer', 'null']),
                         'week' => $field(['integer', 'null']),
                         'week_start_date' => $field(['string', 'null']),
                         'week_end_date' => $field(['string', 'null']),
+                        'commission_percentage' => $field(['string', 'null']),
                     ],
-                    'required' => ['company_name', 'year', 'week', 'week_start_date', 'week_end_date'],
+                    'required' => [
+                        'company_name', 'document_number', 'completion_date', 'year', 'week',
+                        'week_start_date', 'week_end_date', 'commission_percentage',
+                    ],
                     'additionalProperties' => false,
                 ],
                 'details' => [
@@ -178,12 +185,10 @@ class OllamaAIService implements AIService
                         'type' => 'object',
                         'properties' => [
                             'affiliation' => $field(['string', 'null']),
-                            'branch' => $field(['string', 'null']),
+                            'bank' => $field(['string', 'null']),
                             'income' => $field(['string', 'null']),
-                            'commission_percentage' => $field(['string', 'null']),
-                            'source_commission' => $field(['string', 'null']),
                         ],
-                        'required' => ['affiliation', 'branch', 'income', 'commission_percentage', 'source_commission'],
+                        'required' => ['affiliation', 'bank', 'income'],
                         'additionalProperties' => false,
                     ],
                 ],

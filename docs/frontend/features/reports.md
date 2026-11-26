@@ -2,7 +2,7 @@
 
 ## SPECs
 
-SPEC 13 (reports and Excel), SPEC 24 (redesign). Status: [`../../roadmap.md`](../../roadmap.md).
+SPEC 13 (reports and Excel), SPEC 24 (redesign), SPEC 27 (global commission). Status: [`../../roadmap.md`](../../roadmap.md).
 
 ## Goal and Scope
 
@@ -42,6 +42,8 @@ After a download, the screen shows `Se generó y descargó {archivo}` with the f
 - `year` is required. Month filtering uses the month containing `Record.week_end_date` when a week spans months.
 - Week and year must be treated as a combined period.
 - Do not calculate official report totals in the browser; show the values returned by Laravel.
+- Since SPEC 27, `commission_total` and `return_total` add up each Record's stored `commission` and `return_amount`, calculated once per Record over its total income, and a Record with several movements is counted once. The screen and its response keys did not change.
+- The Excel `Registros` sheet includes `% Comisión`, and `Detalles` has `ID registro`, `Orden`, `Afiliación`, `Banco`, `Ingreso`; see [`../../document-generation.md`](../../document-generation.md).
 - The reads use `GET /api/reports` with `year`, `month`, `week`, `company_id`, `page`, and `per_page` (default `15`, maximum `100`). Totals and the company breakdown always cover the full filtered set, not only the page.
 - The export uses `GET /api/documents/excel` with the same filters. It ignores pagination and always exports the full filtered set.
 - Excel is a binary on-demand output. The service requests it with `responseType: "blob"`, reads the file name from `Content-Disposition`, and triggers the browser download. The BFF already preserves `content-type`, `content-disposition`, and the binary body.

@@ -29,7 +29,7 @@ export function getRecordRowAction(
   return null;
 }
 
-/** Affiliation · branch of the first movement (+N more), or a waiting text by status. */
+/** Affiliation · bank of the first movement (+N more), or a waiting text by status. */
 export function getRecordSubtitle(record: RecordListItem): string {
   const first = record.details.find((detail) => detail.affiliation);
 
@@ -37,7 +37,7 @@ export function getRecordSubtitle(record: RecordListItem): string {
     const extra = record.details.length - 1;
     const more = extra > 0 ? ` · +${extra} ${extra === 1 ? "movimiento" : "movimientos"}` : "";
 
-    return `Afil. ${first.affiliation} · ${first.branch ?? "—"}${more}`;
+    return `Afil. ${first.affiliation} · ${first.bank ?? "—"}${more}`;
   }
 
   return waitingText[record.status] ?? "";

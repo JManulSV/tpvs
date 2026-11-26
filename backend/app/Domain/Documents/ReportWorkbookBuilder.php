@@ -131,6 +131,8 @@ class ReportWorkbookBuilder
             self::date($record->week_end_date),
             self::integer($record->details_count),
             self::money($record->income_total ?? '0.00'),
+            // The global percentage, calculated once over the record's income (SPEC 27).
+            self::decimal($record->commission_percentage),
             self::money($record->commission_total ?? '0.00'),
             self::money($record->return_total ?? '0.00'),
             self::date($record->delivery?->delivery_date),
@@ -138,7 +140,7 @@ class ReportWorkbookBuilder
 
         $this->table($sheet, [
             'ID registro', 'Empresa', 'Año', 'Semana', 'Inicio', 'Fin', 'Movimientos',
-            'Ingreso', 'Comisión', 'Retorno', 'Fecha de entrega',
+            'Ingreso', '% Comisión', 'Comisión', 'Retorno', 'Fecha de entrega',
         ], $rows);
     }
 
@@ -156,18 +158,13 @@ class ReportWorkbookBuilder
                     self::integer($record->getKey()),
                     self::integer($detail->order),
                     self::text($detail->affiliation),
-                    self::text($detail->branch),
+                    self::text($detail->bank),
                     self::money($detail->income),
-                    self::decimal($detail->commission_percentage),
-                    self::money($detail->commission),
-                    self::money($detail->return_amount),
                 ];
             }
         }
 
-        $this->table($sheet, [
-            'ID registro', 'Orden', 'Afiliación', 'Sucursal', 'Ingreso', '% Comisión', 'Comisión', 'Retorno',
-        ], $rows);
+        $this->table($sheet, ['ID registro', 'Orden', 'Afiliación', 'Banco', 'Ingreso'], $rows);
     }
 
     /**

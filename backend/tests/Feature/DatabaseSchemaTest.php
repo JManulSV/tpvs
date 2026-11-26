@@ -25,8 +25,8 @@ class DatabaseSchemaTest extends TestCase
         $company = Company::factory()->create();
         $record = Record::factory()->for($company)->create();
         $details = RecordDetail::factory()->for($record)->count(2)->sequence(
-            ['order' => 1, 'affiliation' => 'AFF-FIRST', 'branch' => 'Guadalajara'],
-            ['order' => 2, 'affiliation' => 'AFF-SECOND', 'branch' => 'Zapopan'],
+            ['order' => 1, 'affiliation' => 'AFF-FIRST', 'bank' => 'LUUM'],
+            ['order' => 2, 'affiliation' => 'AFF-SECOND', 'bank' => 'BBVA'],
         )->create();
         $image = Image::factory()->for($record)->create();
         $processing = AiProcessing::factory()->for($image)->create();
@@ -43,7 +43,7 @@ class DatabaseSchemaTest extends TestCase
         $this->assertCount(2, $record->details);
         $this->assertSame([1, 2], $record->details->pluck('order')->all());
         $this->assertSame(['AFF-FIRST', 'AFF-SECOND'], $record->details->pluck('affiliation')->all());
-        $this->assertSame(['Guadalajara', 'Zapopan'], $record->details->pluck('branch')->all());
+        $this->assertSame(['LUUM', 'BBVA'], $record->details->pluck('bank')->all());
         $this->assertTrue($record->image->is($image));
         $this->assertTrue($record->image->aiProcessing->is($processing));
         $this->assertTrue($record->delivery->is($delivery));
@@ -106,5 +106,26 @@ class DatabaseSchemaTest extends TestCase
         $this->expectException(QueryException::class);
 
         DeliveryCashDenomination::factory()->create(['value' => 7.00]);
+    }
+
+    public function test_record_commission_percentage_must_be_between_zero_and_one_hundred(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Record::factory()->create(['commission_percentage' => '100.01']);
+    }
+
+    public function test_record_commission_cannot_be_negative(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Record::factory()->create(['commission' => '-0.01']);
+    }
+
+    public function test_record_return_amount_cannot_be_negative(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Record::factory()->create(['return_amount' => '-0.01']);
     }
 }

@@ -9,6 +9,7 @@ import {
   getRecordTitle,
   getReportMonthName,
 } from "@/features/records/utils/detail";
+import { historyFieldLabel, historyValue } from "@/features/records/utils/history";
 import { recordStatuses, type RecordListItem } from "@/features/records/types";
 
 function record(overrides: Partial<RecordListItem> = {}): RecordListItem {
@@ -21,6 +22,7 @@ function record(overrides: Partial<RecordListItem> = {}): RecordListItem {
     week: 38,
     week_start_date: "2026-09-09",
     week_end_date: "2026-09-15",
+    commission_percentage: "6.50",
     image: null,
     ai_processing: null,
     details: [],
@@ -181,5 +183,21 @@ describe("getHistoryDotClass", () => {
   it("falls back to the accent color", () => {
     expect(getHistoryDotClass("week", "38")).toBe("bg-accent-foreground");
     expect(getHistoryDotClass("status", "ERROR")).toBe("bg-accent-foreground");
+  });
+});
+
+describe("record history labels (SPEC 27)", () => {
+  it("labels the global percentage and the movement bank", () => {
+    expect(historyFieldLabel("commission_percentage")).toBe("Porcentaje de comisión");
+    expect(historyFieldLabel("details[1].bank")).toBe("Movimiento 1 · Banco");
+    expect(historyFieldLabel("details[2].affiliation")).toBe("Movimiento 2 · Afiliación");
+    expect(historyFieldLabel("details[1].income")).toBe("Movimiento 1 · Ingreso");
+  });
+
+  it("formats the percentage, incomes as money and the bank as text", () => {
+    expect(historyValue("commission_percentage", "6.50")).toBe("6.50%");
+    expect(historyValue("details[1].income", "236741.30")).toBe("$236,741.30");
+    expect(historyValue("details[1].bank", "LUUM")).toBe("LUUM");
+    expect(historyValue("commission_percentage", null)).toBe("—");
   });
 });

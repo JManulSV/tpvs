@@ -31,7 +31,8 @@ class ReportApiTest extends TestCase
             'week' => 38,
             'week_start_date' => '2026-09-07',
             'week_end_date' => '2026-09-13',
-        ], [['10000.00', '200.00'], ['500.00', '10.00']]);
+            'commission_percentage' => '2.00',
+        ], ['10000.00', '500.00']);
         Delivery::factory()->create([
             'record_id' => $record->getKey(),
             'delivery_date' => '2026-09-15',
@@ -80,7 +81,7 @@ class ReportApiTest extends TestCase
 
     public function test_unsent_filters_are_null_and_delivery_date_is_null_without_delivery(): void
     {
-        $this->record(Company::factory()->create(), [], [['100.00', '10.00']]);
+        $this->record(Company::factory()->create(), [], ['100.00']);
 
         $this->actingAs($this->user(), 'web')
             ->getJson('/api/reports?year=2026')
@@ -114,10 +115,10 @@ class ReportApiTest extends TestCase
     public function test_only_confirmed_records_are_reported(): void
     {
         $company = Company::factory()->create();
-        $confirmed = $this->record($company, [], [['100.00', '10.00']]);
+        $confirmed = $this->record($company, [], ['100.00']);
         foreach (RecordStatus::cases() as $status) {
             if ($status !== RecordStatus::CONFIRMED) {
-                $this->record($company, ['status' => $status], [['5000.00', '500.00']]);
+                $this->record($company, ['status' => $status], ['5000.00']);
             }
         }
 
@@ -139,7 +140,7 @@ class ReportApiTest extends TestCase
                 'week' => $week,
                 'week_start_date' => '2026-01-05',
                 'week_end_date' => '2026-01-11',
-            ], [['100.00', '10.00']]);
+            ], ['100.00']);
         }
 
         $second = $this->actingAs($this->user(), 'web')
@@ -163,7 +164,7 @@ class ReportApiTest extends TestCase
     {
         $company = Company::factory()->create();
         foreach (range(1, 16) as $week) {
-            $this->record($company, ['week' => $week], [['10.00', '1.00']]);
+            $this->record($company, ['week' => $week], ['10.00']);
         }
 
         $this->actingAs($this->user(), 'web');
@@ -184,9 +185,9 @@ class ReportApiTest extends TestCase
     {
         $zeta = Company::factory()->create(['name' => 'Zeta']);
         $alpha = Company::factory()->create(['name' => 'Alpha']);
-        $zetaRecord = $this->record($zeta, ['week' => 1], [['10.00', '1.00']]);
-        $alphaLate = $this->record($alpha, ['week' => 9, 'week_start_date' => '2026-03-02', 'week_end_date' => '2026-03-08'], [['10.00', '1.00']]);
-        $alphaEarly = $this->record($alpha, ['week' => 2, 'week_start_date' => '2026-01-12', 'week_end_date' => '2026-01-18'], [['10.00', '1.00']]);
+        $zetaRecord = $this->record($zeta, ['week' => 1], ['10.00']);
+        $alphaLate = $this->record($alpha, ['week' => 9, 'week_start_date' => '2026-03-02', 'week_end_date' => '2026-03-08'], ['10.00']);
+        $alphaEarly = $this->record($alpha, ['week' => 2, 'week_start_date' => '2026-01-12', 'week_end_date' => '2026-01-18'], ['10.00']);
 
         $this->actingAs($this->user(), 'web')
             ->getJson('/api/reports?year=2026')
@@ -201,7 +202,7 @@ class ReportApiTest extends TestCase
         $this->record(Company::factory()->create(), [
             'week_start_date' => '2026-08-28',
             'week_end_date' => '2026-09-03',
-        ], [['100.00', '10.00']]);
+        ], ['100.00']);
 
         $this->actingAs($this->user(), 'web');
 
@@ -239,7 +240,7 @@ class ReportApiTest extends TestCase
 
     public function test_reading_a_report_changes_no_data_and_writes_no_history(): void
     {
-        $this->record(Company::factory()->create(), [], [['100.00', '10.00']]);
+        $this->record(Company::factory()->create(), [], ['100.00']);
         $histories = History::query()->count();
         $updatedAt = Record::query()->first()->updated_at;
 

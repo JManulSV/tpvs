@@ -27,20 +27,14 @@ class UpdateRecordTest extends TestCase
         $record = $this->createRecordWithDetails();
         $newCompany = Company::factory()->create();
         $payload = $this->validManualRecordPayload($newCompany->id, [
-            [
-                'income' => '200.00',
-                'commission_percentage' => '10.00',
-            ],
-            [
-                'income' => '50.00',
-                'commission' => '5.00',
-            ],
-        ]);
+            ['income' => '200.00'],
+            ['income' => '50.00'],
+        ], '10.00');
         $payload['details'][0]['affiliation'] = 'AFF-NEW-2';
-        $payload['details'][0]['branch'] = 'Zapopan';
+        $payload['details'][0]['bank'] = 'BBVA';
         $payload['details'][1]['affiliation'] = 'AFF-NEW-1';
-        $payload['details'][1]['branch'] = 'Tlaquepaque';
-        $payload['reason'] = 'Se corrigieron importes y afiliación/sucursal';
+        $payload['details'][1]['bank'] = 'Banorte';
+        $payload['reason'] = 'Se corrigieron importes y afiliación/banco';
 
         $response = $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$record->id, $payload);
@@ -52,16 +46,25 @@ class UpdateRecordTest extends TestCase
             ->assertJsonMissingPath('data.affiliation')
             ->assertJsonMissingPath('data.branch')
             ->assertJsonCount(2, 'data.details')
+            ->assertJsonPath('data.commission_percentage', '10.00')
             ->assertJsonPath('data.details.0.affiliation', 'AFF-NEW-2')
-            ->assertJsonPath('data.details.0.branch', 'Zapopan')
+            ->assertJsonPath('data.details.0.bank', 'BBVA')
             ->assertJsonPath('data.details.0.order', 1)
-            ->assertJsonPath('data.details.0.commission', '20.00')
+            ->assertJsonPath('data.commission_total', '25.00')
+            ->assertJsonPath('data.return_total', '225.00')
             ->assertJsonPath('data.details.1.affiliation', 'AFF-NEW-1')
-            ->assertJsonPath('data.details.1.branch', 'Tlaquepaque')
-            ->assertJsonPath('data.details.1.order', 2)
-            ->assertJsonPath('data.details.1.return_amount', '45.00');
+            ->assertJsonPath('data.details.1.order', 2);
 
+        // 250.00 × 10% = 25.00, recalculated over the new total in the same request.
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'commission_percentage' => '10.00',
+            'commission' => '25.00',
+            'return_amount' => '225.00',
+        ]);
         $this->assertDatabaseCount('record_details', 2);
+        $this->assertDatabaseHas('record_details', ['record_id' => $record->id, 'order' => 1, 'bank' => 'BBVA']);
+        $this->assertDatabaseHas('record_details', ['record_id' => $record->id, 'order' => 2, 'bank' => 'Banorte']);
         $this->assertDatabaseMissing('histories', [
             'record_id' => $record->id,
             'field_name' => 'record_updated',
@@ -72,15 +75,23 @@ class UpdateRecordTest extends TestCase
             'field_name' => 'company',
             'previous_value' => $record->company->name,
             'new_value' => $newCompany->name,
-            'reason' => 'Se corrigieron importes y afiliación/sucursal',
+            'reason' => 'Se corrigieron importes y afiliación/banco',
         ]);
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
             'user_id' => $editor->id,
-            'field_name' => 'details[1].branch',
-            'previous_value' => 'Guadalajara',
-            'new_value' => 'Zapopan',
-            'reason' => 'Se corrigieron importes y afiliación/sucursal',
+            'field_name' => 'commission_percentage',
+            'previous_value' => '5.00',
+            'new_value' => '10.00',
+            'reason' => 'Se corrigieron importes y afiliación/banco',
+        ]);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'details[1].bank',
+            'previous_value' => 'LUUM',
+            'new_value' => 'BBVA',
+            'reason' => 'Se corrigieron importes y afiliación/banco',
         ]);
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
@@ -88,7 +99,7 @@ class UpdateRecordTest extends TestCase
             'field_name' => 'details[1].income',
             'previous_value' => '100.00',
             'new_value' => '200.00',
-            'reason' => 'Se corrigieron importes y afiliación/sucursal',
+            'reason' => 'Se corrigieron importes y afiliación/banco',
         ]);
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
@@ -96,7 +107,7 @@ class UpdateRecordTest extends TestCase
             'field_name' => 'details[2].order',
             'previous_value' => null,
             'new_value' => '2',
-            'reason' => 'Se corrigieron importes y afiliación/sucursal',
+            'reason' => 'Se corrigieron importes y afiliación/banco',
         ]);
     }
 
@@ -143,11 +154,8 @@ class UpdateRecordTest extends TestCase
         RecordDetail::factory()->for($record)->create([
             'order' => 2,
             'affiliation' => 'AFF-REMOVED',
-            'branch' => 'Tonalá',
+            'bank' => 'Banorte',
             'income' => '50.00',
-            'commission_percentage' => null,
-            'commission' => '2.50',
-            'return_amount' => '47.50',
         ]);
         $payload = $this->validManualRecordPayload($record->company_id);
         $payload['reason'] = 'Se eliminó un movimiento';
@@ -211,17 +219,21 @@ class UpdateRecordTest extends TestCase
             ->assertJsonPath('data.source', RecordSource::MANUAL->value)
             ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
             ->assertJsonPath('data.details.0.income', '120.00')
-            ->assertJsonPath('data.details.0.commission', '6.00')
-            ->assertJsonPath('data.details.0.return_amount', '114.00');
+            ->assertJsonPath('data.commission_total', '6.00')
+            ->assertJsonPath('data.return_total', '114.00');
 
         $this->assertDatabaseHas('records', [
             'id' => $record->id,
             'status' => RecordStatus::NEEDS_REVIEW->value,
+            'commission' => '6.00',
+            'return_amount' => '114.00',
         ]);
+        // The derived commission and return never get their own events.
+        foreach (['commission', 'return_amount', 'details[1].commission', 'details[1].return_amount'] as $derived) {
+            $this->assertDatabaseMissing('histories', ['record_id' => $record->id, 'field_name' => $derived]);
+        }
         foreach ([
             ['field_name' => 'details[1].income', 'previous_value' => '100.00', 'new_value' => '120.00'],
-            ['field_name' => 'details[1].commission', 'previous_value' => '5.00', 'new_value' => '6.00'],
-            ['field_name' => 'details[1].return_amount', 'previous_value' => '95.00', 'new_value' => '114.00'],
             ['field_name' => 'status', 'previous_value' => RecordStatus::CONFIRMED->value, 'new_value' => RecordStatus::NEEDS_REVIEW->value],
         ] as $expected) {
             $this->assertDatabaseHas('histories', [
@@ -266,17 +278,17 @@ class UpdateRecordTest extends TestCase
                     'details' => [],
                 ],
                 'issues' => [[
-                    'path' => 'details.0.branch',
-                    'code' => 'BRANCH_MISSING',
+                    'path' => 'details.0.bank',
+                    'code' => 'BANK_MISSING',
                     'severity' => 'review',
-                    'message' => 'Branch could not be read.',
+                    'message' => 'Bank could not be read.',
                 ]],
                 'unconvertible_numeric_count' => 1,
             ],
         ]);
         $payload = $this->validManualRecordPayload($record->company_id);
-        $payload['details'][0]['branch'] = 'Zapopan';
-        $payload['reason'] = 'Se corrigió la sucursal';
+        $payload['details'][0]['bank'] = 'BBVA';
+        $payload['reason'] = 'Se corrigió el banco';
 
         $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$record->id, $payload)
@@ -285,7 +297,7 @@ class UpdateRecordTest extends TestCase
             ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value)
             ->assertJsonPath('data.image.id', $image->id)
             ->assertJsonPath('data.ai_processing.status', AiProcessingStatus::NEEDS_REVIEW->value)
-            ->assertJsonPath('data.ai_processing.issues.0.code', 'BRANCH_MISSING');
+            ->assertJsonPath('data.ai_processing.issues.0.code', 'BANK_MISSING');
 
         $this->assertDatabaseCount('images', 1);
         $this->assertDatabaseCount('ai_processings', 1);
@@ -295,10 +307,10 @@ class UpdateRecordTest extends TestCase
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
             'user_id' => $editor->id,
-            'field_name' => 'details[1].branch',
-            'previous_value' => 'Guadalajara',
-            'new_value' => 'Zapopan',
-            'reason' => 'Se corrigió la sucursal',
+            'field_name' => 'details[1].bank',
+            'previous_value' => 'LUUM',
+            'new_value' => 'BBVA',
+            'reason' => 'Se corrigió el banco',
         ]);
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
@@ -306,7 +318,7 @@ class UpdateRecordTest extends TestCase
             'field_name' => 'status',
             'previous_value' => RecordStatus::CONFIRMED->value,
             'new_value' => RecordStatus::NEEDS_REVIEW->value,
-            'reason' => 'Se corrigió la sucursal',
+            'reason' => 'Se corrigió el banco',
         ]);
     }
 
@@ -392,10 +404,10 @@ class UpdateRecordTest extends TestCase
                     'details' => [],
                 ],
                 'issues' => [[
-                    'path' => 'details.0.branch',
-                    'code' => 'BRANCH_MISSING',
+                    'path' => 'details.0.bank',
+                    'code' => 'BANK_MISSING',
                     'severity' => 'review',
-                    'message' => 'Branch could not be read.',
+                    'message' => 'Bank could not be read.',
                 ]],
                 'unconvertible_numeric_count' => 1,
             ],
@@ -403,11 +415,10 @@ class UpdateRecordTest extends TestCase
         $newCompany = Company::factory()->create();
         $payload = $this->validManualRecordPayload($newCompany->id, [[
             'income' => '200.00',
-            'commission_percentage' => '10.00',
-        ]]);
+        ]], '10.00');
         $payload['details'][0]['affiliation'] = 'AFF-IMAGE-FIXED';
-        $payload['details'][0]['branch'] = 'Zapopan';
-        $payload['reason'] = 'Se corrigió la sucursal mal leída';
+        $payload['details'][0]['bank'] = 'BBVA';
+        $payload['reason'] = 'Se corrigió el banco mal leído';
 
         $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$record->id, $payload)
@@ -418,10 +429,14 @@ class UpdateRecordTest extends TestCase
             ->assertJsonPath('data.company.id', $newCompany->id)
             ->assertJsonPath('data.image.id', $image->id)
             ->assertJsonPath('data.ai_processing.status', AiProcessingStatus::NEEDS_REVIEW->value)
-            ->assertJsonPath('data.ai_processing.issues.0.code', 'BRANCH_MISSING')
-            ->assertJsonPath('data.income_total', '200.00')
-            ->assertJsonPath('data.commission_total', '20.00')
-            ->assertJsonPath('data.return_total', '180.00');
+            ->assertJsonPath('data.ai_processing.issues.0.code', 'BANK_MISSING')
+            ->assertJsonPath('data.income_total', '200.00');
+
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'commission' => '20.00',
+            'return_amount' => '180.00',
+        ]);
 
         $this->assertDatabaseCount('images', 1);
         $this->assertDatabaseCount('ai_processings', 1);
@@ -435,10 +450,10 @@ class UpdateRecordTest extends TestCase
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
             'user_id' => $editor->id,
-            'field_name' => 'details[1].branch',
-            'previous_value' => 'Guadalajara',
-            'new_value' => 'Zapopan',
-            'reason' => 'Se corrigió la sucursal mal leída',
+            'field_name' => 'details[1].bank',
+            'previous_value' => 'LUUM',
+            'new_value' => 'BBVA',
+            'reason' => 'Se corrigió el banco mal leído',
         ]);
     }
 
@@ -468,14 +483,12 @@ class UpdateRecordTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors([
                 'company_id', 'year', 'week', 'week_start_date', 'week_end_date',
-                'details', 'reason',
+                'commission_percentage', 'details', 'reason',
             ]);
 
         $payload = $this->validManualRecordPayload($record->company_id);
         $payload['reason'] = '   ';
         $payload['details'][0]['income'] = '20.00';
-        $payload['details'][0]['commission'] = '25.00';
-        unset($payload['details'][0]['commission_percentage']);
 
         $this->actingAs($editor, 'web')
             ->putJson('/api/records/'.$record->id, $payload)
@@ -506,6 +519,110 @@ class UpdateRecordTest extends TestCase
 
         $this->assertDatabaseCount('histories', 0);
         $this->assertDatabaseCount('record_details', 1);
+    }
+
+    public function test_record_replacement_requires_the_global_commission_percentage(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+        $payload = $this->validManualRecordPayload($record->company_id);
+        $payload['reason'] = 'Sin porcentaje';
+        unset($payload['commission_percentage']);
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['commission_percentage']);
+
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_record_replacement_rejects_legacy_and_derived_commission_fields(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+        $payload = $this->validManualRecordPayload($record->company_id);
+        $payload['reason'] = 'Campos antiguos';
+
+        foreach (['commission' => '5.00', 'return_amount' => '95.00'] as $field => $value) {
+            $this->actingAs($editor, 'web')
+                ->putJson('/api/records/'.$record->id, array_merge($payload, [$field => $value]))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors([$field]);
+        }
+
+        foreach ([
+            'branch' => 'Guadalajara',
+            'commission_percentage' => '5.00',
+            'commission' => '5.00',
+            'return_amount' => '95.00',
+        ] as $field => $value) {
+            $invalidPayload = $payload;
+            $invalidPayload['details'][0][$field] = $value;
+
+            $this->actingAs($editor, 'web')
+                ->putJson('/api/records/'.$record->id, $invalidPayload)
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(["details.0.{$field}"]);
+        }
+
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_record_replacement_rejects_a_total_income_that_does_not_fit_the_record(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails();
+        $payload = $this->validManualRecordPayload($record->company_id, [
+            ['income' => '9999999999.99'],
+            ['income' => '0.01'],
+        ]);
+        $payload['reason'] = 'Total fuera de rango';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['details']);
+
+        $this->assertDatabaseCount('record_details', 1);
+        $this->assertDatabaseCount('histories', 0);
+    }
+
+    public function test_changing_only_the_percentage_recalculates_and_logs_the_percentage(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $record = $this->createRecordWithDetails(null, [
+            'status' => RecordStatus::CONFIRMED,
+            'year' => 2026,
+            'week' => 38,
+            'week_start_date' => '2026-09-14',
+            'week_end_date' => '2026-09-20',
+        ], ['affiliation' => 'AFF-123']);
+        $payload = $this->validManualRecordPayload($record->company_id, null, '6.50');
+        $payload['reason'] = 'Se corrigió el porcentaje';
+
+        $this->actingAs($editor, 'web')
+            ->putJson('/api/records/'.$record->id, $payload)
+            ->assertOk()
+            ->assertJsonPath('data.status', RecordStatus::NEEDS_REVIEW->value);
+
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'commission_percentage' => '6.50',
+            'commission' => '6.50',
+            'return_amount' => '93.50',
+        ]);
+        $this->assertDatabaseHas('histories', [
+            'record_id' => $record->id,
+            'user_id' => $editor->id,
+            'field_name' => 'commission_percentage',
+            'previous_value' => '5.00',
+            'new_value' => '6.50',
+            'reason' => 'Se corrigió el porcentaje',
+        ]);
+        foreach (['commission', 'return_amount'] as $derived) {
+            $this->assertDatabaseMissing('histories', ['record_id' => $record->id, 'field_name' => $derived]);
+        }
     }
 
     public function test_records_in_blocked_states_cannot_be_replaced(): void
@@ -540,10 +657,9 @@ class UpdateRecordTest extends TestCase
         $record = $this->createRecordWithDetails();
         $payload = $this->validManualRecordPayload($record->company_id, [[
             'income' => '500.00',
-            'commission' => '50.00',
-        ]]);
+        ]], '10.00');
         $payload['details'][0]['affiliation'] = 'AFF-ROLLBACK';
-        $payload['details'][0]['branch'] = 'Should roll back';
+        $payload['details'][0]['bank'] = 'Should roll back';
         $payload['reason'] = 'Test rollback';
 
         Event::listen('eloquent.creating: '.History::class, static function (): void {
@@ -562,7 +678,13 @@ class UpdateRecordTest extends TestCase
         $this->assertDatabaseHas('record_details', [
             'record_id' => $record->id,
             'affiliation' => 'AFF-12345',
-            'branch' => 'Guadalajara',
+            'bank' => 'LUUM',
+        ]);
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'commission_percentage' => '5.00',
+            'commission' => '5.00',
+            'return_amount' => '95.00',
         ]);
         $this->assertDatabaseCount('histories', 0);
     }

@@ -11,35 +11,9 @@ const percentageSchema = z
 
 const recordDetailFormSchema = z.object({
   affiliation: z.string().trim().min(1, "La afiliación es obligatoria.").max(255),
-  branch: z.string().trim().min(1, "La sucursal es obligatoria.").max(255),
+  bank: z.string().trim().min(1, "El banco es obligatorio.").max(255),
   income: decimalAmountSchema,
-  commission_percentage: percentageSchema.optional(),
-  commission: decimalAmountSchema.optional(),
-}).superRefine((detail, context) => {
-  const hasPercentage = detail.commission_percentage !== undefined;
-  const hasFixedAmount = detail.commission !== undefined;
-
-  if (hasPercentage === hasFixedAmount) {
-    context.addIssue({
-      code: "custom",
-      message: "Indica la comisión como porcentaje o importe fijo, pero no ambos.",
-      path: ["commission_percentage"],
-    });
-  }
-
-  if (hasFixedAmount && toMinorUnits(detail.commission!) > toMinorUnits(detail.income)) {
-    context.addIssue({
-      code: "custom",
-      message: "La comisión fija no puede superar el ingreso.",
-      path: ["commission"],
-    });
-  }
 });
-
-function toMinorUnits(amount: string): number {
-  const [whole, fraction = ""] = amount.split(".");
-  return Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
-}
 
 const manualRecordFormBaseSchema = z.object({
   company_id: z.number().int().positive("Selecciona una empresa."),
@@ -47,6 +21,8 @@ const manualRecordFormBaseSchema = z.object({
   week: z.number().int().min(1).max(53),
   week_start_date: z.string().date("Ingresa una fecha de inicio válida."),
   week_end_date: z.string().date("Ingresa una fecha de fin válida."),
+  // One global percentage per record; Laravel calculates the commission and return (SPEC 27).
+  commission_percentage: percentageSchema,
   details: z.array(recordDetailFormSchema).min(1, "Agrega al menos un movimiento."),
 });
 

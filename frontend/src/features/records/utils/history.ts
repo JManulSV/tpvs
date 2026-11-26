@@ -13,17 +13,16 @@ const recordFieldLabels: Record<string, string> = {
   week: "Semana",
   week_start_date: "Inicio de semana",
   week_end_date: "Fin de semana",
+  // The record's global percentage. Its derived commission and return have no events (SPEC 27).
+  commission_percentage: "Porcentaje de comisión",
   status: "Estado",
 };
 
 const detailFieldLabels: Record<string, string> = {
   order: "Orden",
   affiliation: "Afiliación",
-  branch: "Sucursal",
+  bank: "Banco",
   income: "Ingreso",
-  commission_percentage: "Porcentaje de comisión",
-  commission: "Comisión",
-  return_amount: "Retorno",
 };
 
 const deliveryFieldLabels: Record<string, string> = {
@@ -60,10 +59,8 @@ export function historyValue(fieldName: string, value: string | null): string {
   }
   if (fieldName === "prepared_return_amount") return formatMoney(value);
   if (denominationPattern.test(fieldName)) return value;
-  if (fieldName.endsWith(".income") || fieldName.endsWith(".commission") || fieldName.endsWith(".return_amount")) {
-    return formatMoney(value);
-  }
-  if (fieldName.endsWith(".commission_percentage")) return `${value}%`;
+  if (fieldName.endsWith(".income")) return formatMoney(value);
+  if (fieldName === "commission_percentage") return `${value}%`;
 
   return value;
 }

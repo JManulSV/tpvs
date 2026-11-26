@@ -2,7 +2,9 @@
 
 namespace App\Domain\AI;
 
+use App\Domain\AI\DTO\ExtractedRecordFinancials;
 use App\Domain\AI\DTO\ExtractionIssue;
+use App\Domain\Records\RecordFinancials;
 use App\Domain\Shared\Money;
 use App\Enums\RecordSource;
 use App\Models\Company;
@@ -42,36 +44,33 @@ class RecordExtractionService
             $weekEndDate = null;
         }
 
+        $money = $this->financialCalculator->calculate($extraction);
+        array_push($issues, ...$money->issues);
+
+        // document_number and completion_date stay in AIProcessing.result only (SPEC 27).
         $record->forceFill([
             'company_id' => $companyId,
             'year' => $this->fieldValue($recordData, 'year'),
             'week' => $this->fieldValue($recordData, 'week'),
             'week_start_date' => $weekStartDate,
             'week_end_date' => $weekEndDate,
+            'commission_percentage' => $money->commissionPercentage,
+            ...RecordFinancials::attributes($money->financials),
         ])->save();
 
         $record->details()->delete();
         foreach ($extraction['details'] as $index => $detail) {
-            $financial = $this->financialCalculator->calculate($detail, $index);
-            array_push($issues, ...$financial->issues);
-
-            $affiliation = $this->safeText($this->fieldValue($detail, 'affiliation'), "details.{$index}.affiliation", $issues);
-            $branch = $this->safeText($this->fieldValue($detail, 'branch'), "details.{$index}.branch", $issues);
-
             $record->details()->create([
-                'affiliation' => $affiliation,
-                'branch' => $branch,
-                'income' => $financial->income,
-                'commission_percentage' => $financial->commissionPercentage,
-                'commission' => $financial->commission,
-                'return_amount' => $financial->returnAmount,
+                'affiliation' => $this->safeText($this->fieldValue($detail, 'affiliation'), "details.{$index}.affiliation", $issues),
+                'bank' => $this->safeText($this->fieldValue($detail, 'bank'), "details.{$index}.bank", $issues),
+                'income' => $money->incomes[$index],
                 'order' => $index + 1,
             ]);
         }
 
         $record->unsetRelation('details');
         $record->load('details');
-        array_push($issues, ...$this->compareSourceTotals($extraction, $record));
+        array_push($issues, ...$this->compareSourceTotals($extraction, $money));
 
         return $issues;
     }
@@ -125,36 +124,34 @@ class RecordExtractionService
     }
 
     /**
+     * Compare the printed totals with the backend values: the sum of the proposed
+     * incomes, and the commission and return calculated once by RecordFinancials.
+     * A total that could not be calculated is not compared.
+     *
      * @param  array<string, mixed>  $extraction
      * @return list<array{path: string, code: string, severity: string, message: string, value?: mixed}>
      */
-    private function compareSourceTotals(array $extraction, Record $record): array
+    private function compareSourceTotals(array $extraction, ExtractedRecordFinancials $money): array
     {
         $issues = [];
+        $incomeTotal = null;
+        if ($money->incomes !== [] && ! in_array(null, $money->incomes, true)) {
+            $incomeTotal = array_reduce(
+                $money->incomes,
+                static fn (Money $total, string $income): Money => $total->add(Money::fromDecimal($income)),
+                Money::zero(),
+            )->toDecimal();
+        }
+
         $totals = [
-            'income' => '0.00',
-            'commission' => '0.00',
-            'return_amount' => '0.00',
+            'income' => $incomeTotal,
+            'commission' => $money->financials?->commission,
+            'return_amount' => $money->financials?->returnAmount,
         ];
-        $complete = true;
-        foreach ($record->details as $detail) {
-            foreach (array_keys($totals) as $field) {
-                if ($detail->{$field} === null) {
-                    $complete = false;
-
-                    continue;
-                }
-                $totals[$field] = Money::fromDecimal($totals[$field])->add(Money::fromDecimal($detail->{$field}))->toDecimal();
-            }
-        }
-
-        if (! $complete) {
-            return $issues;
-        }
 
         foreach ($totals as $field => $calculatedTotal) {
             $sourceTotal = $this->fieldValue($extraction['source_totals'], $field);
-            if ($sourceTotal !== null && $sourceTotal !== $calculatedTotal) {
+            if ($calculatedTotal !== null && $sourceTotal !== null && $sourceTotal !== $calculatedTotal) {
                 $issues[] = ExtractionIssue::review("source_totals.{$field}", 'SOURCE_TOTAL_MISMATCH', 'The printed source total differs from the total calculated from proposed movements.')->withValue($sourceTotal)->toArray();
             }
         }

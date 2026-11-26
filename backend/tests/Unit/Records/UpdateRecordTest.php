@@ -24,6 +24,12 @@ class UpdateRecordTest extends TestCase
 
         $this->assertSame(RecordStatus::NEEDS_REVIEW, $updated->status);
         $this->assertSame(['2000.00'], $updated->details()->pluck('income')->all());
+        $this->assertDatabaseHas('records', [
+            'id' => $record->id,
+            'commission_percentage' => '10.00',
+            'commission' => '200.00',
+            'return_amount' => '1800.00',
+        ]);
         $this->assertDatabaseHas('histories', [
             'record_id' => $record->id,
             'field_name' => 'status',
@@ -67,14 +73,14 @@ class UpdateRecordTest extends TestCase
             'week' => 38,
             'week_start_date' => '2026-09-14',
             'week_end_date' => '2026-09-20',
-        ]);
-        $record->details()->create([
-            'affiliation' => 'AFF-1',
-            'branch' => 'Centro',
-            'income' => '1000.00',
             'commission_percentage' => '10.00',
             'commission' => '100.00',
             'return_amount' => '900.00',
+        ]);
+        $record->details()->create([
+            'affiliation' => 'AFF-1',
+            'bank' => 'LUUM',
+            'income' => '1000.00',
             'order' => 1,
         ]);
 
@@ -90,8 +96,9 @@ class UpdateRecordTest extends TestCase
             'week' => 38,
             'week_start_date' => '2026-09-14',
             'week_end_date' => '2026-09-20',
+            'commission_percentage' => '10.00',
             'details' => [
-                ['affiliation' => 'AFF-1', 'branch' => 'Centro', 'income' => $income, 'commission_percentage' => '10.00'],
+                ['affiliation' => 'AFF-1', 'bank' => 'LUUM', 'income' => $income],
             ],
             'reason' => 'Corrección de ingreso',
         ];

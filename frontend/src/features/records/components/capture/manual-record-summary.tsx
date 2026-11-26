@@ -26,6 +26,11 @@ export function ManualRecordSummary({ record, onCreateAnother }: ManualRecordSum
         <SummaryItem label="Empresa" value={record.company?.name ?? "—"} />
         <SummaryItem label="Periodo" tabular value={`Semana ${record.week ?? "—"} · ${record.year ?? "—"}`} />
         <SummaryItem label="Movimientos" tabular value={String(record.details.length)} />
+        <SummaryItem
+          label="Comisión %"
+          tabular
+          value={record.commission_percentage === null ? "—" : `${record.commission_percentage}%`}
+        />
         <SummaryItem label="Mes del reporte" value={getReportMonthName(record.week_end_date) ?? "—"} />
         <SummaryItem label="Inicio" tabular value={formatDate(record.week_start_date)} />
         <SummaryItem label="Fin" tabular value={formatDate(record.week_end_date)} />

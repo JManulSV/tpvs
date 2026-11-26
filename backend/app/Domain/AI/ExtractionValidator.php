@@ -16,19 +16,21 @@ class ExtractionValidator
     /** @var array<string, list<string>> */
     private const RECORD_FIELDS = [
         'company_name' => ['string', 'null'],
+        // Validated and kept only in AIProcessing.result; never copied to the Record (SPEC 27).
+        'document_number' => ['string', 'null'],
+        'completion_date' => ['string', 'null'],
         'year' => ['integer', 'null'],
         'week' => ['integer', 'null'],
         'week_start_date' => ['string', 'null'],
         'week_end_date' => ['string', 'null'],
+        'commission_percentage' => ['string', 'null'],
     ];
 
     /** @var array<string, list<string>> */
     private const DETAIL_FIELDS = [
         'affiliation' => ['string', 'null'],
-        'branch' => ['string', 'null'],
+        'bank' => ['string', 'null'],
         'income' => ['string', 'null'],
-        'commission_percentage' => ['string', 'null'],
-        'source_commission' => ['string', 'null'],
     ];
 
     /** @var array<string, list<string>> */
@@ -106,8 +108,10 @@ class ExtractionValidator
             $value = $this->readField($decoded['record'][$field], $path, $types, $issues);
             if ($field === 'year' || $field === 'week') {
                 $value = $this->parser->normalizeInteger($value, $field, $path, $issues);
-            } elseif ($field === 'week_start_date' || $field === 'week_end_date') {
+            } elseif (in_array($field, ['week_start_date', 'week_end_date', 'completion_date'], true)) {
                 $value = $this->parser->normalizeDate($value, $path, $issues);
+            } elseif ($field === 'commission_percentage') {
+                $value = $this->parser->normalizeNumber($value, true, $path, $issues, $unconvertibleCount);
             }
             $normalized['record'][$field] = $this->field($value, $decoded['record'][$field]['confidence']);
         }
@@ -117,8 +121,8 @@ class ExtractionValidator
             foreach (self::DETAIL_FIELDS as $field => $types) {
                 $path = "details.{$index}.{$field}";
                 $value = $this->readField($detail[$field], $path, $types, $issues);
-                if (in_array($field, ['income', 'commission_percentage', 'source_commission'], true)) {
-                    $value = $this->parser->normalizeNumber($value, $field === 'commission_percentage', $path, $issues, $unconvertibleCount);
+                if ($field === 'income') {
+                    $value = $this->parser->normalizeNumber($value, false, $path, $issues, $unconvertibleCount);
                 }
                 $normalizedDetail[$field] = $this->field($value, $detail[$field]['confidence']);
             }

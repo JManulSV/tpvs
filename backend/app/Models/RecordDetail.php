@@ -14,11 +14,8 @@ class RecordDetail extends Model
     protected $fillable = [
         'record_id',
         'affiliation',
-        'branch',
+        'bank',
         'income',
-        'commission_percentage',
-        'commission',
-        'return_amount',
         'order',
     ];
 
@@ -26,9 +23,6 @@ class RecordDetail extends Model
     {
         return [
             'income' => 'decimal:2',
-            'commission_percentage' => 'decimal:2',
-            'commission' => 'decimal:2',
-            'return_amount' => 'decimal:2',
         ];
     }
 

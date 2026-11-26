@@ -17,46 +17,29 @@ class CreateManualRecordTest extends TestCase
 {
     use BuildsManualRecords, RefreshDatabase;
 
-    public function test_editor_can_create_a_manual_record_and_backend_calculates_money(): void
+    public function test_editor_can_create_a_manual_record_and_backend_calculates_the_global_commission(): void
     {
         $company = Company::factory()->create();
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
 
+        // test-images/nuevo-formato.png: 236741.30 × 6.5% = 15388.1845 → 15388.18
         $response = $this->actingAs($editor, 'web')
             ->postJson('/api/records', $this->validManualRecordPayload($company->id, [
-                [
-                    'affiliation' => 'AFF-FIRST',
-                    'branch' => 'Guadalajara',
-                    'income' => '0.10',
-                    'commission_percentage' => '5.00',
-                ],
-                [
-                    'affiliation' => 'AFF-SECOND',
-                    'branch' => 'Zapopan',
-                    'income' => '100.00',
-                    'commission' => '7.25',
-                ],
-            ]));
+                ['affiliation' => '8889067', 'bank' => 'LUUM', 'income' => '236741.30'],
+            ], '6.50'));
 
         $response->assertCreated()
             ->assertJsonPath('data.source', RecordSource::MANUAL->value)
             ->assertJsonPath('data.status', RecordStatus::CONFIRMED->value)
             ->assertJsonMissingPath('data.affiliation')
             ->assertJsonMissingPath('data.branch')
-            ->assertJsonPath('data.details.0.order', 1)
-            ->assertJsonPath('data.details.0.affiliation', 'AFF-FIRST')
-            ->assertJsonPath('data.details.0.branch', 'Guadalajara')
-            ->assertJsonPath('data.details.0.commission_percentage', '5.00')
-            ->assertJsonPath('data.details.0.commission', '0.01')
-            ->assertJsonPath('data.details.0.return_amount', '0.09')
-            ->assertJsonPath('data.details.1.commission_percentage', null)
-            ->assertJsonPath('data.details.1.affiliation', 'AFF-SECOND')
-            ->assertJsonPath('data.details.1.branch', 'Zapopan')
-            ->assertJsonPath('data.details.1.commission', '7.25')
-            ->assertJsonPath('data.details.1.return_amount', '92.75')
-            ->assertJsonPath('data.income_total', '100.10')
-            ->assertJsonPath('data.commission_total', '7.26')
-            ->assertJsonPath('data.return_total', '92.84');
+            ->assertJsonPath('data.commission_percentage', '6.50')
+            ->assertJsonPath('data.details.0.affiliation', '8889067')
+            ->assertJsonPath('data.details.0.bank', 'LUUM')
+            ->assertJsonPath('data.details.0.income', '236741.30')
+            ->assertJsonPath('data.income_total', '236741.30')
+            ->assertJsonPath('data.commission_total', '15388.18')
+            ->assertJsonPath('data.return_total', '221353.12');
 
         $recordId = $response->json('data.id');
         $this->assertDatabaseHas('records', [
@@ -64,19 +47,17 @@ class CreateManualRecordTest extends TestCase
             'company_id' => $company->id,
             'source' => RecordSource::MANUAL->value,
             'status' => RecordStatus::CONFIRMED->value,
+            'commission_percentage' => '6.50',
+            'commission' => '15388.18',
+            'return_amount' => '221353.12',
         ]);
-        $this->assertDatabaseCount('record_details', 2);
+        $this->assertDatabaseCount('record_details', 1);
         $this->assertDatabaseHas('record_details', [
             'record_id' => $recordId,
             'order' => 1,
-            'affiliation' => 'AFF-FIRST',
-            'branch' => 'Guadalajara',
-        ]);
-        $this->assertDatabaseHas('record_details', [
-            'record_id' => $recordId,
-            'order' => 2,
-            'affiliation' => 'AFF-SECOND',
-            'branch' => 'Zapopan',
+            'affiliation' => '8889067',
+            'bank' => 'LUUM',
+            'income' => '236741.30',
         ]);
         $this->assertDatabaseCount('histories', 1);
         $this->assertDatabaseHas('histories', [
@@ -89,6 +70,32 @@ class CreateManualRecordTest extends TestCase
         ]);
         $this->assertDatabaseCount('images', 0);
         $this->assertDatabaseCount('ai_processings', 0);
+    }
+
+    public function test_the_commission_is_calculated_once_over_the_sum_of_incomes(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+
+        // Per movement: 100.10 × 6.5% = 6.5065 → 6.51, twice = 13.02.
+        // Over the total: 200.20 × 6.5% = 13.013 → 13.01.
+        $response = $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $this->validManualRecordPayload(Company::factory()->create()->id, [
+                ['affiliation' => 'AFF-FIRST', 'bank' => 'LUUM', 'income' => '100.10'],
+                ['affiliation' => 'AFF-SECOND', 'bank' => 'BBVA', 'income' => '100.10'],
+            ], '6.50'));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.income_total', '200.20')
+            ->assertJsonPath('data.commission_total', '13.01')
+            ->assertJsonPath('data.return_total', '187.19');
+        $recordId = $response->json('data.id');
+        $this->assertDatabaseHas('records', [
+            'id' => $recordId,
+            'commission' => '13.01',
+            'return_amount' => '187.19',
+        ]);
+        $this->assertDatabaseHas('record_details', ['record_id' => $recordId, 'order' => 1, 'bank' => 'LUUM']);
+        $this->assertDatabaseHas('record_details', ['record_id' => $recordId, 'order' => 2, 'bank' => 'BBVA']);
     }
 
     public function test_record_creation_requires_authentication_and_editor_role(): void
@@ -114,7 +121,7 @@ class CreateManualRecordTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors([
                 'company_id', 'year', 'week', 'week_start_date', 'week_end_date',
-                'details',
+                'commission_percentage', 'details',
             ]);
 
         $this->actingAs($editor, 'web')
@@ -128,18 +135,22 @@ class CreateManualRecordTest extends TestCase
         $this->assertDatabaseCount('records', 0);
     }
 
-    public function test_manual_payload_requires_affiliation_and_branch_on_each_detail_and_rejects_root_fields(): void
+    public function test_manual_payload_requires_affiliation_bank_and_income_on_each_detail_and_rejects_root_fields(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $payload = $this->validManualRecordPayload(Company::factory()->create()->id);
 
         $missingMovementFields = $payload;
-        unset($missingMovementFields['details'][0]['affiliation'], $missingMovementFields['details'][0]['branch']);
+        unset(
+            $missingMovementFields['details'][0]['affiliation'],
+            $missingMovementFields['details'][0]['bank'],
+            $missingMovementFields['details'][0]['income'],
+        );
 
         $this->actingAs($editor, 'web')
             ->postJson('/api/records', $missingMovementFields)
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['details.0.affiliation', 'details.0.branch']);
+            ->assertJsonValidationErrors(['details.0.affiliation', 'details.0.bank', 'details.0.income']);
 
         $legacyRootFields = $payload;
         $legacyRootFields['affiliation'] = 'AFF-ROOT';
@@ -149,6 +160,55 @@ class CreateManualRecordTest extends TestCase
             ->postJson('/api/records', $legacyRootFields)
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['affiliation', 'branch']);
+
+        $this->assertDatabaseCount('records', 0);
+        $this->assertDatabaseCount('record_details', 0);
+    }
+
+    public function test_manual_creation_requires_the_global_commission_percentage(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $payload = $this->validManualRecordPayload(Company::factory()->create()->id);
+        unset($payload['commission_percentage']);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['commission_percentage']);
+
+        $this->assertDatabaseCount('records', 0);
+    }
+
+    public function test_manual_creation_rejects_legacy_and_derived_commission_fields(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $payload = $this->validManualRecordPayload(Company::factory()->create()->id);
+
+        foreach ([
+            ['branch' => 'Guadalajara'],
+            ['commission' => '5.00'],
+            ['return_amount' => '95.00'],
+        ] as $rootField) {
+            $this->actingAs($editor, 'web')
+                ->postJson('/api/records', array_merge($payload, $rootField))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(array_keys($rootField));
+        }
+
+        foreach ([
+            'branch' => 'Guadalajara',
+            'commission_percentage' => '5.00',
+            'commission' => '5.00',
+            'return_amount' => '95.00',
+        ] as $field => $value) {
+            $invalidPayload = $payload;
+            $invalidPayload['details'][0][$field] = $value;
+
+            $this->actingAs($editor, 'web')
+                ->postJson('/api/records', $invalidPayload)
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(["details.0.{$field}"]);
+        }
 
         $this->assertDatabaseCount('records', 0);
         $this->assertDatabaseCount('record_details', 0);
@@ -185,33 +245,72 @@ class CreateManualRecordTest extends TestCase
         $this->assertDatabaseCount('records', 1);
     }
 
-    public function test_manual_creation_rejects_invalid_commission_inputs_without_partial_writes(): void
+    public function test_manual_creation_rejects_invalid_percentages_and_incomes_without_partial_writes(): void
     {
         $editor = User::factory()->create(['role' => UserRole::EDITOR]);
         $companyId = Company::factory()->create()->id;
-        $payload = $this->validManualRecordPayload($companyId);
 
         foreach ([
-            ['income' => '10.00'],
-            ['income' => '10.00', 'commission' => '1.00', 'commission_percentage' => '5.00'],
-            ['income' => '10.00', 'commission' => '10.01'],
-            ['income' => '10.00', 'commission_percentage' => '100.01'],
-            ['income' => '10.001', 'commission' => '1.00'],
-            ['income' => '-1.00', 'commission' => '0.00'],
-        ] as $invalidDetail) {
-            $invalidPayload = $payload;
-            $invalidPayload['details'] = [array_merge([
-                'affiliation' => 'AFF-INVALID',
-                'branch' => 'Guadalajara',
-            ], $invalidDetail)];
-
+            [['income' => '10.00'], '100.01', 'commission_percentage'],
+            [['income' => '10.00'], '-1.00', 'commission_percentage'],
+            [['income' => '10.00'], '6.505', 'commission_percentage'],
+            [['income' => '10.00'], 'abc', 'commission_percentage'],
+            [['income' => '10.001'], '6.50', 'details.0.income'],
+            [['income' => '-1.00'], '6.50', 'details.0.income'],
+        ] as [$detail, $percentage, $errorKey]) {
             $this->actingAs($editor, 'web')
-                ->postJson('/api/records', $invalidPayload)
-                ->assertUnprocessable();
+                ->postJson('/api/records', $this->validManualRecordPayload($companyId, [$detail], $percentage))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors([$errorKey]);
         }
 
         $this->assertDatabaseCount('records', 0);
         $this->assertDatabaseCount('record_details', 0);
+    }
+
+    public function test_manual_creation_rejects_a_total_income_that_does_not_fit_the_record(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $companyId = Company::factory()->create()->id;
+
+        // Each movement is valid, but 9999999999.99 + 0.01 overflows records.return_amount.
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $this->validManualRecordPayload($companyId, [
+                ['income' => '9999999999.99'],
+                ['income' => '0.01'],
+            ], '0.00'))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['details']);
+
+        $this->assertDatabaseCount('records', 0);
+        $this->assertDatabaseCount('record_details', 0);
+
+        $this->actingAs($editor, 'web')
+            ->postJson('/api/records', $this->validManualRecordPayload($companyId, [
+                ['income' => '9999999999.98'],
+                ['income' => '0.01'],
+            ], '0.00'))
+            ->assertCreated()
+            ->assertJsonPath('data.return_total', '9999999999.99');
+    }
+
+    public function test_zero_and_full_percentages_are_accepted(): void
+    {
+        $editor = User::factory()->create(['role' => UserRole::EDITOR]);
+        $companyId = Company::factory()->create()->id;
+
+        foreach ([['0', '0.00', '100.00'], ['100', '100.00', '0.00']] as [$percentage, $commission, $return]) {
+            $recordId = $this->actingAs($editor, 'web')
+                ->postJson('/api/records', $this->validManualRecordPayload($companyId, null, $percentage))
+                ->assertCreated()
+                ->json('data.id');
+
+            $this->assertDatabaseHas('records', [
+                'id' => $recordId,
+                'commission' => $commission,
+                'return_amount' => $return,
+            ]);
+        }
     }
 
     public function test_failed_creation_history_write_rolls_back_manual_record_and_details(): void

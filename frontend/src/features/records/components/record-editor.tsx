@@ -65,8 +65,8 @@ export function RecordEditor({ canEdit, record }: { canEdit: boolean; record: Re
 
       <section aria-labelledby="record-editor-period-heading" className="space-y-4 rounded-lg border bg-card p-5 shadow-card">
         <div className="space-y-1">
-          <h3 className="text-base/6 font-semibold" id="record-editor-period-heading">Empresa y periodo</h3>
-          <p className="text-xs/4 text-muted-foreground">La semana se identifica por semana y año.</p>
+          <h3 className="text-base/6 font-semibold" id="record-editor-period-heading">Empresa, periodo y comisión</h3>
+          <p className="text-xs/4 text-muted-foreground">La semana se identifica por semana y año. La comisión es un solo porcentaje para todo el registro.</p>
         </div>
 
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
@@ -75,6 +75,12 @@ export function RecordEditor({ canEdit, record }: { canEdit: boolean; record: Re
           <ReviewField chip={chipFor(record.week, "record.week")} label="Semana" tabular value={record.week?.toString() ?? "—"} />
           <ReviewField chip={chipFor(record.week_start_date, "record.week_start_date")} label="Inicio" tabular value={formatDate(record.week_start_date)} />
           <ReviewField chip={chipFor(record.week_end_date, "record.week_end_date")} label="Fin" tabular value={formatDate(record.week_end_date)} />
+          <ReviewField
+            chip={chipFor(record.commission_percentage, "record.commission_percentage")}
+            label="Comisión %"
+            tabular
+            value={record.commission_percentage === null ? "—" : `${record.commission_percentage}%`}
+          />
         </dl>
 
         {companyHint !== null && (
@@ -110,16 +116,8 @@ function MovementReviewCard({
       <h4 className="font-bold">Movimiento {detail.order}</h4>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3">
         <ReviewField chip={chipFor(detail.affiliation, path("affiliation"))} label="Afiliación" value={detail.affiliation ?? "—"} />
-        <ReviewField chip={chipFor(detail.branch, path("branch"))} label="Sucursal" value={detail.branch ?? "—"} />
+        <ReviewField chip={chipFor(detail.bank, path("bank"))} label="Banco" value={detail.bank ?? "—"} />
         <ReviewField chip={chipFor(detail.income, path("income"))} label="Ingreso" tabular value={formatMoney(detail.income)} />
-        <ReviewField
-          chip={chipFor(detail.commission_percentage, path("commission_percentage"))}
-          label="Comisión %"
-          tabular
-          value={detail.commission_percentage === null ? "—" : `${detail.commission_percentage}%`}
-        />
-        <ReviewField chip={null} label="Comisión" tabular value={formatMoney(detail.commission)} />
-        <ReviewField chip={null} label="Retorno" tabular value={formatMoney(detail.return_amount)} />
       </dl>
     </article>
   );

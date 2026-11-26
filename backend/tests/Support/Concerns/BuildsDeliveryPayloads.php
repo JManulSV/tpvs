@@ -13,15 +13,17 @@ trait BuildsDeliveryPayloads
         string $returnAmount,
         RecordStatus $status = RecordStatus::CONFIRMED,
     ): Record {
-        $record = Record::factory()->create(['status' => $status]);
-
-        $record->details()->create([
-            'affiliation' => 'AFF-12345',
-            'branch' => 'Guadalajara',
-            'income' => '10000.00',
+        $record = Record::factory()->create([
+            'status' => $status,
             'commission_percentage' => '2.00',
             'commission' => '200.00',
             'return_amount' => $returnAmount,
+        ]);
+
+        $record->details()->create([
+            'affiliation' => 'AFF-12345',
+            'bank' => 'LUUM',
+            'income' => '10000.00',
             'order' => 1,
         ]);
 

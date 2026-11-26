@@ -11,8 +11,8 @@ use App\Models\RecordDetail;
 trait CreatesDeliveries
 {
     /**
-     * A Delivery for a CONFIRMED Record with one movement (1000.00 income, 80.00
-     * commission, 920.00 return) and cash of 500×1, 200×2 and 10×2 = 920.00.
+     * A Delivery for a CONFIRMED Record with one 1000.00 movement at 8.00%
+     * (80.00 commission, 920.00 return) and cash of 500×1, 200×2 and 10×2 = 920.00.
      *
      * @param  array<string, mixed>  $recordAttributes
      * @param  array<string, mixed>  $deliveryAttributes
@@ -23,13 +23,16 @@ trait CreatesDeliveries
         array $deliveryAttributes = [],
         ?array $denominations = null,
     ): Delivery {
-        $record = Record::factory()->create(array_merge(['status' => RecordStatus::CONFIRMED], $recordAttributes));
+        $record = Record::factory()->create(array_merge([
+            'status' => RecordStatus::CONFIRMED,
+            'commission_percentage' => '8.00',
+            'commission' => '80.00',
+            'return_amount' => '920.00',
+        ], $recordAttributes));
 
         RecordDetail::factory()->create([
             'record_id' => $record->getKey(),
             'income' => '1000.00',
-            'commission' => '80.00',
-            'return_amount' => '920.00',
             'order' => 1,
         ]);
 

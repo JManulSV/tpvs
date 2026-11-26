@@ -8,11 +8,8 @@ import {
   toUpsertDeliveryInput,
 } from "@/features/deliveries/utils";
 import type { RecordDetailView } from "@/features/records/types";
-import {
-  commissionModesFor,
-  initialManualRecordValues,
-  toRecordDetailInputs,
-} from "@/features/records/utils/manual-form";
+import * as manualForm from "@/features/records/utils/manual-form";
+import { initialManualRecordValues, toRecordDetailInputs } from "@/features/records/utils/manual-form";
 
 const savedDelivery = {
   delivery_date: "2026-09-15",
@@ -102,40 +99,49 @@ const editedRecord = {
   week: 38,
   week_start_date: "2026-09-14",
   week_end_date: "2026-09-20",
+  commission_percentage: "6.50",
   details: [
-    { affiliation: "A1", branch: "Centro", income: "100.00", commission_percentage: "3.00", commission: "3.00" },
-    { affiliation: "A2", branch: "Norte", income: "50.00", commission_percentage: null, commission: "5.00" },
+    { id: 1, affiliation: "A1", bank: "LUUM", income: "100.00", order: 1 },
+    { id: 2, affiliation: "A2", bank: "BBVA", income: "50.00", order: 2 },
   ],
 } as unknown as RecordDetailView;
 
 describe("manual record form helpers", () => {
-  it("starts a new record with one empty percentage movement", () => {
+  it("starts a new record with an empty global percentage and one empty movement", () => {
     const values = initialManualRecordValues();
 
     expect(values.company_id).toBe(0);
-    expect(values.details).toEqual([{ affiliation: "", branch: "", income: "", commission_percentage: "" }]);
+    expect(values.commission_percentage).toBe("");
+    expect(values.details).toEqual([{ affiliation: "", bank: "", income: "" }]);
   });
 
-  it("loads each movement with only the commission field of its mode", () => {
+  it("loads the global percentage and each movement's affiliation, bank and income", () => {
     const values = initialManualRecordValues(editedRecord);
 
-    expect(values.details[0]).toEqual({ affiliation: "A1", branch: "Centro", income: "100.00", commission_percentage: "3.00" });
-    expect(values.details[1]).toEqual({ affiliation: "A2", branch: "Norte", income: "50.00", commission: "5.00" });
-    expect(commissionModesFor(editedRecord)).toEqual(["percentage", "fixed"]);
+    expect(values.commission_percentage).toBe("6.50");
+    expect(values.details).toEqual([
+      { affiliation: "A1", bank: "LUUM", income: "100.00" },
+      { affiliation: "A2", bank: "BBVA", income: "50.00" },
+    ]);
   });
 
-  it("sends trimmed text and the commission that matches each mode", () => {
-    const inputs = toRecordDetailInputs(
-      [
-        { affiliation: " A1 ", branch: "Centro ", income: "100.00", commission_percentage: "3", commission: "9" },
-        { affiliation: "A2", branch: "Norte", income: "50.00", commission: "5.00" },
-      ],
-      ["percentage", "fixed"],
-    );
+  it("leaves the percentage empty for a provisional image record without one", () => {
+    const values = initialManualRecordValues({ ...editedRecord, commission_percentage: null });
 
-    expect(inputs).toEqual([
-      { affiliation: "A1", branch: "Centro", income: "100.00", commission_percentage: "3" },
-      { affiliation: "A2", branch: "Norte", income: "50.00", commission: "5.00" },
+    expect(values.commission_percentage).toBe("");
+  });
+
+  it("sends trimmed affiliation and bank with the income", () => {
+    expect(toRecordDetailInputs([
+      { affiliation: " A1 ", bank: "LUUM ", income: "100.00" },
+      { affiliation: "A2", bank: " BBVA", income: "50.00" },
+    ])).toEqual([
+      { affiliation: "A1", bank: "LUUM", income: "100.00" },
+      { affiliation: "A2", bank: "BBVA", income: "50.00" },
     ]);
+  });
+
+  it("has no fixed-commission mode", () => {
+    expect(manualForm).not.toHaveProperty("commissionModesFor");
   });
 });

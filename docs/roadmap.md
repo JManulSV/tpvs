@@ -23,6 +23,7 @@ A module is complete only when its code, tests, and checkpoint are verified — 
 | 8.14 | Reports and Excel | 13, 24 | Complete |
 | 8.15 | Frontend design system and screens | 15, 16, 18–24 | Complete |
 | — | Backend refactor (actions, `Money`, domain errors; no behavior change) | 25 | Complete |
+| — | New image format: global commission percentage per record, bank per movement, prompt v6 | 27 | Complete |
 | 8.16 | End-to-end integration | — | Pending |
 | 8.17 | Release testing | — | Pending |
 | 8.18 | Office LAN deployment | — | Pending |

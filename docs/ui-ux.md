@@ -69,7 +69,7 @@ This is the main operational screen.
 ```text
 Records                                  + New record
 
-Search company, affiliation, branch...
+Search company, affiliation, bank...
 
 Company    Year    Month    Week    Status    Source
 [All]      [2026]   [Sep]    [38]    [All]     [All]

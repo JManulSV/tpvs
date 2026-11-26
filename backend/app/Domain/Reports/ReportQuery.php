@@ -8,14 +8,21 @@ use App\Models\Record;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\DB;
 
 class ReportQuery
 {
+    /**
+     * Commission and return live on the Record (SPEC 27). Income is summed per
+     * Record in a subquery first, so each Record is one row and its commission
+     * is never multiplied by the number of movements.
+     */
     private const SUMS = <<<'SQL'
-        count(distinct records.id) as records_count,
-        round(coalesce(sum(record_details.income), 0), 2) as income_total,
-        round(coalesce(sum(record_details.commission), 0), 2) as commission_total,
-        round(coalesce(sum(record_details.return_amount), 0), 2) as return_total
+        count(records.id) as records_count,
+        round(coalesce(sum(record_incomes.income_total), 0), 2) as income_total,
+        round(coalesce(sum(records.commission), 0), 2) as commission_total,
+        round(coalesce(sum(records.return_amount), 0), 2) as return_total
         SQL;
 
     /**
@@ -25,7 +32,7 @@ class ReportQuery
     {
         $row = $this->base($filters)
             ->toBase()
-            ->leftJoin('record_details', 'record_details.record_id', '=', 'records.id')
+            ->leftJoinSub($this->incomePerRecord(), 'record_incomes', 'record_incomes.record_id', '=', 'records.id')
             ->selectRaw(self::SUMS)
             ->first();
 
@@ -45,7 +52,7 @@ class ReportQuery
         return $this->base($filters)
             ->toBase()
             ->join('companies', 'companies.id', '=', 'records.company_id')
-            ->leftJoin('record_details', 'record_details.record_id', '=', 'records.id')
+            ->leftJoinSub($this->incomePerRecord(), 'record_incomes', 'record_incomes.record_id', '=', 'records.id')
             ->groupBy('companies.id', 'companies.name')
             ->orderBy('companies.name')
             ->orderBy('companies.id')
@@ -132,8 +139,18 @@ class ReportQuery
         return $query
             ->withCount('details')
             ->withSum('details as income_total', 'income')
-            ->withSum('details as commission_total', 'commission')
-            ->withSum('details as return_total', 'return_amount');
+            ->addSelect([
+                'records.commission as commission_total',
+                'records.return_amount as return_total',
+            ]);
+    }
+
+    private function incomePerRecord(): QueryBuilder
+    {
+        return DB::table('record_details')
+            ->select('record_id')
+            ->selectRaw('sum(income) as income_total')
+            ->groupBy('record_id');
     }
 
     /**

@@ -10,6 +10,9 @@ use App\Models\RecordDetail;
 trait BuildsManualRecords
 {
     /**
+     * A Record with one 100.00 movement at a 5.00% global commission
+     * (commission 5.00, return 95.00) unless the attributes say otherwise.
+     *
      * @param  array<string, mixed>  $recordAttributes
      * @param  array<string, mixed>  $detailAttributes
      */
@@ -20,16 +23,17 @@ trait BuildsManualRecords
     ): Record {
         $record = Record::factory()
             ->for($company ?? Company::factory())
-            ->create($recordAttributes);
+            ->create(array_merge([
+                'commission_percentage' => '5.00',
+                'commission' => '5.00',
+                'return_amount' => '95.00',
+            ], $recordAttributes));
 
         RecordDetail::factory()->for($record)->create(array_merge([
             'income' => '100.00',
-            'commission_percentage' => '5.00',
-            'commission' => '5.00',
-            'return_amount' => '95.00',
             'order' => 1,
             'affiliation' => 'AFF-12345',
-            'branch' => 'Guadalajara',
+            'bank' => 'LUUM',
         ], $detailAttributes));
 
         return $record;
@@ -39,12 +43,12 @@ trait BuildsManualRecords
      * @param  list<array<string, string>>|null  $details
      * @return array<string, mixed>
      */
-    protected function validManualRecordPayload(int $companyId, ?array $details = null): array
-    {
-        $details ??= [[
-            'income' => '100.00',
-            'commission_percentage' => '5.00',
-        ]];
+    protected function validManualRecordPayload(
+        int $companyId,
+        ?array $details = null,
+        string $commissionPercentage = '5.00',
+    ): array {
+        $details ??= [['income' => '100.00']];
 
         return [
             'company_id' => $companyId,
@@ -52,9 +56,10 @@ trait BuildsManualRecords
             'week' => 38,
             'week_start_date' => '2026-09-14',
             'week_end_date' => '2026-09-20',
+            'commission_percentage' => $commissionPercentage,
             'details' => array_map(static fn (array $detail, int $index): array => array_merge([
                 'affiliation' => 'AFF-'.($index + 123),
-                'branch' => 'Guadalajara',
+                'bank' => 'LUUM',
             ], $detail), $details, array_keys($details)),
         ];
     }

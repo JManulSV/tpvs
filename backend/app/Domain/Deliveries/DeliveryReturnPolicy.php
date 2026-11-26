@@ -13,10 +13,10 @@ class DeliveryReturnPolicy
         private readonly DeliveryInputNormalizer $normalizer = new DeliveryInputNormalizer,
     ) {}
 
-    /** Sum of the record's current movement returns. */
+    /** The record's official return, calculated once by RecordFinancials (SPEC 27). */
     public function currentReturnAmount(Record $record): string
     {
-        return $this->normalizer->money($record->details()->sum('return_amount'))->toDecimal();
+        return $this->normalizer->money($record->return_amount)->toDecimal();
     }
 
     /** A prepared delivery is stale when the record's return changed after preparation. */

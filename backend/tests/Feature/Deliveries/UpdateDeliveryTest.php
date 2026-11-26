@@ -5,7 +5,6 @@ namespace Tests\Feature\Deliveries;
 use App\Enums\UserRole;
 use App\Models\Delivery;
 use App\Models\History;
-use App\Models\RecordDetail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -119,9 +118,7 @@ class UpdateDeliveryTest extends TestCase
             ->assertOk()
             ->json('data.id');
 
-        RecordDetail::query()
-            ->where('record_id', $record->id)
-            ->update(['return_amount' => '10000.00']);
+        $record->update(['return_amount' => '10000.00']);
 
         $this->actingAs($editor, 'web')
             ->getJson('/api/records/'.$record->id.'/delivery')

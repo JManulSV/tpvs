@@ -15,17 +15,11 @@ class RecordDetailFactory extends Factory
 
     public function definition(): array
     {
-        $income = fake()->randomFloat(2, 100, 10000);
-        $commission = fake()->randomFloat(2, 0, min($income, 500));
-
         return [
             'record_id' => Record::factory(),
             'affiliation' => fake()->bothify('AFF-####'),
-            'branch' => fake()->city(),
-            'income' => $income,
-            'commission_percentage' => null,
-            'commission' => $commission,
-            'return_amount' => round($income - $commission, 2),
+            'bank' => fake()->randomElement(['LUUM', 'BBVA', 'Banorte', 'Santander']),
+            'income' => fake()->randomFloat(2, 100, 10000),
             'order' => 1,
         ];
     }

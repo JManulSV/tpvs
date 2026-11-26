@@ -21,7 +21,11 @@ class RecordResourceAiProcessingTest extends TestCase
             'status' => AiProcessingStatus::COMPLETED,
             'result' => [
                 'raw_response' => 'private raw response',
-                'normalized_extraction' => ['record' => ['year' => ['value' => 2026, 'confidence' => 0.95]]],
+                'normalized_extraction' => ['record' => [
+                    'year' => ['value' => 2026, 'confidence' => 0.95],
+                    'document_number' => ['value' => '18006', 'confidence' => 0.95],
+                    'completion_date' => ['value' => '2026-11-23', 'confidence' => 0.9],
+                ]],
                 'issues' => [['path' => 'record.week', 'code' => 'LOW_CONFIDENCE']],
                 'unconvertible_numeric_count' => 0,
             ],
@@ -49,6 +53,12 @@ class RecordResourceAiProcessingTest extends TestCase
         $this->assertSame('COMPLETED', $resource['ai_processing']['status']);
         $this->assertSame(2026, $resource['ai_processing']['normalized_extraction']['record']['year']['value']);
         $this->assertSame(0, $resource['ai_processing']['unconvertible_numeric_count']);
+        // Kept in AIProcessing.result, not exposed yet (SPEC 27).
+        $this->assertArrayNotHasKey('document_number', $resource['ai_processing']['normalized_extraction']['record']);
+        $this->assertArrayNotHasKey('completion_date', $resource['ai_processing']['normalized_extraction']['record']);
+        $this->assertSame('18006', $processing->result['normalized_extraction']['record']['document_number']['value']);
+        $this->assertArrayNotHasKey('document_number', $resource);
+        $this->assertArrayNotHasKey('completion_date', $resource);
         $this->assertArrayNotHasKey('raw_response', $resource['ai_processing']);
         $this->assertArrayNotHasKey('error_message', $resource['ai_processing']);
         $this->assertStringNotContainsString('private raw response', json_encode($resource, JSON_THROW_ON_ERROR));

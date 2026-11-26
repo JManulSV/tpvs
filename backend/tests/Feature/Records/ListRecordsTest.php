@@ -20,16 +20,18 @@ class ListRecordsTest extends TestCase
         $company = Company::factory()->create(['name' => 'Northwind Supply']);
         $record = $this->createRecordWithDetails($company, [], [
             'affiliation' => 'AFF-928',
-            'branch' => 'Guadalajara Centro',
+            'bank' => 'Banorte',
         ]);
         RecordDetail::factory()->for($record)->create([
             'affiliation' => 'AFF-SECOND',
-            'branch' => 'Tonalá',
+            'bank' => 'LUUM',
             'order' => 2,
         ]);
-        $other = $this->createRecordWithDetails(Company::factory()->create(['name' => 'Contoso']));
+        $other = $this->createRecordWithDetails(Company::factory()->create(['name' => 'Contoso']), [], [
+            'bank' => 'BBVA',
+        ]);
 
-        foreach ([' NORTHWIND ', 'aff-second', 'TONALÁ'] as $search) {
+        foreach ([' NORTHWIND ', 'aff-second', 'LUUM', 'banorte'] as $search) {
             $this->actingAs(User::factory()->create(), 'web')
                 ->getJson('/api/records?search='.urlencode($search))
                 ->assertOk()

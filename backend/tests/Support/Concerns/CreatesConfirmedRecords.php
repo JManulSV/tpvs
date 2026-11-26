@@ -2,6 +2,7 @@
 
 namespace Tests\Support\Concerns;
 
+use App\Domain\Records\RecordFinancials;
 use App\Enums\RecordStatus;
 use App\Models\Company;
 use App\Models\Record;
@@ -10,13 +11,17 @@ use App\Models\RecordDetail;
 trait CreatesConfirmedRecords
 {
     /**
-     * A CONFIRMED Record for week 38 of 2026 unless $attributes say otherwise.
+     * A CONFIRMED Record for week 38 of 2026 at a 10.00% global commission
+     * unless $attributes say otherwise. Commission and return are calculated
+     * once over the total income with RecordFinancials, as Laravel stores them.
      *
      * @param  array<string, mixed>  $attributes
-     * @param  list<array{0: string, 1: string}>  $movements  [income, commission] pairs
+     * @param  list<string>  $incomes  one income per movement
      */
-    protected function record(Company $company, array $attributes, array $movements): Record
+    protected function record(Company $company, array $attributes, array $incomes): Record
     {
+        $percentage = $attributes['commission_percentage'] ?? '10.00';
+
         $record = Record::factory()->create(array_merge([
             'company_id' => $company->getKey(),
             'status' => RecordStatus::CONFIRMED,
@@ -24,14 +29,14 @@ trait CreatesConfirmedRecords
             'week' => 38,
             'week_start_date' => '2026-09-07',
             'week_end_date' => '2026-09-13',
+            'commission_percentage' => $percentage,
+            ...RecordFinancials::attributes(RecordFinancials::calculate($incomes, $percentage)),
         ], $attributes));
 
-        foreach ($movements as $index => [$income, $commission]) {
+        foreach ($incomes as $index => $income) {
             RecordDetail::factory()->create([
                 'record_id' => $record->getKey(),
                 'income' => $income,
-                'commission' => $commission,
-                'return_amount' => number_format((float) $income - (float) $commission, 2, '.', ''),
                 'order' => $index + 1,
             ]);
         }
