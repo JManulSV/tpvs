@@ -248,7 +248,7 @@ export function RecordDetailScreen({ canEdit, recordId }: { canEdit: boolean; re
                 <RecordPeriodCard companyHint={companyHint} record={record} />
               </div>
               <div className="@[60rem]:col-start-1 @[60rem]:row-start-3">
-                <RecordMovementsCard details={record.details} />
+                <RecordMovementsCard record={record} />
               </div>
             </>
           )}
